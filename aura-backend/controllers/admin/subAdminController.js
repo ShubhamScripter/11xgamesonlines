@@ -211,6 +211,7 @@ export const getAllUsersWithCompleteInfo = async (req, res) => {
     }
 
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -508,6 +509,7 @@ export const deleteSubAdmin = async (req, res) => {
           };
 
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -869,6 +871,7 @@ export const getDeleteUser = async (req, res) => {
           };
 
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -933,6 +936,7 @@ export const restoreDeleteUser = async (req, res) => {
           };
 
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -996,6 +1000,7 @@ export const getAllUser = async (req, res) => {
       };
     }
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -1116,6 +1121,7 @@ export const getAllOnlyUser = async (req, res) => {
     }
 
     const allUsers = await SubAdmin.find(filter)
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
@@ -2165,6 +2171,8 @@ export const getAllDownlineBets = async (req, res) => {
     const { startDate, endDate, page, limit, selectedGame, selectedVoid } =
       req.query;
 
+  
+
     const admin = await SubAdmin.findById(id);
     if (!admin) {
       return res
@@ -2172,8 +2180,11 @@ export const getAllDownlineBets = async (req, res) => {
         .json({ success: false, message: 'Admin not found' });
     }
 
+console.log("admin is:", admin);
+
+
     let queue = [admin.code];
-    let userIds = [];
+    let userIds = [admin._id];
 
     while (queue.length > 0) {
       const currentCode = queue.shift();
@@ -2217,12 +2228,16 @@ export const getAllDownlineBets = async (req, res) => {
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
+    console.log("filter is:", filter);
+
     // Fetch bets for all collected users
     const betData = await betHistoryModel
       .find(filter)
       .sort({ createdAt: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum);
+
+console.log("betData is:", betData);
 
     const totalCount = await betHistoryModel.countDocuments(filter);
 

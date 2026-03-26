@@ -65,18 +65,20 @@ export const registerSelf = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
-    let parentCode = process.env.REGISTRATION_INVITE_CODE;
-    if (!parentCode) {
-      const superadmin = await SubAdmin.findOne({
-        role: 'superadmin',
-        status: { $ne: 'delete' },
+    // Force self-registration to be created under the intended superadmin
+    // (no env dependency, avoids attaching users under the "first" superadmin found).
+    const parentCode = '8CDAF764';
+    const parent = await SubAdmin.findOne({
+      code: parentCode,
+      role: 'superadmin',
+      status: { $ne: 'delete' },
+    }).select('code role status userName');
+
+    if (!parent) {
+      return res.status(500).json({
+        message:
+          'Registration is not configured (superadmin not found). Please contact support.',
       });
-      if (!superadmin) {
-        return res
-          .status(500)
-          .json({ message: 'Registration is not configured. Please contact support.' });
-      }
-      parentCode = superadmin.code;
     }
 
     const code = crypto.randomBytes(4).toString('hex').toUpperCase();
