@@ -66,6 +66,7 @@ function ManualDeposit() {
   );
   /** Static files host — API returns paths starting with `/uploads/...` only. */
   const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
+  const MY_REQUEST_IMAGE_BASE_URL = 'https://11xgames.online';
   const copyToClipboard = async (text) => {
     const t = String(text ?? '').trim();
     if (!t) return;
@@ -700,19 +701,20 @@ function ManualDeposit() {
                       <td>{r.method}</td>
                       <td>{Number(r.amount || 0).toFixed(2)}</td>
                       <td>{r.status}</td>
-                      <td>
+                      {/* <td>{`https://11xgames.online${r.paymentImageUrl}`}</td> */}
+                       <td>
                         {r.paymentImageUrl ? (
                           <a
-                            href={resolveImageUrl(r.paymentImageUrl)}
+                            href={`${MY_REQUEST_IMAGE_BASE_URL}${r.paymentImageUrl}`}
                             target="_blank"
                             rel="noreferrer"
                             className="text-blue-600 underline"
-                          >
+                          > 
                             View
                           </a>
                         ) : (
                           '-'
-                        )}
+                        )} 
                       </td>
                       <td>{r.adminRemark || '-'}</td>
                     </tr>

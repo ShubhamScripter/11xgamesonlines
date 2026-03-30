@@ -30,6 +30,8 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(false);
   const [reviewingId, setReviewingId] = useState('');
+  const [rejectingId, setRejectingId] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
   const imageBase = (axiosInstance?.defaults?.baseURL || '').replace('/api', '');
   const statusOptions = ['pending', 'approved', 'rejected'];
   const isWithdrawPage = requestType === 'withdraw';
@@ -55,12 +57,41 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
     fetchRequests();
   }, [status, requestType]);
 
-  const reviewRequest = async (requestId, action) => {
+  useEffect(() => {
+    let mounted = true;
+
+    const safeFetch = async () => {
+      if (!mounted) return;
+      await fetchRequests();
+    };
+
+    const id = setInterval(safeFetch, 15000);
+    window.addEventListener('focus', safeFetch);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') safeFetch();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+      window.removeEventListener('focus', safeFetch);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+    // keep it in sync with current filters
+  }, [status, requestType]);
+
+  const reviewRequest = async (requestId, action, adminRemarkOverride) => {
     setReviewingId(requestId);
     try {
       await axiosInstance.patch(`/admin/deposit-requests/${requestId}/review`, {
         action,
-        adminRemark: action === 'approve' ? 'Approved by admin' : 'Rejected by admin',
+        adminRemark:
+          action === 'approve'
+            ? 'Approved by admin'
+            : adminRemarkOverride && String(adminRemarkOverride).trim()
+              ? String(adminRemarkOverride).trim()
+              : 'Rejected by admin',
       });
       toast.success(`Request ${action}d`);
       await fetchRequests();
@@ -69,6 +100,21 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
     } finally {
       setReviewingId('');
     }
+  };
+
+  const startReject = (requestId) => {
+    setRejectingId(requestId);
+    setRejectReason('');
+  };
+
+  const cancelReject = () => {
+    setRejectingId('');
+    setRejectReason('');
+  };
+
+  const confirmReject = async (requestId) => {
+    await reviewRequest(requestId, 'reject', rejectReason);
+    cancelReject();
   };
 
   return (
@@ -160,20 +206,50 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
                   <td className="p-2">
                     {r.status === 'pending' ? (
                       <div className="flex gap-2">
-                        <button
-                          disabled={reviewingId === r._id}
-                          className="bg-green-600 text-white px-2 py-1 rounded"
-                          onClick={() => reviewRequest(r._id, 'approve')}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          disabled={reviewingId === r._id}
-                          className="bg-red-600 text-white px-2 py-1 rounded"
-                          onClick={() => reviewRequest(r._id, 'reject')}
-                        >
-                          Reject
-                        </button>
+                        {rejectingId === r._id ? (
+                          <div className="flex flex-col gap-1 w-full">
+                            <textarea
+                              value={rejectReason}
+                              onChange={(e) => setRejectReason(e.target.value)}
+                              placeholder="Enter reject reason for user"
+                              className="border rounded px-2 py-1 text-xs w-full"
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                disabled={reviewingId === r._id}
+                                className="bg-red-600 text-white px-2 py-1 rounded"
+                                onClick={() => confirmReject(r._id)}
+                              >
+                                Confirm Reject
+                              </button>
+                              <button
+                                disabled={reviewingId === r._id}
+                                className="bg-gray-200 text-gray-800 px-2 py-1 rounded"
+                                onClick={cancelReject}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              disabled={reviewingId === r._id}
+                              className="bg-green-600 text-white px-2 py-1 rounded"
+                              onClick={() => reviewRequest(r._id, 'approve')}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              disabled={reviewingId === r._id}
+                              className="bg-red-600 text-white px-2 py-1 rounded"
+                              onClick={() => startReject(r._id)}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <span>{r.adminRemark || '-'}</span>

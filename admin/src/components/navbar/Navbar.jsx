@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as Icons from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../store/authSlice";
+import axiosInstance from "../../utils/axiosInstance";
 
 const navData = [
   {
@@ -89,12 +90,14 @@ const navData = [
   {
     label: "Deposit Requests",
     icon: "FaInbox",
-    path: "/manual-deposit-requests"
+    path: "/manual-deposit-requests",
+    badgeKey: "depositPending",
   },
   {
     label: "Withdraw Requests",
     icon: "FaMoneyBillWave",
-    path: "/manual-withdraw-requests"
+    path: "/manual-withdraw-requests",
+    badgeKey: "withdrawPending",
   },
   {
     label: "Customer support",
@@ -122,11 +125,12 @@ const navData = [
   }
 ];
 
-const SidebarItem = ({ item }) => {
+const SidebarItem = ({ item, badges }) => {
   const [open, setOpen] = useState(false);
   const Icon = Icons[item.icon] || Icons.FaQuestionCircle;
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const badgeValue = item.badgeKey ? Number(badges?.[item.badgeKey] || 0) : 0;
 
   const handleClick = () => {
     if (item.label === "Logout") {
@@ -148,19 +152,28 @@ const SidebarItem = ({ item }) => {
         onClick={handleClick}
         className="flex items-center justify-between cursor-pointer p-2 py-3 border-b-[1px] border-b-solid border-b-[#ffffff4d] hover:bg-[#4a4e42] hover:font-semibold"
       >
-        <div className="flex items-center gap-2">
-         
-          <span className="text-[13px]">{item.label}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className="text-[14px] opacity-90" />
+          <span className="text-[13px] truncate">{item.label}</span>
         </div>
-        {item.children && (
-          <span>{open ? "▲" : "▼"}</span>
-        )}
+        <div className="flex items-center gap-2">
+          {badgeValue > 0 ? (
+            <span className="text-[11px] font-bold bg-red-600 text-white px-2 py-[2px] rounded-full">
+              {badgeValue}
+            </span>
+          ) : null}
+          {item.children && <span>{open ? "▲" : "▼"}</span>}
+        </div>
       </div>
 
       {item.children && open && (
         <div className="mt-1">
           {item.children.map((child) => (
-            <SidebarItem key={child.path} item={child} />
+            <SidebarItem
+              key={child.path || child.label}
+              item={child}
+              badges={badges}
+            />
           ))}
         </div>
       )}
@@ -169,10 +182,55 @@ const SidebarItem = ({ item }) => {
 };
 
 const Navbar = () => {
+  const [badges, setBadges] = useState({ depositPending: 0, withdrawPending: 0 });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchBadges = async () => {
+      try {
+        const [depositRes, withdrawRes] = await Promise.all([
+          axiosInstance.get("/admin/deposit-requests", {
+            params: { status: "pending", requestType: "deposit" },
+          }),
+          axiosInstance.get("/admin/deposit-requests", {
+            params: { status: "pending", requestType: "withdraw" },
+          }),
+        ]);
+
+        const depositList = Array.isArray(depositRes?.data?.data) ? depositRes.data.data : [];
+        const withdrawList = Array.isArray(withdrawRes?.data?.data) ? withdrawRes.data.data : [];
+        if (mounted) {
+          setBadges((prev) => ({
+            ...prev,
+            depositPending: depositList.length,
+            withdrawPending: withdrawList.length,
+          }));
+        }
+      } catch {
+        // keep last value if API fails
+      }
+    };
+
+    fetchBadges();
+    const id = setInterval(fetchBadges, 15000);
+    window.addEventListener("focus", fetchBadges);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchBadges();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+      window.removeEventListener("focus", fetchBadges);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
   return (
     <div className="w-64 bg-black text-white shadow-lg h-[calc(100vh-80px)] overflow-y-auto hide-scrollbar">
       {navData.map((item) => (
-        <SidebarItem key={item.path || item.label} item={item} />
+        <SidebarItem key={item.path || item.label} item={item} badges={badges} />
       ))}
     </div>
   );
