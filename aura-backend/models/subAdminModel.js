@@ -64,6 +64,8 @@ const subAdminSchema = new mongoose.Schema(
       ],
     },
     sessionToken: { type: String, default: null },
+    /** All active login session tokens (multi-device). Legacy single `sessionToken` still used as "last login" hint. */
+    sessionTokens: { type: [String], default: [] },
     lastLogin: { type: Date, default: null },
     lastDevice: { type: String, default: null },
     lastIP: { type: String, default: null },

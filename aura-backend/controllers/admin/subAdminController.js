@@ -613,18 +613,30 @@ export const loginSubAdmin = async (req, res) => {
         .json({ message: `Your Account has been ${subAdmin.status} !` });
     }
 
-    // Generate unique session token
+    // Unique session id per login. Keep ALL still-valid ids: previous `sessionToken` must be
+    // merged into `sessionTokens` — otherwise only $push(new) leaves old JWTs unmatched after $set(sessionToken).
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const deviceId = req.headers['user-agent'] || 'unknown-device';
     const ipAddress =
       req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
-    //  Update user session information
-    subAdmin.sessionToken = sessionToken;
-    subAdmin.lastLogin = new Date();
-    subAdmin.lastDevice = deviceId;
-    subAdmin.lastIP = ipAddress;
-    await subAdmin.save();
+    const previousSingle = subAdmin.sessionToken;
+    const fromArray = Array.isArray(subAdmin.sessionTokens)
+      ? [...subAdmin.sessionTokens]
+      : [];
+    const merged = new Set(fromArray);
+    if (previousSingle) merged.add(previousSingle);
+    merged.add(sessionToken);
+
+    await SubAdmin.findByIdAndUpdate(subAdmin._id, {
+      $set: {
+        sessionTokens: [...merged],
+        sessionToken,
+        lastLogin: new Date(),
+        lastDevice: deviceId,
+        lastIP: ipAddress,
+      },
+    });
 
     //  Generate JWT Token with session token
     const token = jwt.sign(
@@ -717,15 +729,44 @@ export const changePasswordBySubAdmin = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // Get user ID from authenticated request
     const userId = req.id;
 
-    // Clear session token in database
-    await SubAdmin.findByIdAndUpdate(userId, {
-      $set: { sessionToken: null },
-    });
+    let token =
+      req.headers.authorization?.startsWith('Bearer') &&
+      req.headers.authorization.split(' ')[1];
+    if (!token && req.cookies?.auth) token = req.cookies.auth;
 
-    // Clear cookie
+    let sessionToRemove = null;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        sessionToRemove = decoded.sessionToken;
+      } catch {
+        // token invalid — still clear cookie below
+      }
+    }
+
+    if (sessionToRemove) {
+      await SubAdmin.findByIdAndUpdate(userId, {
+        $pull: { sessionTokens: sessionToRemove },
+      });
+      const u = await SubAdmin.findById(userId).select('sessionToken sessionTokens');
+      const remaining = u?.sessionTokens || [];
+      if (remaining.length === 0) {
+        await SubAdmin.findByIdAndUpdate(userId, {
+          $set: { sessionToken: null },
+        });
+      } else if (u?.sessionToken === sessionToRemove) {
+        await SubAdmin.findByIdAndUpdate(userId, {
+          $set: { sessionToken: remaining[remaining.length - 1] },
+        });
+      }
+    } else {
+      await SubAdmin.findByIdAndUpdate(userId, {
+        $set: { sessionToken: null, sessionTokens: [] },
+      });
+    }
+
     res.clearCookie('auth', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -753,9 +794,8 @@ export const forceLogoutUser = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Clear session token
     await SubAdmin.findByIdAndUpdate(userId, {
-      $set: { sessionToken: null },
+      $set: { sessionToken: null, sessionTokens: [] },
     });
 
     res.status(200).json({
@@ -2597,7 +2637,10 @@ export const getUserCompleteInfo = async (req, res) => {
 
       // Session information
       sessionInfo: {
-        sessionToken: user.sessionToken ? "Active" : "Inactive",
+        sessionToken:
+          (user.sessionTokens && user.sessionTokens.length > 0) || user.sessionToken
+            ? 'Active'
+            : 'Inactive',
         lastLogin: user.lastLogin,
         lastDevice: user.lastDevice,
         lastIP: user.lastIP,

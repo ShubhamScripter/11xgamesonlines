@@ -398,11 +398,11 @@ function ManualDeposit() {
                                     onError={(e) => {
                                       try {
                                         const raw = String(value || '');
-                                        const parsed = raw.startsWith('http') ? new URL(raw) : null;
-                                        const fallbackPath = parsed?.pathname || raw;
+                                        // Always resolve to the static uploads host.
+                                        const resolved = resolveImageUrl(raw);
                                         if (!e.currentTarget.dataset.fallback) {
                                           e.currentTarget.dataset.fallback = '1';
-                                          e.currentTarget.src = `${window.location.origin}${fallbackPath.startsWith('/') ? fallbackPath : `/${fallbackPath}`}`;
+                                          if (resolved) e.currentTarget.src = resolved;
                                         }
                                       } catch {
                                         // ignore fallback errors

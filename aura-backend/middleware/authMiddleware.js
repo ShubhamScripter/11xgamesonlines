@@ -2,6 +2,16 @@ import jwt from 'jsonwebtoken';
 
 import SubAdmin from '../models/subAdminModel.js';
 
+/** JWT session id must exist on the user (multi-session array or legacy single field). */
+function sessionMatchesUser(user, decodedSessionToken) {
+  if (decodedSessionToken == null || decodedSessionToken === '') return false;
+  const want = String(decodedSessionToken);
+  const list = Array.isArray(user.sessionTokens) ? user.sessionTokens : [];
+  if (list.some((t) => String(t) === want)) return true;
+  if (user.sessionToken != null && String(user.sessionToken) === want) return true;
+  return false;
+}
+
 export const authMiddleware = (req, res, next) => {
   let token;
   if (
@@ -61,7 +71,7 @@ export const adminAuthMiddleware = async (req, res, next) => {
     }
 
     const user = await SubAdmin.findById(decodedToken.id);
-    if (user.sessionToken !== decodedToken.sessionToken) {
+    if (!user || !sessionMatchesUser(user, decodedToken.sessionToken)) {
       return res.status(401).json({
         message: 'Session expired. Please login again.',
         code: 'SESSION_EXPIRED',

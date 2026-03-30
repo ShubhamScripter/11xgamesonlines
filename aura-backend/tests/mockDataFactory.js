@@ -80,6 +80,7 @@ export const mockSubAdmin = (overrides = {}) => {
       { game: 'Lottery', lock: true },
     ],
     sessionToken: overrides.sessionToken || null,
+    sessionTokens: overrides.sessionTokens || [],
     lastLogin: overrides.lastLogin || null,
     lastDevice: overrides.lastDevice || null,
     lastIP: overrides.lastIP || null,
