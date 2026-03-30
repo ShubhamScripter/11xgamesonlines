@@ -48,7 +48,7 @@ function Fullmarket() {
       </div>
       <div className='bg-[#1e1e1e] h-10 p-2 pl-4 pr-4 flex justify-between items-center'>
         <span className='text-white'>Exchange</span>
-        <span className='text-[#17934e]'>MatchedBDT &nbsp; 14,987,086.26</span>
+        <span className='text-[#17934e]'>Matched INR &nbsp; 14,987,086.26</span>
       </div>
       <div>
         {/* Match Odds Section */}

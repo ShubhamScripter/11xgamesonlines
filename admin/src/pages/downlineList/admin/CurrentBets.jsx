@@ -409,6 +409,32 @@ const casinodata=[]
 const tossdata=[]
 const tiedata=[]
 
+/** Fancy score 0 / empty → line1 = back/lay, line2 = Yes/No. Else line1 = Yes/No, line2 = fancy score. */
+function buildTypeLines(item) {
+  const otypeRaw = item?.otype ?? item?.type ?? '';
+  const otype = String(otypeRaw).toLowerCase();
+  const fs = item?.fancyScore;
+  const yesNo =
+    otype === 'back' ? 'Yes' : otype === 'lay' ? 'No' : '—';
+  const isZero =
+    fs === undefined ||
+    fs === null ||
+    String(fs).trim() === '' ||
+    String(fs).trim() === '0' ||
+    (Number.isFinite(Number(fs)) && Number(fs) === 0);
+
+  if (isZero) {
+    return {
+      typeLine1: otype || String(otypeRaw) || '—',
+      typeLine2: yesNo,
+    };
+  }
+  return {
+    typeLine1: yesNo,
+    typeLine2: String(fs).trim(),
+  };
+}
+
 function CurrentBets() {
   const { userId, role } = useParams();
   const dispatch = useDispatch();
@@ -442,6 +468,13 @@ function CurrentBets() {
     
   }, [userId]);
 
+  // Hide market tabs for user view; keep stable selection.
+  useEffect(() => {
+    if (role === "user" && selectedType !== "Exchange") {
+      setselectedType("Exchange");
+    }
+  }, [role, selectedType]);
+
   // Fetch current bet history (no UI change; dates optional and omitted)
   useEffect(() => {
     if (userId) {
@@ -451,19 +484,25 @@ function CurrentBets() {
 
   // Map API data into the existing table shape
   useEffect(() => {
-    const transformed = (bethistoryData || []).map((item) => ({
-      plId: item?.userName || item?.plId || "-",
-      betId: item?.betId || item?._id || "-",
-      date: item?.createdAt || item?.date || "-",
-      ip: item?.ip || "-",
-      market: item?.gameName || item?.marketName || "-",
-      match: item?.eventName || item?.match || "-",
-      selection: item?.teamName || item?.selection || "-",
-      type: item?.otype || item?.type || "-",
-      odds: item?.xValue ?? item?.odds ?? "-",
-      stake: item?.price ?? item?.stake ?? "-",
-      profitLoss:item?.betAmount ?? item?.resultAmount ?? item?.profitLoss ?? "-",
-    }));
+    const transformed = (bethistoryData || []).map((item) => {
+      const { typeLine1, typeLine2 } = buildTypeLines(item);
+      return {
+        plId: item?.userName || item?.plId || "-",
+        betId: item?.betId || item?._id || "-",
+        date: item?.createdAt || item?.date || "-",
+        ip: item?.ip || "-",
+        market: item?.gameName || item?.marketName || "-",
+        match: item?.eventName || item?.match || "-",
+        selection: item?.teamName || item?.selection || "-",
+        type: typeLine1,
+        typeLine1,
+        typeLine2,
+        odds: item?.xValue ?? item?.odds ?? "-",
+        stake: item?.price ?? item?.stake ?? "-",
+        profitLoss:
+          item?.betAmount ?? item?.resultAmount ?? item?.profitLoss ?? "-",
+      };
+    });
     setbettingData(transformed);
   }, [bethistoryData, selectedType]);
 
@@ -498,39 +537,41 @@ function CurrentBets() {
           </h2>
           <div className='mt-4'>
             <div className='border-b-2 border-b-[#060316]'>
-              <ul className='flex gap-1'>
-                <li className={`
-                  text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer 
-                  ${selectedType === 'Exchange'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}
-                `}
-                onClick={()=>setselectedType("Exchange")}
-                >
-                  Exhange</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'FancyBet'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("FancyBet")}
-                >
-                  FancyBet</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'SportsBook'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("SportsBook")}
-                >
-                  SportsBook</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'BookMaker'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("BookMaker")}
-                >
-                  BookMaker</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Casino'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("Casino")}
-                >
-                  Casino</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Toss'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("Toss")}
-                >
-                  Toss</li>
-                <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Tie'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
-                onClick={()=>setselectedType("Tie")}
-                >
-                  Tie</li>
-              </ul>
+              {role !== "user" && (
+                <ul className='flex gap-1'>
+                  <li className={`
+                    text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer 
+                    ${selectedType === 'Exchange'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}
+                  `}
+                  onClick={()=>setselectedType("Exchange")}
+                  >
+                    Exhange</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'FancyBet'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("FancyBet")}
+                  >
+                    FancyBet</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'SportsBook'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("SportsBook")}
+                  >
+                    SportsBook</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'BookMaker'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("BookMaker")}
+                  >
+                    BookMaker</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Casino'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("Casino")}
+                  >
+                    Casino</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Toss'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("Toss")}
+                  >
+                    Toss</li>
+                  <li className={`text-[#3b5160] text-[13px] font-[700] px-4 py-1 rounded-t-sm  border border-[#3b5160] cursor-pointer ${selectedType === 'Tie'? 'bg-[#ffa00c]': 'bg-gradient-to-t from-[#eee] to-[#fff]'}`}
+                  onClick={()=>setselectedType("Tie")}
+                  >
+                    Tie</li>
+                </ul>
+              )}
             </div>
             <div className='mt-2' >
               <p className='text-[14px]'>Betting History enables you to review the bets you have placed. Specify the time period during which your bets were placed, the type of markets on which the bets were placed, and the sport.</p>

@@ -10,6 +10,9 @@ export const loginHistorySchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    role: {
+      type: String,
+    },
     status: {
       type: String,
     },

@@ -20,24 +20,31 @@ const parseDetailsPayload = (details) => {
   return details;
 };
 
-const toAbsoluteUrl = (req, filePath) => {
-  if (!filePath) return filePath;
-  if (/^https?:\/\//i.test(filePath)) return filePath;
-  const protoHeader = req.headers['x-forwarded-proto'];
-  const protocol = protoHeader ? String(protoHeader).split(',')[0] : req.protocol;
-  const normalizedPath = String(filePath).startsWith('/')
-    ? String(filePath)
-    : `/${String(filePath)}`;
-  return `${protocol}://${req.get('host')}${normalizedPath}`;
+/** Always store in DB as `/uploads/...` only (no host). Strip full URLs on save/read. */
+const toUploadPathOnly = (value) => {
+  if (value == null || value === '') return value;
+  const s = String(value).trim();
+  if (!s) return s;
+  if (/^https?:\/\//i.test(s)) {
+    try {
+      const u = new URL(s);
+      const p = u.pathname || '';
+      return p.startsWith('/') ? p : `/${p}`;
+    } catch {
+      return s;
+    }
+  }
+  return s.startsWith('/') ? s : `/${s}`;
 };
 
-const withResolvedAccountImage = (req, accountDoc) => {
+/** API response: path only (`/uploads/...`) so clients can prepend their own static host. */
+const withResolvedAccountImage = (_req, accountDoc) => {
   if (!accountDoc) return accountDoc;
   const account = accountDoc.toObject ? accountDoc.toObject() : { ...accountDoc };
   if (account?.details?.qrCodeUrl) {
     account.details = {
       ...account.details,
-      qrCodeUrl: toAbsoluteUrl(req, account.details.qrCodeUrl),
+      qrCodeUrl: toUploadPathOnly(account.details.qrCodeUrl),
     };
   }
   return account;
@@ -69,6 +76,8 @@ export const createManualDepositAccount = async (req, res) => {
 
     if (method === 'upi' && uploadedImage) {
       details.qrCodeUrl = `/uploads/deposit-accounts/${uploadedImage.filename}`;
+    } else if (details.qrCodeUrl) {
+      details.qrCodeUrl = toUploadPathOnly(details.qrCodeUrl);
     }
 
     const account = await ManualDepositAccount.create({
@@ -111,6 +120,9 @@ export const updateManualDepositAccount = async (req, res) => {
     if (title !== undefined) account.title = String(title).trim();
     if (req.body.details !== undefined) {
       account.details = details;
+      if (account.details?.qrCodeUrl && !uploadedImage) {
+        account.details.qrCodeUrl = toUploadPathOnly(account.details.qrCodeUrl);
+      }
     }
     if (account.method === 'upi' && uploadedImage) {
       account.details = {

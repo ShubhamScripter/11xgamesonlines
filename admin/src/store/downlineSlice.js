@@ -35,12 +35,12 @@
 //         const currentUser = action.payload;
 //         state.currentUser = currentUser;
 //         state.balanceData = [
-//           { label: "Total Balance", value: `BDT ${(currentUser.totalBalance ?? 0).toFixed(2)}` },
-//           { label: "Total Exposure", value: `BDT ${(currentUser.totalExposure ?? 0).toFixed(2)}`, highlight: true },
-//           { label: "Total Avail. bal.", value: `BDT ${(currentUser.totalAvailableBalance ?? 0).toFixed(2)}` },
-//           { label: "Balance", value: `BDT ${(currentUser.balance ?? 0).toFixed(2)}` },
-//           { label: "Available Balance", value: `BDT ${(currentUser.availableBalance ?? 0).toFixed(2)}` },
-//           { label: "Total Player Balance", value: `BDT ${(currentUser.totalPlayerBalance ?? 0).toFixed(2)}` },
+//           { label: "Total Balance", value: `INR ${(currentUser.totalBalance ?? 0).toFixed(2)}` },
+//           { label: "Total Exposure", value: `INR ${(currentUser.totalExposure ?? 0).toFixed(2)}`, highlight: true },
+//           { label: "Total Avail. bal.", value: `INR ${(currentUser.totalAvailableBalance ?? 0).toFixed(2)}` },
+//           { label: "Balance", value: `INR ${(currentUser.balance ?? 0).toFixed(2)}` },
+//           { label: "Available Balance", value: `INR ${(currentUser.availableBalance ?? 0).toFixed(2)}` },
+//           { label: "Total Player Balance", value: `INR ${(currentUser.totalPlayerBalance ?? 0).toFixed(2)}` },
 //         ];
 //         state.downlines = (currentUser.downlines || []).map((u, i) => ({
 //           id: i + 1,
@@ -141,14 +141,14 @@
 //   }));
 
 //   state.balanceData = [
-//     { label: 'Total Balance', value: `BDT ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-//     { label: 'Total Exposure', value: `BDT ${(selfData.exposure ?? 0).toFixed(2)}` },
-//     { label: 'Total Avail. Balance', value: `BDT ${(selfData.totalAvbalance ?? 0).toFixed(2)}` },
-//     { label: 'Balance', value: `BDT ${(selfData.avbalance ?? 0).toFixed(2)}` },
-//     { label: 'Available Balance', value: `BDT ${(selfData.agentAvbalance ?? 0).toFixed(2)}` },
+//     { label: 'Total Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+//     { label: 'Total Exposure', value: `INR ${(selfData.exposure ?? 0).toFixed(2)}` },
+//     { label: 'Total Avail. Balance', value: `INR ${(selfData.totalAvbalance ?? 0).toFixed(2)}` },
+//     { label: 'Balance', value: `INR ${(selfData.avbalance ?? 0).toFixed(2)}` },
+//     { label: 'Available Balance', value: `INR ${(selfData.agentAvbalance ?? 0).toFixed(2)}` },
 
     
-//     { label: 'Total Player Balance', value: `BDT ${totalUserDownlineBalance.toFixed(2)}` },
+//     { label: 'Total Player Balance', value: `INR ${totalUserDownlineBalance.toFixed(2)}` },
 //   ];
 
 //   state.loading = false;
@@ -167,14 +167,33 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../utils/axiosInstance';
 
-// --- Async thunk ---
+const DEFAULT_PAGE_SIZE = 10;
+
+// --- Async thunk --- (string userId = page 1; or { userId, page, limit, searchQuery })
 export const fetchDownlineTree = createAsyncThunk(
   'downline/fetchDownlineTree',
-  async (userId, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
+    let userId;
+    let page = 1;
+    let limit = DEFAULT_PAGE_SIZE;
+    let searchQuery = '';
+    if (typeof arg === 'string') {
+      userId = arg;
+    } else if (arg && typeof arg === 'object') {
+      userId = arg.userId;
+      page = arg.page ?? 1;
+      limit = arg.limit ?? DEFAULT_PAGE_SIZE;
+      searchQuery = arg.searchQuery ?? '';
+    } else {
+      return rejectWithValue('Invalid arguments');
+    }
     try {
-      const { data } = await axios.post('/get/all-user', { id: userId });
-     
-      return data; // { message, data: [], selfData: {...} }
+      const q = encodeURIComponent(searchQuery || '');
+      const { data } = await axios.post(
+        `/get/all-user?page=${page}&limit=${limit}&searchQuery=${q}`,
+        { id: userId }
+      );
+      return data;
     } catch (err) {
       return rejectWithValue(err.response?.data?.error || 'Failed to fetch downline tree');
     }
@@ -190,6 +209,10 @@ const downlineSlice = createSlice({
     loading: false,
     error: null,
     ipWarnings: null,  // Store IP warnings
+    totalUsers: 0,
+    totalPages: 1,
+    currentPage: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
   },
   reducers: {},
   extraReducers: builder => {
@@ -203,12 +226,18 @@ const downlineSlice = createSlice({
     data: downlineArray = [],
     selfData = {},
     totalUserDownlineBalance = 0,
-    totalUserDownlineExposure = 0,   // <— destructure here
-    ipWarnings = null  // <— destructure IP warnings
+    totalUserDownlineExposure = 0,
+    ipWarnings = null,
+    totalUsers = 0,
+    totalPages = 1,
+    currentPage = 1,
   } = action.payload;
 
   state.currentUser = selfData;
-  state.ipWarnings = ipWarnings; // Store IP warnings in state
+  state.ipWarnings = ipWarnings;
+  state.totalUsers = totalUsers;
+  state.totalPages = totalPages || 1;
+  state.currentPage = currentPage || 1;
 
   state.downlines = downlineArray.map((u, i) => ({
     id: i + 1,
@@ -241,13 +270,13 @@ const downlineSlice = createSlice({
   }));
 
   state.balanceData = [
-  { label: 'Total Balance', value: `BDT ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-  { label: 'Total Exposure', value: `BDT ${(selfData.exposure ?? 0).toFixed(2)}` },
-  { label: 'Total Avail. Balance', value: `BDT ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-  { label: 'Balance', value: `BDT ${(selfData.avbalance ?? 0).toFixed(2)}` },
+  { label: 'Total Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+  { label: 'Total Exposure', value: `INR ${(selfData.exposure ?? 0).toFixed(2)}` },
+  { label: 'Total Avail. Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+  { label: 'Balance', value: `INR ${(selfData.avbalance ?? 0).toFixed(2)}` },
  {
   label: 'Available Balance',
-  value: `BDT ${(
+  value: `INR ${(
     (selfData.avbalance ?? 0) + 
     (selfData.totalBalance ?? 0)
   ).toFixed(2)}`
@@ -255,7 +284,7 @@ const downlineSlice = createSlice({
 ,
   { 
     label: 'Total Player Balance', 
-    value: `BDT ${totalUserDownlineBalance.toFixed(2)}` 
+    value: `INR ${totalUserDownlineBalance.toFixed(2)}` 
   },
 ];
 

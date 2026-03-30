@@ -239,7 +239,11 @@ function BetCard({ odds, onClose, onBetDataChange }) {
   const dispatch = useDispatch();
   const { loading, successMessage, errorMessage } = useSelector((state) => state.bet);
 
-  const [betOdds, setBetOdds] = useState(odds?.odds || 1.01);
+  // For fancy bets, `xValue` should drive the odds field.
+  // Fallback to `odds` for non-fancy slips.
+  const [betOdds, setBetOdds] = useState(
+    odds?.xValue ?? odds?.odds ?? 1.01
+  );
   const [stake, setStake] = useState('');
   const quickAmounts = [10, 100, 200, 500];
 
@@ -282,6 +286,7 @@ function BetCard({ odds, onClose, onBetDataChange }) {
         onBetDataChange({
           selection: odds?.selection,
           odds: betOdds,
+          xValue: betOdds,
           type: odds?.type,
           stake: stake,
           gameId: odds?.gameId,

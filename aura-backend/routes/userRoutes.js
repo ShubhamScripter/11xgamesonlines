@@ -13,12 +13,19 @@ import {
   user_logout,
 } from '../controllers/userController.js';
 import {
+  getPublicAppSettings,
+  getWhatsAppCountryList,
+} from '../controllers/appSettingsController.js';
+import {
   getP2PTransferHistory,
   transferP2P,
 } from '../controllers/p2pController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.get('/public/app-settings', getPublicAppSettings);
+router.get('/public/whatsapp-countries', getWhatsAppCountryList);
 
 // router.post("/register", registerUser);
 router.post('/user/register', registerSelf);

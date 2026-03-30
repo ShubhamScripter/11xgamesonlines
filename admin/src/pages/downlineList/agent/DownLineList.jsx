@@ -42,12 +42,12 @@ function DownLineList() {
 
 
       setUserData([
-        { label: 'Total Balance', value: `BDT ${(user.totalBalance ?? 0).toFixed(2)}` },
-        { label: 'Total Exposure', value: `BDT ${(user.totalExposure ?? 0).toFixed(2)}`, highlight: true },
-        { label: 'Total Avail. bal.', value: `BDT ${(user.totalAvailableBalance ?? 0).toFixed(2)}` },
-        { label: 'Balance', value: `BDT ${(user.balance ?? 0).toFixed(2)}` },
-        { label: 'Available Balance', value: `BDT ${(user.availableBalance ?? 0).toFixed(2)}` },
-        { label: 'Total Player Balance', value: `BDT ${(user.totalPlayerBalance ?? 0).toFixed(2)}` },
+        { label: 'Total Balance', value: `INR ${(user.totalBalance ?? 0).toFixed(2)}` },
+        { label: 'Total Exposure', value: `INR ${(user.totalExposure ?? 0).toFixed(2)}`, highlight: true },
+        { label: 'Total Avail. bal.', value: `INR ${(user.totalAvailableBalance ?? 0).toFixed(2)}` },
+        { label: 'Balance', value: `INR ${(user.balance ?? 0).toFixed(2)}` },
+        { label: 'Available Balance', value: `INR ${(user.availableBalance ?? 0).toFixed(2)}` },
+        { label: 'Total Player Balance', value: `INR ${(user.totalPlayerBalance ?? 0).toFixed(2)}` },
       ]);
 
       const formattedDownlines = (user.downlines || []).map((u, i) => ({

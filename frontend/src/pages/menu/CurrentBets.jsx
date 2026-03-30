@@ -201,18 +201,15 @@ function CurrentBets() {
     if (pages) fetchBets();
   }, [pages]);
 
-  // Helper function to determine status based on void and settled fields
-  const getStatusFromVoid = (voidStatus, settled) => {
-    if (voidStatus === 'void') return 'Voided';
-    if (settled === 'settled') return 'Completed';
-    return 'Cancelled';
-  };
-
-  // Map betHistory to the format expected by BetCard
+  // Current bets = unsettled bets (status: 0)
+  // Show Expected Profit/Loss from betAmount & price (as requested).
   const mappedBetData = useMemo(() => {
     if (!Array.isArray(betHistory)) return [];
-    return betHistory.map((bet, idx) => ({
+    return betHistory
+      .filter((bet) => Number(bet?.status) === 0)
+      .map((bet, idx) => ({
       id: bet._id || bet.id || `bet-${idx}`,
+      gameName: bet.gameName || 'Sports',
       match: bet.eventName || "Unknown Match",
       market: bet.marketName || "Unknown Market",
       type: bet.otype === 'back' ? 'Back' : 'Lay',
@@ -222,8 +219,11 @@ function CurrentBets() {
       matched: bet.price || 0,
       placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
       taken: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
-      profit: bet.profit || 0,
-      status: getStatusFromVoid(bet.void, bet.settled),
+      // Expected P/L for current bets
+      possibleProfit: Number(bet.betAmount ?? 0),
+      possibleLoss: Number(bet.price ?? 0),
+      profit: Number(bet.profitLossChange ?? 0),
+      status: 'Unsettled',
       date: bet.date ? new Date(bet.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
     }));
   }, [betHistory]);

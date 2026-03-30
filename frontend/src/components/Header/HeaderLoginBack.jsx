@@ -35,7 +35,7 @@ function HeaderLoginBack() {
         <div className="flex gap-2 items-center">
           <div className="flex flex-col">
             <span className="text-white text-[8px] md:text-sm leading-none">{user?.userName || '-'}</span>
-            <span className="text-white text-[10px] md:text-base font-semibold">BDT <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>&nbsp; Exp (<span className="text-[#e52219]">
+            <span className="text-white text-[10px] md:text-base font-semibold">INR <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>&nbsp; Exp (<span className="text-[#e52219]">
                     {Number(user?.exposure).toFixed(2)}
                   </span>)</span>
           </div>

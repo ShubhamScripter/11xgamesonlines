@@ -46,18 +46,19 @@ function Navigation({selected, userId,role}) {
         >
           Betting History
         </li>
-        <li className={`border-b border-b-[#0000002b] px-2 py-1 text-xs   hover:text-[#243a48] cursor-pointer leading-[25px] ${selected==="ProfitLoss"? "bg-[#f2dca7] text-[#333]":" bg-[#fff] text-[#2789ce]"}`}
-        onClick={() => {
-          if (role && userId) {
-            navigate(`/betting-profit-loss/${role}/${userId}`)
-            } else {
-            console.warn("Missing role or ID in user", user);
-           }
-          }}
-        
-        >
-          Betting Profit & Loss
-        </li>
+        {role !== "user" && (
+          <li className={`border-b border-b-[#0000002b] px-2 py-1 text-xs   hover:text-[#243a48] cursor-pointer leading-[25px] ${selected==="ProfitLoss"? "bg-[#f2dca7] text-[#333]":" bg-[#fff] text-[#2789ce]"}`}
+          onClick={() => {
+            if (role && userId) {
+              navigate(`/betting-profit-loss/${role}/${userId}`)
+              } else {
+              console.warn("Missing role or ID in user", user);
+             }
+            }}
+          >
+            Betting Profit & Loss
+          </li>
+        )}
         <li className={`border-b border-b-[#0000002b] px-2 py-1 text-xs   hover:text-[#243a48] cursor-pointer leading-[25px]  ${selected==="TransactionHistory"? "bg-[#f2dca7] text-[#333]":" bg-[#fff] text-[#2789ce]"}`}
         onClick={() => {
           if (role && userId) {
@@ -69,21 +70,7 @@ function Navigation({selected, userId,role}) {
         >
           Transaction History
         </li>
-        {
-          role === "user" &&(
-            <li className={`border-b border-b-[#0000002b] px-2 py-1 text-xs   hover:text-[#243a48] cursor-pointer leading-[25px]  ${selected==="TransactionHistory2"? "bg-[#f2dca7] text-[#333]":" bg-[#fff] text-[#2789ce]"}`}
-        onClick={() => {
-          if (role && userId) {
-            navigate(`/transaction-history2/${role}/${userId}`)
-            } else {
-            console.warn("Missing role or ID in user", user);
-           }
-          }}
-        >
-          Transaction History2
-        </li>
-          )
-        }
+        {/* Transaction History2 intentionally hidden for user downline view */}
         <li className={`border-b border-b-[#0000002b] px-2 py-1 text-xs   hover:text-[#243a48] cursor-pointer leading-[25px] pr-30 ${selected==="ActivityLog"? "bg-[#f2dca7] text-[#333]":" bg-[#fff] text-[#2789ce]"}`}
         onClick={() => {
           if (role && userId) {

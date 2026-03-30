@@ -31,7 +31,7 @@
 //               <span className="text-white text-[8px] md:text-sm leading-none">
 //                 {user?.username}
 //               </span>
-//               <span className="text-white text-[10px] md:text-base font-semibold">{user?.currency || "BDT"}{" "} <span className='font-normal'>{user?.balance ?? 0}</span>&nbsp; Exp (0.00)</span>
+//               <span className="text-white text-[10px] md:text-base font-semibold">{user?.currency || "INR"}{" "} <span className='font-normal'>{user?.balance ?? 0}</span>&nbsp; Exp (0.00)</span>
 //             </div>
 //             <motion.div
 //             animate={{rotate:360}} 
@@ -114,7 +114,7 @@
 
 //                   {/* 🔑 remove/replace currency if you don't have it */}
 //                   <span className="text-white text-[10px] md:text-base font-semibold">
-//                     BDT{" "}
+//                     INR{" "}
 //                     <span className="font-normal">
 //                       {user?.balance ?? 0}
 //                     </span>
@@ -256,7 +256,7 @@
 //                   </span>
 
 //                   <span className="text-white text-[10px] md:text-base font-semibold">
-//                     BDT{" "}
+//                     INR{" "}
 //                     <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>
 //                     &nbsp; Exp (
 //                     <span className="text-[#e52219]">
@@ -322,9 +322,13 @@ import Header from "./Header";
 import Logo from "../../assets/logo.png";
 // import Logonew from '../../assets/newdiamondlogo.png'
 import { wsClient } from "../../utils/wsClient";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { RiBankCardFill, RiWallet3Fill } from "react-icons/ri";
+import { HiOutlineChevronRight } from "react-icons/hi";
+
 function HeaderLogin() {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -409,9 +413,9 @@ function HeaderLogin() {
     <>
       {user ? (
         <div>
-          {/* Header Bar */}
-          <div className="bg-[#17934e] h-10 relative z-30">
-            <div className="flex justify-between items-center h-full px-4">
+          {/* Header + Deposit / Withdraw — same green as bar */}
+          <div className="bg-[#17934e] relative z-30 shadow-sm">
+            <div className="flex justify-between items-center h-10 px-4">
               <div className="flex items-center justify-center gap-3">
                 <GiHamburgerMenu
                   className="text-white text-2xl"
@@ -427,7 +431,7 @@ function HeaderLogin() {
                    </span>
 
                   <span className="text-white text-[10px] md:text-base font-semibold">
-                   BDT{" "}
+                   INR{" "}
                      <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>
                     &nbsp; Exp (
                      <span className="text-[#e52219]">
@@ -452,6 +456,37 @@ function HeaderLogin() {
                     onClick={handleRefresh}
                   />
                 </motion.div>
+              </div>
+            </div>
+
+            <div className="border-t border-white/20 px-3 pb-2 pt-1.5">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/user/manual-deposit?type=deposit")}
+                  className="flex items-center justify-between rounded-xl bg-[#ffc107] px-3 py-2.5 shadow-md active:brightness-95 transition min-w-0 border border-[#e6ac00]/40"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <RiWallet3Fill className="text-xl shrink-0 text-black" />
+                    <span className="text-xs sm:text-sm font-semibold text-black text-left truncate">
+                      Deposit
+                    </span>
+                  </div>
+                  <HiOutlineChevronRight className="text-base shrink-0 text-black" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/user/manual-deposit?type=withdraw")}
+                  className="flex items-center justify-between rounded-xl bg-[#e53935] px-3 py-2.5 shadow-md active:brightness-95 transition min-w-0 border border-[#c62828]/50"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <RiBankCardFill className="text-xl shrink-0 text-white" />
+                    <span className="text-xs sm:text-sm font-semibold text-white text-left truncate">
+                      Withdraw
+                    </span>
+                  </div>
+                  <HiOutlineChevronRight className="text-base shrink-0 text-white" />
+                </button>
               </div>
             </div>
           </div>

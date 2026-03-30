@@ -95,6 +95,7 @@ import BlockMarket from './pages/blockMarket/BlockMarket';
 import Transactionslog from './pages/banking/Transactionslog';
 
 import GeneralSetting from './pages/generalSetting/GeneralSetting';
+import CustomerSupport from './pages/customerSupport/CustomerSupport';
 import SearchUser from './pages/generalSetting/SearchUser';
 import Surveillance from './pages/generalSetting/Surveillance';
 import BetLockeduser from './pages/generalSetting/BetLockeduser';
@@ -167,6 +168,7 @@ function App() {
             />
             <Route path='/manual-withdraw-requests' element={<ManualWithdrawRequests />} />
             <Route path='/block-market' element={<BlockMarket />} />
+            <Route path='/customer-support' element={<CustomerSupport />} />
             <Route path='/general-setting' element={<GeneralSetting />} />
             <Route path='/searchuser' element={<SearchUser />} />
             <Route path='/SurveillanceSetting' element={<Surveillance />} />

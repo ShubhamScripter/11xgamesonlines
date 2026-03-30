@@ -11,6 +11,7 @@ import Fullmarkett from './pages/sports/Fullmarkett'
 import Fullmarket1 from './pages/sports/Fullmarket1'
 import Fullmarket2 from './pages/sports/Fullmarket2'
 import Footer from './components/Footer/Footer'
+import SupportWhatsAppFab from './components/Header/SupportWhatsAppFab'
 import { Routes, Route,useLocation } from 'react-router-dom'
 
 import TransferLog from './pages/menu/TransferLog'
@@ -95,6 +96,7 @@ function App() {
             </Route>
           </Routes>
         </main>
+        <SupportWhatsAppFab />
         <Footer activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
     </div>

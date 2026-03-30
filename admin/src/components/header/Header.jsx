@@ -32,7 +32,7 @@
 // //         </div>
 // //         <div>
 // //           <span className='bg-black rounded-lg p-1 m-2 text-sm text-white'>Main</span>
-// //           <span className='text-white text-sm '>BDT {summary.balance?.toFixed(2)}</span>
+// //           <span className='text-white text-sm '>INR {summary.balance?.toFixed(2)}</span>
 // //         </div>
 // //         <div
 // //           className='rounded-sm p-1 border border-[#0000004d] shadow-[#0000004d] cursor-pointer'
@@ -57,7 +57,7 @@
 // function Header() {
 
 // <span className="text-white text-sm">
-//   BDT {summary?.avbalance?.toFixed(2) ?? user.avbalance?.toFixed(2)}
+//   INR {summary?.avbalance?.toFixed(2) ?? user.avbalance?.toFixed(2)}
 // </span>
 
 //   const user = useSelector(state => state.auth.user); // user info from login
@@ -86,7 +86,7 @@
 //         </div>
 //         <div>
 //           <span className='bg-black rounded-lg p-1 m-2 text-sm text-white'>Main</span>
-//           <span className='text-white text-sm '>BDT {user.avbalance?.toFixed(2)}</span>
+//           <span className='text-white text-sm '>INR {user.avbalance?.toFixed(2)}</span>
 //         </div>
 //         <div
 //           className='rounded-sm p-1 border border-[#0000004d] shadow-[#0000004d] cursor-pointer'
@@ -138,7 +138,7 @@
 //         </div>
 //         <div>
 //           <span className='bg-black rounded-lg p-1 m-2 text-sm text-white'>Main</span>
-//           <span className='text-white text-sm '>BDT {balance.toFixed(2)}</span>
+//           <span className='text-white text-sm '>INR {balance.toFixed(2)}</span>
 //         </div>
 //         <div
 //           className='rounded-sm p-1 border border-[#0000004d] shadow-[#0000004d] cursor-pointer'
@@ -191,7 +191,7 @@ console.log("summary is in header: ",user);
         </div>
         <div>
           <span className='bg-black rounded-lg p-1 m-2 text-sm text-white'>Main</span>
-          <span className='text-white text-sm'>BDT {balance.toFixed(2)}</span>
+          <span className='text-white text-sm'>INR {balance.toFixed(2)}</span>
         </div>
         <div
           className='rounded-sm p-1 border border-[#0000004d] shadow-[#0000004d] cursor-pointer'

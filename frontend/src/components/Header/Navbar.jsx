@@ -22,23 +22,26 @@ function Navbar({ onClose, open }) {
   }, [dispatch]);
 
   const data = [
-    { label: "Payment Transfer log", icon: <RiExchangeDollarFill />, path: "/user/payment-transfer-log" },
-    { label: "Upline Whatsapp Number", icon: <RiWhatsappFill />, path: "/user/upline-whatsapp" },
+    // { label: "Payment Transfer log", icon: <RiExchangeDollarFill />, path: "/user/payment-transfer-log" },
+    // { label: "Upline Whatsapp Number", icon: <RiWhatsappFill />, path: "/user/upline-whatsapp" },
     { label: "Balance Overview", icon: <RiWallet3Fill />, path: "/user/balance-overview" },
     { label: "Account Statement", icon: <RiFileList3Fill />, path: "/user/account-statement" },
     { label: "Current Bets", icon: <RiHandCoinFill />, path: "/user/current-bets", badge: currentBetCount },
     { label: "Bets History", icon: <RiHistoryFill />, path: "/user/bet-history" },
-    { label: "Profit & Loss", icon: <RiBarChart2Fill />, path: "/user/profit-loss" },
+    { label: "Profit & Loss Market Wise", icon: <RiBarChart2Fill />, path: "/user/profit-loss" },
     { label: "Active Log", icon: <RiEyeLine />, path: "/user/active-log" },
     { label: "My Profile", icon: <RiUser3Fill />, path: "/user/profile" },
     { label: "Self Deposit / Withdraw", icon: <RiBankCardFill />, path: "/user/manual-deposit" },
-    { label: "P2P Transfer", icon: <RiTeamFill />, path: "/user/p2p-transfer" },
-    { label: "P2P Transfer log", icon: <RiListCheck3 />, path: "/user/p2p-transfer-log" },
-    { label: "Setting", icon: <RiSettings3Fill />, path: "/user/setting" },
+    // { label: "P2P Transfer", icon: <RiTeamFill />, path: "/user/p2p-transfer" },
+    // { label: "P2P Transfer log", icon: <RiListCheck3 />, path: "/user/p2p-transfer-log", },
+    // { label: "Setting", icon: <RiSettings3Fill />, path: "/user/setting" },
     { label: "Logout", icon: <RiLogoutBoxRFill />, action: "logout" }
   ];
 
   const handleItemClick = (item) => {
+    if (item.disabled) {
+      return;
+    }
     if (item.action === "logout") {
       dispatch(logout());
       dispatch(reset());
@@ -67,12 +70,18 @@ function Navbar({ onClose, open }) {
         {data.map((item, i) => (
           <li
             key={i}
-            className="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm cursor-pointer hover:bg-gray-50 transition"
+            className={`flex items-center justify-between rounded-xl px-4 py-3 shadow-sm transition ${
+              item.disabled
+                ? "bg-gray-100 cursor-not-allowed opacity-60"
+                : "bg-white cursor-pointer hover:bg-gray-50"
+            }`}
             onClick={() => handleItemClick(item)}
           >
-            <div className="flex items-center gap-3 text-[#17934e]">
+            <div className={`flex items-center gap-3 ${item.disabled ? "text-gray-400" : "text-[#17934e]"}`}>
               <div className="text-2xl">{item.icon}</div>
-              <span className="text-sm font-medium text-black">{item.label}</span>
+              <span className={`text-sm font-medium ${item.disabled ? "text-gray-500" : "text-black"}`}>
+                {item.label}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               {item.badge !== undefined && (

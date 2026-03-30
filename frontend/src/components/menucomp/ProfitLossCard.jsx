@@ -4,6 +4,12 @@ import { IoChevronDown, IoChevronUp } from "react-icons/io5";
 function ProfitLossCard({data}) {
   console.log("data is:",data);
       const [expandedIndex, setExpandedIndex] = useState(null);
+
+      const getProfitLossColorClass = (value) => {
+        const amount = Number(value);
+        if (!Number.isFinite(amount) || amount === 0) return "";
+        return amount < 0 ? "text-red-600" : "text-[#198754]";
+      };
     
       const toggleDetails = (index) => {
         setExpandedIndex((prev) => (prev === index ? null : index));
@@ -45,8 +51,10 @@ function ProfitLossCard({data}) {
                       <div className="font-semibold md:text-base">{bet.placed}</div>
                     </td>
                     <td colSpan={2} className="p-2">
-                      <span className="text-gray-600 md:text-lg">Profit/Loss (BDT)</span>
-                      <div className="font-semibold md:text-base text-[#198754]">{bet.matched}</div>
+                      <span className="text-gray-600 md:text-lg">Profit/Loss (INR)</span>
+                      <div className={`font-semibold md:text-base ${getProfitLossColorClass(bet.matched)}`}>
+                        {bet.matched}
+                      </div>
                     </td>
                     </tr>
                   {expandedIndex === index && (
@@ -78,8 +86,10 @@ function ProfitLossCard({data}) {
                           <div className="font-semibold md:text-base">{bet.stake}</div>
                         </td>
                         <td className="p-2">
-                          <span className="text-gray-600 md:text-lg">Profit/Loss (BDT)</span>
-                          <div className="font-semibold md:text-base text-[#198754]">{bet.matched}</div>
+                          <span className="text-gray-600 md:text-lg">Profit/Loss (INR)</span>
+                          <div className={`font-semibold md:text-base ${getProfitLossColorClass(bet.matched)}`}>
+                            {bet.matched}
+                          </div>
                         </td>
                       </tr>
                       <tr className="">

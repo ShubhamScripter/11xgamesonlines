@@ -93,7 +93,7 @@ function ActivityLogTable({ activityLogs }) {
                   {log.city || "-"} / {log.region || "-"} / {log.country || "-"}
                 </td>
                 <td className="px-2 py-2">
-                {log.userAgent ? log.userAgent.slice(0, 50) + '...' : "-"}
+                {`${log.role || "-"}${log.userAgent ? ` | ${log.userAgent.slice(0, 50)}...` : ""}`}
                 </td>
               </tr>
             ))

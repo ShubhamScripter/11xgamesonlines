@@ -1,6 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../../utils/axiosInstance';
+
+/** API stores `/uploads/...` only; prepend admin static host for `<img>` / links. */
+const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
+
+function resolveDepositImageUrl(value) {
+  let src = String(value || '').trim();
+  if (
+    (src.startsWith('"') && src.endsWith('"')) ||
+    (src.startsWith("'") && src.endsWith("'"))
+  ) {
+    src = src.slice(1, -1).trim();
+  }
+  if (!src) return '';
+  if (/^https?:\/\//i.test(src)) {
+    try {
+      src = new URL(src).pathname || '';
+    } catch {
+      return src;
+    }
+  }
+  if (!src) return '';
+  const path = src.startsWith('/') ? src : `/${src}`;
+  return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
+}
 import { FaToggleOff, FaToggleOn } from 'react-icons/fa';
 
 const METHOD_SECTIONS = ['bank', 'upi', 'crypto', 'whatsapp'];
@@ -32,20 +56,6 @@ function ManualDepositAccounts() {
   const [activeMainTab, setActiveMainTab] = useState('add');
   const [accountImageFile, setAccountImageFile] = useState(null);
   const [togglingId, setTogglingId] = useState('');
-
-  const imageBase = (axiosInstance?.defaults?.baseURL || '').replace('/api', '');
-  const resolveImageUrl = (value) => {
-    let src = String(value || '').trim();
-    if (
-      (src.startsWith('"') && src.endsWith('"')) ||
-      (src.startsWith("'") && src.endsWith("'"))
-    ) {
-      src = src.slice(1, -1).trim();
-    }
-    if (!src) return '';
-    if (src.startsWith('http')) return src;
-    return `${imageBase}${src.startsWith('/') ? src : `/${src}`}`;
-  };
 
   const fetchAccounts = async () => {
     try {
@@ -225,7 +235,7 @@ function ManualDepositAccounts() {
 
   const renderDetailsCell = (account) => {
     const details = account.details || {};
-    const qrSrc = resolveImageUrl(details.qrCodeUrl);
+    const qrSrc = resolveDepositImageUrl(details.qrCodeUrl);
     if (account.method === 'upi') {
       return (
         <div className="space-y-1">
@@ -333,7 +343,7 @@ function ManualDepositAccounts() {
                 Existing image:{' '}
                 <a
                   className="text-blue-600 underline"
-                  href={resolveImageUrl(form.qrCodeUrl)}
+                  href={resolveDepositImageUrl(form.qrCodeUrl)}
                   target="_blank"
                   rel="noreferrer"
                 >

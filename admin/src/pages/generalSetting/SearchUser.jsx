@@ -92,9 +92,9 @@ function SearchUser() {
         },
         type: paymentType,
       };
-      await axiosInstance.put("/withdrowal-deposite", payload);
+      const response = await axiosInstance.put("/withdrowal-deposite", payload);
       setError("");
-      toast.success("Transaction successful");
+      toast.success(response?.data?.message || "Transaction successful");
       refreshBalances();
       // optional reset
       setAmount("");

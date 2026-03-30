@@ -4,22 +4,28 @@ import HeaderLogin from "../../components/Header/HeaderLogin";
 import { MdArrowBackIos, MdPlayArrow, MdKeyboardArrowRight, MdKeyboardArrowLeft } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
 import Exchange from "./Exchange";
-import Parlay from "./Parlay";
 import { getBetHistory } from "../../features/sports/betReducer";
+import api from "../../utils/axiosConfig";
 const parlaybet=[]
 function Bets() {
   const dispatch = useDispatch();
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
+  const { user } = useSelector((state) => state.auth);
   
-  const [selected, setselected] = useState("Exchange");
+  const [selected, setselected] = useState("Sports");
   const [showdetails, setshowdetails] = useState(false);
   const [betdata, setBetdata] = useState([]);
+  const [casinoBetdata, setCasinoBetdata] = useState([]);
+  const [casinoLoading, setCasinoLoading] = useState(false);
+  const [casinoError, setCasinoError] = useState("");
 
   // Function to map API response to UI format for current bets
   const mapCurrentBetData = (apiData) => {
     if (!apiData || !Array.isArray(apiData)) return [];
     
-    return apiData.map((bet) => ({
+    return apiData
+      .filter((bet) => Number(bet?.status) === 0)
+      .map((bet) => ({
       id: bet._id || bet.id || Math.random().toString(36).substr(2, 9),
       match: bet.eventName || 'Unknown Match',
       market: bet.marketName || 'Unknown Market',
@@ -39,12 +45,59 @@ function Bets() {
     const endDate = currentDate.toISOString().split('T')[0];
     
     dispatch(getBetHistory({ 
-      
+      startDate,
+      endDate,
       page: 1, 
       selectedGame: '', 
       selectedVoid: 'unsettle', 
       limit: 50 
     }));
+  };
+
+  const mapCasinoBetData = (apiData) => {
+    if (!apiData || !Array.isArray(apiData)) return [];
+
+    return apiData.map((bet, idx) => ({
+      id: bet._id || bet.game_round || `casino-${idx}`,
+      match: bet.game_uid || "Casino",
+      market: "Casino",
+      type: "CASINO",
+      selection: bet.game_round || "-",
+      odds: "-",
+      stake: Number(bet.bet_amount || 0),
+      profit: Number(bet.change || 0),
+      placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
+    }));
+  };
+
+  const fetchCasinoBets = async () => {
+    try {
+      setCasinoLoading(true);
+      setCasinoError("");
+
+      let userId = user?._id || user?.id;
+      if (!userId) {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          userId = userData._id || userData.id;
+        }
+      }
+      if (!userId) return;
+
+      const response = await api.get(`/casino/bet-history/${userId}`, {
+        withCredentials: true,
+      });
+
+      const list = response?.data?.data || [];
+      setCasinoBetdata(mapCasinoBetData(list));
+    } catch (e) {
+      console.error("Error fetching casino bets:", e);
+      setCasinoError(e?.response?.data?.message || "Failed to load casino bets");
+      setCasinoBetdata([]);
+    } finally {
+      setCasinoLoading(false);
+    }
   };
 
   // Update betdata when betHistory changes
@@ -60,6 +113,7 @@ function Bets() {
   // Fetch current bets on component mount
   useEffect(() => {
     fetchCurrentBets();
+    fetchCasinoBets();
   }, []);
 
   return (
@@ -77,21 +131,21 @@ function Bets() {
       <div className="bg-[#d4e0e5] p-2 flex items-center justify-around">
         <div
           className={`${
-            selected === "Exchange" ? "border-b-2 font-semibold" : ""
+            selected === "Sports" ? "border-b-2 font-semibold" : ""
           } flex gap-2 cursor-pointer`}
-          onClick={() => setselected("Exchange")}
+          onClick={() => setselected("Sports")}
         >
-          <span>Exchange</span>
+          <span>Sports</span>
           <span className="bg-black text-white rounded-lg px-1 mb-1">{betdata.length}</span>
         </div>
         <div
           className={`${
-            selected === "Parlay" ? "border-b-2 font-semibold" : ""
+            selected === "Casino" ? "border-b-2 font-semibold" : ""
           } flex gap-2 cursor-pointer`}
-          onClick={() => setselected("Parlay")}
+          onClick={() => setselected("Casino")}
         >
-          <span>Parly</span>
-          <span className="bg-black text-white rounded-lg px-1 mb-1">0</span>
+          <span>Casino</span>
+          <span className="bg-black text-white rounded-lg px-1 mb-1">{casinoBetdata.length}</span>
         </div>
       </div>
 
@@ -108,7 +162,19 @@ function Bets() {
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              {`${selected}` ==="Exchange"?<Exchange betdata={betdata}/>:<Parlay betdata={parlaybet}/>}
+              {selected === "Sports" ? (
+                <Exchange betdata={betdata} />
+              ) : casinoLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="text-lg font-semibold text-gray-600">Loading casino bets...</div>
+                </div>
+              ) : casinoError ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="text-lg font-semibold text-red-600">Error: {casinoError}</div>
+                </div>
+              ) : (
+                <Exchange betdata={casinoBetdata} />
+              )}
             </div>
           )}
         </div>

@@ -9,7 +9,7 @@ import ChangeStatus from "./ChangeStatus";
 import BlockMarket from "./BlockMarket";
 import SetAgentCommission from "./SetAgentCommission";
 
-function AccountTable({ users, refreshDownlines, currentUser }) {
+function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = false }) {
   console.log("users", users)
   console.log("currentUser", currentUser)
   const authUser = useSelector(state => state.auth?.user);
@@ -25,12 +25,12 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 6;
+  const rowsPerPage = 10;
 
-  // Reset to page 1 when users list changes (e.g., after filtering)
+  // Reset to page 1 when users list changes (e.g., after filtering) — only for client-side pages
   useEffect(() => {
-    setCurrentPage(1);
-  }, [users]);
+    if (!serverPaginated) setCurrentPage(1);
+  }, [users, serverPaginated]);
 
   const totalPages = Math.max(1, Math.ceil(users.length / rowsPerPage));
 
@@ -43,11 +43,15 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
   };
 
   const currentUsers = useMemo(() => {
+    if (serverPaginated) return users;
     const start = (currentPage - 1) * rowsPerPage;
     return users.slice(start, start + rowsPerPage);
-  }, [users, currentPage, rowsPerPage]);
+  }, [users, currentPage, rowsPerPage, serverPaginated]);
 
-  const pageButtons = useMemo(() => getPageNumbers(currentPage, totalPages, 9), [currentPage, totalPages]);
+  const pageButtons = useMemo(
+    () => getPageNumbers(currentPage, totalPages, 9),
+    [currentPage, totalPages]
+  );
 
   const [isStatusChangeOpen, setStatusChangeOpen] = useState(false);
   const openModal = () => setStatusChangeOpen(true);
@@ -252,7 +256,7 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
                       onClick={() => {
                         if (user.role && user._id) {
                           navigate(
-                            `/betting-profit-loss/${user.role}/${user._id}`
+                            `/account-summary/${user.role}/${user._id}`
                           );
                         } else {
                           console.warn("Missing role or ID in user", user);
@@ -298,7 +302,7 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
                     >
                       <FaUser />
                     </button>
-                    <button
+                    {/* <button
                       title="Block Market"
                       className="bg-gray-200 p-1 border border-[#bbb] rounded"
                       onClick={() => {
@@ -307,7 +311,7 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
                       }}
                     >
                       <FaLock />
-                    </button>
+                    </button> */}
                     {/* Show commission button only for superadmin viewing agents */}
                     {currentUser?.role === "superadmin" && user.role === "agent" && (
                       <button
@@ -333,48 +337,52 @@ function AccountTable({ users, refreshDownlines, currentUser }) {
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center mt-4 gap-2">
-        <button
-          onClick={handlePrev}
-          disabled={currentPage === 1}
-          className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
-        >
-          &lt;
-        </button>
+      {!serverPaginated && (
+        <div className="flex justify-center items-center mt-4 gap-2">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+            className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
+          >
+            &lt;
+          </button>
 
-        {pageButtons.map((p, idx) => {
-          if (p === "left-ellipsis" || p === "right-ellipsis") {
+          {pageButtons.map((p, idx) => {
+            if (p === "left-ellipsis" || p === "right-ellipsis") {
+              return (
+                <span key={p + idx} className="px-3 text-gray-500">
+                  ...
+                </span>
+              );
+            }
+
             return (
-              <span key={p + idx} className="px-3 text-gray-500">
-                ...
-              </span>
+              <button
+                type="button"
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`px-2 border rounded ${
+                  currentPage === p
+                    ? "bg-[#ffa00c] text-white border-[#cb8009] scale-105"
+                    : "bg-gray-200 border-gray-400"
+                }`}
+              >
+                {p}
+              </button>
             );
-          }
+          })}
 
-          return (
-            <button
-              key={p}
-              onClick={() => setCurrentPage(p)}
-              className={`px-2 border rounded ${
-                currentPage === p
-                  ? "bg-[#ffa00c] text-white border-[#cb8009] scale-105"
-                  : "bg-gray-200 border-gray-400"
-              }`}
-            >
-              {p}
-            </button>
-          );
-        })}
-
-        <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages}
-          className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
-        >
-          &gt;
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
+          >
+            &gt;
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       {isStatusChangeOpen && selectedUser && <ChangeStatus

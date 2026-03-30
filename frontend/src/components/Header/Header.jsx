@@ -3,6 +3,7 @@ import Logo from '../../assets/logo.png'
 import { BiSolidUserPlus } from "react-icons/bi";
 import { IoMdLogIn } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
+
 function Header() {
   const navigate = useNavigate();
   return (
@@ -10,9 +11,12 @@ function Header() {
       <div className='flex justify-between items-center h-full px-4'>
         <img src={Logo} alt="Logo" className='w-30 h-12 mt-1' />
         <div className='flex items-center gap-4'>
-            <div className='flex items-center gap-1 bg-[#0a4725] cursor-pointer p-2 rounded-lg'>
+            <div
+              onClick={() => navigate('/register')}
+              className='flex items-center gap-1 bg-[#0a4725] cursor-pointer p-2 rounded-lg'
+            >
                 <BiSolidUserPlus className='text-white w-5 h-5'/>
-                <span className='text-[15px] font-semibold text-white'>Agent List</span>
+                <span className='text-[15px] font-semibold text-white'>Register</span>
             </div>
             <div 
             onClick={()=> navigate('/login')}

@@ -62,6 +62,12 @@ function BettingTable({ bettingData }) {
         return num.toFixed(2);
       };
 
+      const getProfitLossClass = (value) => {
+        const num = Number(value);
+        if (!Number.isFinite(num) || num === 0) return "";
+        return num < 0 ? "text-red-600" : "text-green-600";
+      };
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-xs text-left">
@@ -107,11 +113,22 @@ function BettingTable({ bettingData }) {
                   <span> ▸ </span>
                 </td>
                 <td className="px-2 py-2">{bet.selection}</td>
-                <td className="px-2 py-2">{bet.type}</td>
+                <td className="px-2 py-2">
+                  <div className="leading-tight">
+                    <div>{bet.typeLine1 ?? bet.type}</div>
+                    {bet.typeLine2 != null && String(bet.typeLine2).trim() !== "" ? (
+                      <div className="text-[10px] text-[#4b5563] mt-0.5">
+                        {bet.typeLine2}
+                      </div>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="px-2 py-2">{bet.odds}</td>
                 <td className="px-2 py-2">{bet.stake}</td>
                 <td className="px-2 py-2">
-                  <span>{formatTwoDecimals(bet.profitLoss)}</span>
+                  <span className={getProfitLossClass(bet.profitLoss)}>
+                    {formatTwoDecimals(bet.profitLoss)}
+                  </span>
                 </td>
               </tr>
             ))

@@ -3,6 +3,23 @@ import toast from 'react-hot-toast';
 
 import axiosInstance from '../../utils/axiosInstance';
 
+const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
+
+function resolveDepositImageUrl(value) {
+  let src = String(value || '').trim();
+  if (!src) return '';
+  if (/^https?:\/\//i.test(src)) {
+    try {
+      src = new URL(src).pathname || '';
+    } catch {
+      return src;
+    }
+  }
+  if (!src) return '';
+  const path = src.startsWith('/') ? src : `/${src}`;
+  return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
+}
+
 const formatKey = (key) =>
   String(key || '')
     .replace(/([A-Z])/g, ' $1')
@@ -127,7 +144,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
                     <td className="p-2">
                       {r.paymentImageUrl ? (
                         <a
-                          href={`${imageBase}${r.paymentImageUrl}`}
+                          href={resolveDepositImageUrl(r.paymentImageUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-600 underline"

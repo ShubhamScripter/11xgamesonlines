@@ -23,7 +23,7 @@
 //       member_account: userName,
 //       game_uid,
 //       credit_amount,
-//       currency_code: "BDT",
+//       currency_code: "INR",
 //       language: "en",
 //       home_url: "https://yourfrontend.com",
 //       callback_url: "https://yourbackend.com/api/casino/callback",
@@ -80,7 +80,7 @@
 //     await subAdmin.save();
 
 //     console.log(
-//       `🎰 ${member_account}: Bet ${bet_amount} BDT, Won ${win_amount} BDT → New Balance = ${newBalance}`
+//       `🎰 ${member_account}: Bet ${bet_amount} INR, Won ${win_amount} INR → New Balance = ${newBalance}`
 //     );
 
 //     // Respond to Casino API
@@ -134,7 +134,7 @@
 //       member_account: userName,
 //       game_uid,
 //       credit_amount,
-//       currency_code: "BDT",
+//       currency_code: "INR",
 //       language: "en",
 //       home_url: "http://localhost:5173", // 🔧 Update to your actual frontend URL
 //       callback_url: "http://localhost:5000/api/casino/callback", // 🔧 Update to your actual backend URL
@@ -241,7 +241,7 @@
 //     await subAdmin.save();
 
 //     console.log(
-//       `🎰 ${member_account}: Bet ${bet_amount} BDT, Won ${win_amount} BDT → New Balance = ${newBalance}`
+//       `🎰 ${member_account}: Bet ${bet_amount} INR, Won ${win_amount} INR → New Balance = ${newBalance}`
 //     );
 
 //     // Respond to Casino API
@@ -381,7 +381,7 @@ export const startCasinoGame = async (req, res) => {
 //     await subAdmin.save();
 
 //     console.log(
-//       `🎰 ${member_account}: Bet ${bet_amount} BDT, Won ${win_amount} BDT → New Balance = ${newBalance}`
+//       `🎰 ${member_account}: Bet ${bet_amount} INR, Won ${win_amount} INR → New Balance = ${newBalance}`
 //     );
 
 //     // Respond to Casino API
@@ -529,7 +529,7 @@ export const casinoCallback = async (req, res) => {
               change: Number(change || (wallet_after ? Number(wallet_after) - Number(wallet_before || oldBalance) : (win - bet))),
               wallet_before: Number(wallet_before || oldBalance),
               wallet_after: Number(wallet_after || newBalance),
-              currency_code: currency_code || 'BDT',
+              currency_code: currency_code || 'INR',
               token: data.token,
               provider_timestamp: timestamp ? new Date(timestamp) : new Date(),
               providerRaw: data,
@@ -610,7 +610,7 @@ export const casinoCallback = async (req, res) => {
             change: Number(change || (wallet_after ? Number(wallet_after) - Number(wallet_before || oldBalance) : (win - bet))),
             wallet_before: Number(wallet_before || oldBalance),
             wallet_after: Number(wallet_after || newBalance),
-            currency_code: currency_code || 'BDT',
+            currency_code: currency_code || 'INR',
             token: token,
             provider_timestamp: timestamp ? new Date(timestamp) : new Date(),
             providerRaw: req.body, // Store full raw payload

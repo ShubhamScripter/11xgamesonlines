@@ -52,11 +52,11 @@ function DetailsCard({ showdetails, setshowdetails, data }) {
               <div className="font-semibold md:text-base">{data.odds}</div>
             </td>
             <td className="p-2">
-              <span className="text-gray-600 md:text-lg">Stake (BDT)</span>
+              <span className="text-gray-600 md:text-lg">Stake (INR)</span>
               <div className="font-semibold md:text-base">{data.stake}</div>
             </td>
             <td className="p-2">
-              <span className="text-gray-600 md:text-lg">Profit (BDT)</span>
+              <span className="text-gray-600 md:text-lg">Profit (INR)</span>
               <div className="font-semibold md:text-base">{data.profit}</div>
             </td>
           </tr>

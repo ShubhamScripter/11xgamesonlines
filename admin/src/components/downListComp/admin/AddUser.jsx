@@ -1,8 +1,19 @@
 import React, { useMemo, useState } from "react";
 import axios from "../../../utils/axiosInstance";
+const MODAL_TITLE_BY_ROLE = {
+  user: "Add User",
+  admin: "Add Admin",
+  subadmin: "Add Sub Admin",
+  seniorSuper: "Add Senior Super",
+  superAgent: "Add Super Agent",
+  agent: "Add Agent",
+};
+
 function AddUser({ onClose, roleToCreate, parentId, siteTag = "baaji.net", maxCommission = 0 }) {
-  console.log("roleToCreate",roleToCreate)
-  console.log("parentId",parentId)
+  const modalTitle =
+    MODAL_TITLE_BY_ROLE[roleToCreate] ||
+    (roleToCreate ? `Add ${roleToCreate}` : "Add Account");
+
   const [formData, setFormData] = useState({
     email: "",
     username: "",
@@ -53,12 +64,10 @@ function AddUser({ onClose, roleToCreate, parentId, siteTag = "baaji.net", maxCo
         commission: commissionValue,
         exposureLimit: Number(formData.exposureLimit) || 0,
       };
-      console.log("payload",payload)
       const { data } = await axios.post('/sub-admin/create', payload);
       alert("User created successfully!");
       onClose(); // close modal and refresh
     } catch (err) {
-      console.log(err)
       console.error("Error creating user:", err);
       alert(err?.response?.data?.message || "Failed to create user");
     }
@@ -74,7 +83,7 @@ function AddUser({ onClose, roleToCreate, parentId, siteTag = "baaji.net", maxCo
           ✕
         </button>
         <h2 className="text-lg font-['Times_New_Roman'] font-semibold mb-4 text-[#3b5160] ">
-          Add Sub Admin
+          {modalTitle}
         </h2>
         <div className="flex justify-center items-center">
           <form onSubmit={handleSubmit} className="space-y-3">

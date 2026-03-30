@@ -26,9 +26,6 @@ function GeneralSetting() {
     const allowedRoles = ["superadmin", "admin","subadmin","seniorSuper"];
     const canViewDuplicateIPs = allowedRoles.includes(user?.role);
     
-    // Debug log - remove after testing
-    console.log("User role:", user?.role, "Can view duplicate IPs:", canViewDuplicateIPs);
-
     const openModal = () => setEditPopupOpen(true);
     const closeModal = () => setEditPopupOpen(false);
 
@@ -141,9 +138,7 @@ function GeneralSetting() {
             <img src={ChangePassword} alt="" className='rounded-[10px] border-2 border-[#333]'
             onClick={()=>setEditPopupOpen(true)}
             />
-            <img src={SearchUsers} alt="" className='rounded-[10px] border-2 border-[#333]'
-            onClick={()=>navigate('/searchuser')}
-            />
+           
             <img src={Surveillance} alt="" className='rounded-[10px] border-2 border-[#333]'
             onClick={()=>navigate('/SurveillanceSetting')}
             />

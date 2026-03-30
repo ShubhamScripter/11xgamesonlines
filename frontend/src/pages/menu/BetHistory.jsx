@@ -1,34 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Header from '../../components/Header/Header';
 import HeaderLogin from '../../components/Header/HeaderLogin';
 import { MdArrowBackIos } from "react-icons/md";
-import { DateRange } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-import { AiFillCalendar } from "react-icons/ai";
 import BetCard from '../../components/Bethistory/BetCard';
 import { getBetHistory } from '../../features/sports/betReducer';
+import api from '../../utils/axiosConfig';
 
 function BetHistory() {
   const dispatch = useDispatch();
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
+  const { user } = useSelector((state) => state.auth);
   
-  const [state, setState] = useState([
-      {
-        startDate: new Date(),
-        endDate: new Date(),
-        key: 'selection'
-      }
-    ]);
-    const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedStatus, setSelectedStatus] = useState('Completed');
-    const [page, setPage] = useState(1);
-    const [selectedGame, setSelectedGame] = useState('');
-    const [selectedVoid, setSelectedVoid] = useState('settel');
-    const [limit, setLimit] = useState(10);
-  
-    const calendarRef = useRef(null);
+  const [page, setPage] = useState(1);
+  const [selectedGame, setSelectedGame] = useState('');
+  const [limit, setLimit] = useState(10);
+  const [casinoBets, setCasinoBets] = useState([]);
   
     // Function to map API response to UI format
     const mapBetData = (apiData) => {
@@ -45,7 +31,7 @@ function BetHistory() {
         matched: bet.price || 0,
         placed: new Date(bet.createdAt).toLocaleString(),
         taken: new Date(bet.createdAt).toLocaleString(),
-        profit: bet.resultAmount || 0,
+        profit: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
         status: getStatusFromVoid(bet.void, bet.settled),
         date: new Date(bet.date || bet.createdAt).toISOString().split('T')[0]
       }));
@@ -62,24 +48,21 @@ function BetHistory() {
   
     // Function to fetch bet history from API
     const fetchBets = () => {
-      const { startDate, endDate } = state[0];
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const endDateStr = new Date().toISOString().split('T')[0];
+      const startDateStr = new Date(new Date().setDate(new Date().getDate() - 30))
+        .toISOString()
+        .split('T')[0];
       
       dispatch(getBetHistory({ 
         startDate: startDateStr, 
         endDate: endDateStr, 
         page, 
         selectedGame, 
-        selectedVoid, 
+        selectedVoid: 'settel', 
         limit 
       }));
     };
 
-    const handleFilter = () => {
-      fetchBets();
-    };
-  
     // Update filteredBets when betHistory changes
     useEffect(() => {
       if (betHistory && betHistory.length > 0) {
@@ -95,25 +78,53 @@ function BetHistory() {
       fetchBets();
     }, []);
 
-    // Refetch when selectedVoid changes
+    // Fetch casino bet history and merge
     useEffect(() => {
-      fetchBets();
-    }, [selectedVoid]);
-    
-    // Close calendar when clicking outside
-    useEffect(() => {
-      function handleClickOutside(event) {
-        if (calendarRef.current && !calendarRef.current.contains(event.target)) {
-          setShowCalendar(false);
+      const fetchCasinoBets = async () => {
+        try {
+          const userId = user?._id || user?.id;
+          if (!userId) return;
+          const response = await api.get(
+            `/casino/all-bet-history?id=${userId}&page=1&limit=500`,
+            { withCredentials: true }
+          );
+          setCasinoBets(response?.data?.data || []);
+        } catch (error) {
+          console.error('Error fetching casino bet history:', error);
+          setCasinoBets([]);
         }
-      }
-      if (showCalendar) {
-        document.addEventListener("mousedown", handleClickOutside);
-      }
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
       };
-    }, [showCalendar]);
+      fetchCasinoBets();
+    }, [user]);
+
+    useEffect(() => {
+      const sportsMapped = mapBetData(betHistory || []);
+      const casinoMapped = (casinoBets || []).map((bet, idx) => ({
+        id: bet._id || bet.game_round || `casino-${idx}`,
+        gameName: 'Casino',
+        match: bet.game_uid || 'Casino',
+        market: 'Casino',
+        type: 'Casino',
+        selection: bet.game_round || 'Casino Bet',
+        oddsReq: '-',
+        avgOdds: '-',
+        matched: Number(bet.bet_amount || 0),
+        placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : '',
+        taken: bet.provider_timestamp
+          ? new Date(bet.provider_timestamp).toLocaleString()
+          : (bet.createdAt ? new Date(bet.createdAt).toLocaleString() : ''),
+        profit: Number(bet.change || 0),
+        status: 'Casino',
+        date: bet.createdAt
+          ? new Date(bet.createdAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
+      }));
+
+      const merged = [...sportsMapped, ...casinoMapped].sort(
+        (a, b) => new Date(b.placed).getTime() - new Date(a.placed).getTime()
+      );
+      setFilteredBets(merged);
+    }, [betHistory, casinoBets]);
   
   return (
     <div>
@@ -127,66 +138,7 @@ function BetHistory() {
         <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">My Bets</span>
       </div>
 
-      <div className='bg-[#eef6fb] p-2 flex items-center justify-around'>
-        <span  className='text-sm font-semibold'>Exchange</span>
-        <span className='text-sm font-semibold'>Bookmaker</span>
-        <span className='text-sm font-semibold'>FancyBet</span>
-        <span className='text-sm font-semibold'>SportsBook</span>
-      </div>
-
-      <div className='bg-[#262c32] p-2'>
-        {/* Bet Status Dropdown */}
-        <div className='flex items-center justify-between relative'>
-          <select
-            name="Bet Status"
-            className='bg-[#1b1f23] text-white pl-20 py-2 rounded-lg w-full'
-            value={selectedVoid}
-            onChange={(e) => setSelectedVoid(e.target.value)}
-          >
-            <option value="unsettle">Unsettled</option>
-            <option value="settel">Settled</option>
-            <option value="void">Void</option>
-          </select>
-          <span className='absolute left-0 text-white pl-2'>Bet Status</span>
-        </div>
-
-        {/* Search Section */}
-        <div className='flex items-center gap-5 mt-1 md:mt-2'>
-          {/* Date Range Picker */}
-          <div className="relative w-max">
-            <button
-              className="flex items-center gap-2 px-4 py-2 border border-green-600 rounded text-green-500 bg-transparent"
-              onClick={() => setShowCalendar(!showCalendar)}
-            >
-              <span className="material-icons text-green-500"><AiFillCalendar /></span>
-              {state[0].startDate.toLocaleDateString()} - {state[0].endDate.toLocaleDateString()}
-            </button>
-            {showCalendar && (
-              <div ref={calendarRef} className="absolute z-50 mt-2">
-                <DateRange
-                  editableDateInputs={true}
-                  onChange={item => {
-                    setState([item.selection]);
-                    // setShowCalendar(false); // Close after first select
-                  }}
-                  moveRangeOnFirstSelection={false}
-                  ranges={state}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div>
-            <button
-              className='bg-[#17934e] p-2 rounded-lg text-xl font-semibold'
-              onClick={handleFilter}
-            >
-              Submit
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Filters removed as requested */}
 
       {/* Bets List */}
       <div className='bg-[#f1f7ff] min-h-[70vh]'>

@@ -25,51 +25,81 @@ const roleHierarchy = {
 function DownLineView() {
   const { userId } = useParams();
   const dispatch = useDispatch();
-  const { balanceData, downlines, loading, error, currentUser } = useSelector(state => state.downline);
+  const loggedInUser = useSelector(state => state.auth.user);
+  const { balanceData, downlines, loading, error, currentUser, totalPages, totalUsers, pageSize } = useSelector(
+    state => state.downline
+  );
   console.log("my currentUser is2:",currentUser);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-console.log("my userId is in useEffect:",userId);
-    if (userId) dispatch(fetchDownlineTree(userId));
-  }, [userId, dispatch]);
+    setPage(1);
+    setAppliedSearch("");
+    setSearchInput("");
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      dispatch(
+        fetchDownlineTree({
+          userId,
+          page,
+          limit: pageSize || 10,
+          searchQuery: appliedSearch,
+        })
+      );
+    }
+  }, [userId, page, appliedSearch, pageSize, dispatch]);
 
   // Get the role from the currentUser object (should be set in your slice)
   const userRole = currentUser?.role || null;
   console.log("my userRole is",userRole);
   const nextRole = roleHierarchy[userRole] || null;
+  /** Logged-in superadmin may only add end users (matches API). */
+  const createRole =
+    loggedInUser?.role === "superadmin" && nextRole != null ? "user" : nextRole;
   
 
-  // Filter downlines based on search query and status
+  const runMemberSearch = () => {
+    setPage(1);
+    setAppliedSearch(searchInput.trim());
+  };
+
+  const clearMemberSearch = () => {
+    setSearchInput("");
+    setAppliedSearch("");
+    setPage(1);
+  };
+
+  // Status filter only (search is server-side via appliedSearch)
   const filteredDownlines = useMemo(() => {
     let filtered = [...downlines];
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((user) => {
-        const username = (user.username || user.account || "").toLowerCase();
-        return username.includes(query);
-      });
-    }
-
-    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((user) => {
         const userStatus = (user.status || "").toLowerCase();
         return userStatus === statusFilter.toLowerCase();
       });
     }
-
     return filtered;
-  }, [downlines, searchQuery, statusFilter]);
+  }, [downlines, statusFilter]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
     setIsModalOpen(false);
-    if (userId) dispatch(fetchDownlineTree(userId));
+    if (userId) {
+      dispatch(
+        fetchDownlineTree({
+          userId,
+          page,
+          limit: pageSize || 10,
+          searchQuery: appliedSearch,
+        })
+      );
+    }
   };
 
   if (loading) return <div className="text-center mt-10">Loading...</div>;
@@ -93,16 +123,27 @@ console.log("my userId is in useEffect:",userId);
               type="text"
               placeholder="Find Member...."
               name="findMember"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && runMemberSearch()}
               className="outline-0 text-sm"
             />
-            <button 
+            <button
+              type="button"
               className="bg-[#fdb72f] rounded-sm p-1 font-serif text-sm"
-              onClick={() => setSearchQuery("")}
+              onClick={runMemberSearch}
             >
-              {searchQuery ? "Clear" : "Search"}
+              Search
             </button>
+            {(appliedSearch || searchInput.trim()) ? (
+              <button
+                type="button"
+                className="bg-[#eee] border border-[#aaa] rounded-sm px-2 py-1 font-serif text-xs"
+                onClick={clearMemberSearch}
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
 
           {/* Status Filter */}
@@ -125,20 +166,30 @@ console.log("my userId is in useEffect:",userId);
 
         {/* Add + Refresh */}
         <div className="flex gap-2">
-          {
-          nextRole && 
-          (
+          {nextRole && (
             <div
               className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
               onClick={openModal}
             >
               <MdPersonAddAlt1 className="text-xl" />
-              <span className="text-sm font-medium">Add {nextRole}</span>
+              <span className="text-sm font-medium">
+                Add {createRole === "user" ? "User" : nextRole}
+              </span>
             </div>
           )}
 
           <div
-            onClick={() => userId && dispatch(fetchDownlineTree(userId))}
+            onClick={() =>
+              userId &&
+              dispatch(
+                fetchDownlineTree({
+                  userId,
+                  page,
+                  limit: pageSize || 10,
+                  searchQuery: appliedSearch,
+                })
+              )
+            }
             className="rounded-sm p-1 border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] cursor-pointer"
           >
             <IoMdRefresh className="font-bold text-xl" />
@@ -151,18 +202,71 @@ console.log("my userId is in useEffect:",userId);
 
       {/* Downline Table */}
       {nextRole === "user" ? (
-        <AccountTableUser users={filteredDownlines} refreshDownlines={() => userId && dispatch(fetchDownlineTree(userId))} currentUser={currentUser} />
+        <AccountTableUser
+          serverPaginated
+          users={filteredDownlines}
+          refreshDownlines={() =>
+            userId &&
+            dispatch(
+              fetchDownlineTree({
+                userId,
+                page,
+                limit: pageSize || 10,
+                searchQuery: appliedSearch,
+              })
+            )
+          }
+          currentUser={currentUser}
+        />
       ) : (
-        <AccountTable users={filteredDownlines} refreshDownlines={() => userId && dispatch(fetchDownlineTree(userId))} currentUser={currentUser} />
+        <AccountTable
+          serverPaginated
+          users={filteredDownlines}
+          refreshDownlines={() =>
+            userId &&
+            dispatch(
+              fetchDownlineTree({
+                userId,
+                page,
+                limit: pageSize || 10,
+                searchQuery: appliedSearch,
+              })
+            )
+          }
+          currentUser={currentUser}
+        />
       )}
-      
+
+      <div className="flex flex-wrap justify-center items-center gap-3 mt-4 text-sm font-['Times_New_Roman'] text-[#243a48]">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="px-3 py-1 border border-[#7e97a7] rounded bg-[#f3f4f6] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <span>
+          Page {page} of {totalPages || 1}
+          {typeof totalUsers === "number" ? ` · ${totalUsers} total` : ""}
+        </span>
+        <button
+          type="button"
+          disabled={page >= (totalPages || 1)}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-3 py-1 border border-[#7e97a7] rounded bg-[#f3f4f6] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+
 
       {/* Modal */}
-      {isModalOpen && (
-        nextRole === "user" ? (
+      {isModalOpen &&
+        (loggedInUser?.role === "superadmin" || createRole === "user" ? (
           <AddUser
             onClose={closeModal}
-            roleToCreate={nextRole}
+            roleToCreate="user"
             parentId={userId}
             siteTag="baaji.net"
           />
@@ -173,8 +277,7 @@ console.log("my userId is in useEffect:",userId);
             parentId={userId}
             siteTag="baaji.net"
           />
-        )
-      )}
+        ))}
     </div>
   );
 }

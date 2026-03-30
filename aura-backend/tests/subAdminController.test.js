@@ -795,15 +795,17 @@ describe('SubAdmin Controller Tests', () => {
       );
     });
 
-    test('Successfully create user - Role hierarchy: superadmin can create admin', async () => {
+    test('Successfully create user - superadmin can create only user under self', async () => {
       const mockAdmin = {
         _id: 'super_001',
         code: 'SUPER001',
+        userName: 'super1',
         secret: 1,
         password: 'hashed_password',
         role: 'superadmin',
         balance: 100000,
         avbalance: 90000,
+        save: vi.fn().mockResolvedValue(true),
       };
 
       SubAdmin.findById = vi.fn().mockResolvedValue(mockAdmin);
@@ -815,9 +817,11 @@ describe('SubAdmin Controller Tests', () => {
         .mockReturnValue({ toString: () => 'abcd1234' });
 
       const mockSubAdmin = {
-        _id: 'admin_001',
+        _id: 'user_001',
+        userName: 'newplayer',
+        role: 'user',
         save: vi.fn().mockResolvedValue(true),
-        toObject: () => ({ _id: 'admin_001' }),
+        toObject: () => ({ _id: 'user_001' }),
       };
 
       const SubAdminConstructor = vi
@@ -829,14 +833,17 @@ describe('SubAdmin Controller Tests', () => {
       TransactionHistory.create = vi.fn().mockResolvedValue({});
 
       const req = {
-        id: 'super_001',
         role: 'superadmin',
         body: {
-          userName: 'newadmin',
-          accountType: 'admin', // superadmin can create admin
-          balance: 10000,
-          masterPassword: 'master123',
-          partnership: '50',
+          id: 'super_001',
+          name: 'New Player',
+          userName: 'newplayer',
+          email: 'player@test.com',
+          accountType: 'user',
+          commission: 0,
+          balance: 0,
+          exposureLimit: 0,
+          password: 'password123',
         },
       };
 
@@ -848,6 +855,44 @@ describe('SubAdmin Controller Tests', () => {
       await createSubAdmin(req, res);
 
       expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    test('Error - superadmin cannot create admin', async () => {
+      const mockAdmin = {
+        _id: 'super_001',
+        secret: 1,
+        role: 'superadmin',
+        balance: 100000,
+        avbalance: 90000,
+      };
+
+      SubAdmin.findById = vi.fn().mockResolvedValue(mockAdmin);
+
+      const req = {
+        role: 'superadmin',
+        body: {
+          id: 'super_001',
+          userName: 'badadmin',
+          email: 'a@test.com',
+          accountType: 'admin',
+          balance: 0,
+          password: 'password123',
+        },
+      };
+
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      };
+
+      await createSubAdmin(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Superadmin can only create user accounts.',
+        })
+      );
     });
 
     test('Successfully create user - Admin updates totalBalance correctly', async () => {

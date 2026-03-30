@@ -37,6 +37,10 @@ import {
   getUserCompleteInfo,
 } from '../../controllers/admin/subAdminController.js';
 import { adminAuthMiddleware } from '../../middleware/authMiddleware.js';
+import {
+  getAdminAppSettings,
+  updateAdminAppSettings,
+} from '../../controllers/appSettingsController.js';
 
 const router = express.Router();
 
@@ -112,5 +116,8 @@ router.post(
 router.post("/sub-admin/profile-data", adminAuthMiddleware, getUserCompleteInfo);
 
 router.get("/duplicate-ip-users", adminAuthMiddleware, getDuplicateIPUsers);
+
+router.get('/admin/app-settings', adminAuthMiddleware, getAdminAppSettings);
+router.put('/admin/app-settings', adminAuthMiddleware, updateAdminAppSettings);
 
 export default router;

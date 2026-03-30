@@ -231,6 +231,9 @@ function ProfitLoss() {
     if (!apiData || !Array.isArray(apiData)) return [];
 
     return apiData.map((bet, idx) => ({
+      profitLossChange: Number(
+        bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0
+      ),
       id: bet.betId || bet._id || bet.id || `profit-loss-${idx}`,
       gameName: bet.gameName || 'Unknown Game',
       match: bet.eventName || 'Unknown Match',
@@ -243,11 +246,13 @@ function ProfitLoss() {
       laysubtotal: bet.otype === 'lay'|| bet.otype === 'No' ? bet.stake : 0,
       commission: bet.commission || 0, // Not available in new API response
       avgOdds: 0, // Not available in new API response
-      matched: bet.profit || 0,
+      matched: Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0),
       placed: bet.date ? new Date(bet.date).toLocaleString() : '',
       taken: bet.date ? new Date(bet.date).toLocaleString() : '',
-      profit: bet.profit || 0,
-      status: getStatusFromProfit(bet.profit),
+      profit: Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0),
+      status: getStatusFromProfit(
+        Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0)
+      ),
       date: bet.date
         ? new Date(bet.date).toISOString().split('T')[0]
         : new Date().toISOString().split('T')[0],

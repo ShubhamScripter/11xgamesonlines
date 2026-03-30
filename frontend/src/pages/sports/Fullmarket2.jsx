@@ -256,7 +256,7 @@
 //       </div>
 //       <div className='bg-[#1e1e1e] h-10 p-2 pl-4 pr-4 flex justify-between items-center'>
 //         <span className='text-white'>Exchange</span>
-//         <span className='text-[#17934e]'>MatchedBDT &nbsp; 14,987,086.26</span>
+//         <span className='text-[#17934e]'>Matched INR &nbsp; 14,987,086.26</span>
 //       </div>
 //       <div>
 //         {/* Match Odds Section */}
@@ -944,7 +944,7 @@ function Fullmarket2() {
         <div style={{ margin: 0, padding: 0, lineHeight: 0 }}>
           {isLive ? (
             <iframe
-              src={`https://live.cricketid.xyz/directStream?gmid=${gameid}&key=gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2`}
+              src={`https://81habibi.com/api/v1/live-stream?gmid=${gameid}&key=gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f`}
               title="Watch Live"
               className="w-full rounded-lg"
               style={{ height: "50vh" }}
@@ -961,7 +961,7 @@ function Fullmarket2() {
             />
           ) : (
             <iframe
-              src={`https://score.akamaized.uk/diamond-live-score?gmid=${gameid}`}
+              src={`https://81habibi.com/api/v1/live-score?gmid=${gameid}&key=gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f`}
               allowFullScreen
               className="w-full rounded-lg"
               title="Live Score"
@@ -979,7 +979,7 @@ function Fullmarket2() {
         </div>
         <div className='bg-[#1e1e1e] h-10 p-2 pl-4 pr-4 flex justify-between items-center'>
           <span className='text-white'>Exchange</span>
-          <span className='text-[#17934e]'>MatchedBDT &nbsp;{matchOddsList[0]?.matched}</span>
+          <span className='text-[#17934e]'>Matched INR &nbsp;{matchOddsList[0]?.matched}</span>
         </div>
         <div>
           {/* Match Odds Section */}

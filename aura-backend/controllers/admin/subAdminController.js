@@ -278,13 +278,12 @@ export const createSubAdmin = async (req, res) => {
     // Generate a Unique Code for Referral
     const uniqueCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    // Find the admin who is creating the sub-admin
+    // Parent account (downline attaches under this node)
     const admin = await SubAdmin.findById(id);
-    console.log("my admin is",admin.role);
-    const role=admin.role;
     if (!admin) {
       return res.status(400).json({ message: 'Admin not found' });
     }
+    const role = admin.role;
 
     if (admin.secret === 0) {
       return res.status(403).json({
@@ -292,35 +291,32 @@ export const createSubAdmin = async (req, res) => {
       });
     }
 
-    // Role-based validation
-    // const roleHierarchy = {
-    //   superadmin: ['admin', 'white', 'super', 'master', 'agent', 'user'],
-    //   admin: ['white', 'super', 'master', 'agent', 'user'],
-    //   white: ['super', 'master', 'agent', 'user'],
-    //   super: ['master', 'agent', 'user'],
-    //   master: ['agent', 'user'],
-    //   agent: ['user'],
-    // };
+    // Authenticated superadmin may only create end-user (player) accounts
+    if (req.role === 'superadmin' && accountType !== 'user') {
+      return res.status(403).json({
+        message: 'Superadmin can only create user accounts.',
+      });
+    }
 
     const roleHierarchy = {
-      superadmin:["admin"],
-      admin: ["subadmin"],
+      superadmin: ['user'],
+      admin: ['subadmin'],
       subadmin: ['seniorSuper'],
-      seniorSuper: ["superAgent"],
-      superAgent: ["agent"],
-      agent: ["user"],
+      seniorSuper: ['superAgent'],
+      superAgent: ['agent'],
+      agent: ['user'],
     };
 
+    const allowedForParent = roleHierarchy[role]?.includes(accountType);
+    const superadminCreatesUser =
+      req.role === 'superadmin' && accountType === 'user';
 
-    // Compare password
-    // const isMatch = await bcrypt.compare(masterPassword, admin.password);
-    // if (!isMatch) {
-    //   return res.status(400).json({ message: 'Invalid Master password.' });
-    // }
-
-    if (!roleHierarchy[role] || !roleHierarchy[role].includes(accountType)) {
+    if (
+      !superadminCreatesUser &&
+      (!roleHierarchy[role] || !allowedForParent)
+    ) {
       return res.status(403).json({
-        message: `${role} can only create ${roleHierarchy[role].join(', ')} accounts.`,
+        message: `${role} can only create ${(roleHierarchy[role] || []).join(', ')} accounts.`,
       });
     }
 
@@ -531,7 +527,7 @@ export const deleteSubAdmin = async (req, res) => {
   }
 };
 
-const saveLoginHistory = async (userName, id, status, req) => {
+const saveLoginHistory = async (userName, id, status, req, role = null) => {
   try {
     const ip =
       req.headers['x-forwarded-for']?.split(',')[0] ||
@@ -560,6 +556,7 @@ const saveLoginHistory = async (userName, id, status, req) => {
     await LoginHistory.create({
       userName,
       userId: id,
+      role,
       status: status === 'Success' ? 'Login Successful' : 'Login Failed',
       dateTime: formattedDateTime,
       ip,
@@ -605,12 +602,12 @@ export const loginSubAdmin = async (req, res) => {
     const isMatch = await bcrypt.compare(password, subAdmin.password);
 
     if (!isMatch) {
-      await saveLoginHistory(userName, subAdmin._id, 'Password Wrong', req);
+    await saveLoginHistory(userName, subAdmin._id, 'Password Wrong', req, subAdmin?.role);
       return res.status(400).json({ message: 'Password Wrong !' });
     }
 
     if (subAdmin.status !== 'active') {
-      await saveLoginHistory(userName, subAdmin._id, 'Account Inactive', req);
+      await saveLoginHistory(userName, subAdmin._id, 'Account Inactive', req, subAdmin?.role);
       return res
         .status(400)
         .json({ message: `Your Account has been ${subAdmin.status} !` });
@@ -640,7 +637,7 @@ export const loginSubAdmin = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    await saveLoginHistory(userName, subAdmin._id, 'Success', req);
+    await saveLoginHistory(userName, subAdmin._id, 'Success', req, subAdmin?.role);
 
     //  Set token in HTTP-only cookie
     res.cookie('auth', token, {
@@ -775,11 +772,16 @@ export const getLoginHistory = async (req, res) => {
   try {
     const { userId } = req.params; // passed in route as /credit-ref-history/:userId
     // console.log("userId", userId);
+    const user = await SubAdmin.findById(userId).select('role');
     const data = await LoginHistory.find({ userId }).sort({ createdAt: -1 }); // optional: latest first
+    const normalizedData = data.map((entry) => ({
+      ...entry.toObject(),
+      role: entry.role || user?.role || '-',
+    }));
     // console.log("data", data);
     res.status(200).json({
       message: 'Login history fetched successfully',
-      data,
+      data: normalizedData,
       success: true,
     });
   } catch (error) {
@@ -1657,9 +1659,12 @@ export const withdrowalAndDeposite = async (req, res) => {
 
     const totalUsers = await SubAdmin.countDocuments(filter);
 
+    const actionLabel = type === 'deposite' ? 'deposit' : 'withdrawal';
+    const targetUserName = editUser?.userName || 'user';
+
     return res.status(200).json({
       success: true,
-      message: 'Transaction completed successfully',
+      message: `Amount ${balance} ${actionLabel} completed successfully for user ${targetUserName}`,
       totalUsers,
       data: allUsers,
     });

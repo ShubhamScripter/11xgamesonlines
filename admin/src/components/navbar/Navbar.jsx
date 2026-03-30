@@ -15,67 +15,67 @@ const navData = [
     icon: "FaUserCircle",
     path: "/my-account-summary"
   },
-  {
-    label: "My Report",
-    icon: "FaChartBar",
-    children: [
-      {
-        label: "Profit/Loss Report by Downline",
-        icon: "FaFileAlt",
-        path: "/AprofitByDownline"
-      },
-      {
-        label: "Profit/Loss by Downline",
-        icon: "FaFileInvoiceDollar",
-        path: "/AprofitDownline"
-      },
-      {
-        label: "Profit/Loss Report by Market",
-        icon: "FaChartPie",
-        path: "/AprofitMarket"
-      },
-      {
-        label: "Profit/Loss Sports Wise",
-        icon: "FaFutbol",
-        path: "/Adownlinesportspl"
-      },
-      {
-        label: "All Casino Profit/Loss",
-        icon: "FaDice",
-        path: "/ACdownlinesportspl"
-      },
-      {
-        label: "Casino Profit/Loss Report by Date",
-        icon: "FaCalendarAlt",
-        path: "/AprofitCasino"
-      },
-      {
-        label: "Casino P/L Downline Monthly",
-        icon: "FaCalendar",
-        path: "/ACasinoprofitAndLossDownlineNew"
-      },
-      {
-        label: "International Casino P/L Downline Monthly",
-        icon: "FaGlobe",
-        path: "/ICasinoprofitAndLossDownlineNew"
-      }
-    ]
-  },
-  {
-    label: "BetList",
-    icon: "FaListUl",
-    path: "/Betlist"
-  },
-  {
-    label: "BetListLive",
-    icon: "FaBroadcastTower",
-    path: "/BetListLive"
-  },
-  {
-    label: "Risk Management",
-    icon: "FaShieldAlt",
-    path: "/RiskManagement"
-  },
+  // {
+  //   label: "My Report",
+  //   icon: "FaChartBar",
+  //   children: [
+  //     {
+  //       label: "Profit/Loss Report by Downline",
+  //       icon: "FaFileAlt",
+  //       path: "/AprofitByDownline"
+  //     },
+  //     {
+  //       label: "Profit/Loss by Downline",
+  //       icon: "FaFileInvoiceDollar",
+  //       path: "/AprofitDownline"
+  //     },
+  //     {
+  //       label: "Profit/Loss Report by Market",
+  //       icon: "FaChartPie",
+  //       path: "/AprofitMarket"
+  //     },
+  //     {
+  //       label: "Profit/Loss Sports Wise",
+  //       icon: "FaFutbol",
+  //       path: "/Adownlinesportspl"
+  //     },
+  //     {
+  //       label: "All Casino Profit/Loss",
+  //       icon: "FaDice",
+  //       path: "/ACdownlinesportspl"
+  //     },
+  //     {
+  //       label: "Casino Profit/Loss Report by Date",
+  //       icon: "FaCalendarAlt",
+  //       path: "/AprofitCasino"
+  //     },
+  //     {
+  //       label: "Casino P/L Downline Monthly",
+  //       icon: "FaCalendar",
+  //       path: "/ACasinoprofitAndLossDownlineNew"
+  //     },
+  //     {
+  //       label: "International Casino P/L Downline Monthly",
+  //       icon: "FaGlobe",
+  //       path: "/ICasinoprofitAndLossDownlineNew"
+  //     }
+  //   ]
+  // },
+  // {
+  //   label: "BetList",
+  //   icon: "FaListUl",
+  //   path: "/Betlist"
+  // },
+  // {
+  //   label: "BetListLive",
+  //   icon: "FaBroadcastTower",
+  //   path: "/BetListLive"
+  // },
+  // {
+  //   label: "Risk Management",
+  //   icon: "FaShieldAlt",
+  //   path: "/RiskManagement"
+  // },
   {
     label: "Banking",
     icon: "FaCreditCard",
@@ -97,19 +97,24 @@ const navData = [
     path: "/manual-withdraw-requests"
   },
   {
-    label: "Block Market",
-    icon: "FaBan",
-    path: "/block-market"
+    label: "Customer support",
+    icon: "FaWhatsapp",
+    path: "/customer-support"
   },
+  // {
+  //   label: "Block Market",
+  //   icon: "FaBan",
+  //   path: "/block-market"
+  // },
   {
     label: "Admin Setting",
     icon: "FaCogs",
     path: "/general-setting"
   },
-  {
-    label: "Time Zone : GMT+6:00",
-    icon: "FaClock"
-  },
+  // {
+  //   label: "Time Zone : GMT+6:00",
+  //   icon: "FaClock"
+  // },
   {
     label: "Logout",
     icon: "FaSignOutAlt",

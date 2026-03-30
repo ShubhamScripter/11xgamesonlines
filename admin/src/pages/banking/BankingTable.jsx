@@ -416,7 +416,7 @@ console.log("localDownlines", localDownlines);
             masterPassword: password,
             remark: tx.remark || "",
           },
-          type: tx.type === "D" ? "deposite" : "withdraw",
+          type: tx.type === "D" ? "deposite" : "withdrawal",
         })
       );
 
@@ -424,12 +424,17 @@ console.log("localDownlines", localDownlines);
 
       // Update local downlines after successful transactions
       const updatedDownlines = localDownlines.map((user) => {
-        const res = responses.find((r) => r.data.child._id === user._id);
-        return res ? res.data.child : user;
+        const matchedUser = responses
+          .flatMap((r) => r?.data?.data || [])
+          .find((item) => item?._id === user?._id);
+        return matchedUser || user;
       });
       console.log("Updated Downlines:", updatedDownlines);
       setLocalDownlines(updatedDownlines);
-      alert("Transactions completed successfully!");
+      const successMessage =
+        responses.map((r) => r?.data?.message).filter(Boolean).join("\n") ||
+        "Transactions completed successfully!";
+      alert(successMessage);
       handleClearAll();
       if (onTransactionComplete) onTransactionComplete();
     } catch (err) {

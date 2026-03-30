@@ -9,13 +9,13 @@ import api from '../../utils/axiosConfig';
 function AccountStatement() {
   const { user } = useSelector((state) => state.auth);
   const [balance, setbalance] = useState(106.70)
-  const [currency, setcurrency] = useState('BDT')
+  const [currency, setcurrency] = useState('INR')
   const [accountDataList, setAccountDataList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch casino bet history
+  // Fetch account transactions (deposit/withdrawal)
   useEffect(() => {
-    const fetchBetHistory = async () => {
+    const fetchAccountTransactions = async () => {
       try {
         setLoading(true);
         
@@ -35,17 +35,35 @@ function AccountStatement() {
           return;
         }
 
-        const response = await api.get(`/casino/bet-history/${userId}`);
+        const endDate = new Date().toISOString().split("T")[0];
+        const startDate = new Date(
+          new Date().setDate(new Date().getDate() - 30)
+        ).toISOString().split("T")[0];
+
+        const response = await api.get(
+          `/user/transactions-hisrtory?startDate=${startDate}&endDate=${endDate}&page=1&limit=200`
+        );
         
         if (response.data.success && response.data.data) {
-          // Map API response to match accountDataList structure
-          const mappedData = response.data.data.map((item) => ({
-            date: new Date(item.createdAt).toLocaleString(),
-            deposit: item.bet_amount || 0,
-            balance: item.wallet_after || 0,
-            change: item.change || 0, // Add change field to determine profit/loss
-            remark: `Casino / Game ID: ${item.game_uid || 'N/A'} / Round: ${item.game_round || 'N/A'}`
-          }));
+          // Show only deposit/withdrawal related entries
+          const filteredTransactions = response.data.data.filter(
+            (item) => Number(item?.deposite || 0) > 0 || Number(item?.withdrawl || 0) > 0
+          );
+
+          const mappedData = filteredTransactions.map((item) => {
+            const depositeAmount = Number(item?.deposite || 0);
+            const withdrawalAmount = Number(item?.withdrawl || 0);
+            const change = depositeAmount > 0 ? depositeAmount : -withdrawalAmount;
+            const txnType = depositeAmount > 0 ? "Deposit" : "Withdrawal";
+
+            return {
+              date: new Date(item.createdAt).toLocaleString(),
+              deposit: Math.abs(change),
+              balance: Number(item?.amount || 0),
+              change,
+              remark: `${txnType} | ${item?.from || "-"} → ${item?.to || "-"}${item?.remark ? ` | ${item.remark}` : ""}`,
+            };
+          });
           
           setAccountDataList(mappedData);
           
@@ -57,14 +75,14 @@ function AccountStatement() {
           setAccountDataList([]);
         }
       } catch (error) {
-        console.error('Error fetching casino bet history:', error);
+        console.error('Error fetching account statement:', error);
         setAccountDataList([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBetHistory();
+    fetchAccountTransactions();
   }, [user]);
   return (
     <div>
@@ -87,7 +105,7 @@ function AccountStatement() {
             </div>
           ) : accountDataList.length === 0 ? (
             <div className="text-center py-8 text-gray-600">
-              No casino bet history found.
+              No deposit/withdrawal history found.
             </div>
           ) : (
             <AccountStatementCard accountdata={accountDataList}/>

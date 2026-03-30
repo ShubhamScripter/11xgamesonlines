@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MdArrowBackIos } from 'react-icons/md';
+import { useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { MdArrowBackIos, MdContentCopy } from 'react-icons/md';
+import { RiWhatsappFill } from 'react-icons/ri';
 import { toast } from 'react-hot-toast';
 
 import HeaderLogin from '../../components/Header/HeaderLogin';
 import api from '../../utils/axiosConfig';
+
+function buildWhatsAppChatUrl(digits, message) {
+  const d = String(digits || '').replace(/\D/g, '');
+  if (d.length < 10) return '';
+  const q = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${d}${q}`;
+}
 
 const METHOD_OPTIONS = [
   { id: 'bank', label: 'BANK' },
@@ -29,7 +39,12 @@ const INITIAL_WITHDRAW_DETAILS = {
 };
 
 function ManualDeposit() {
-  const [requestType, setRequestType] = useState('deposit');
+  const { user } = useSelector((state) => state.auth);
+  const [searchParams] = useSearchParams();
+  const [requestType, setRequestType] = useState(() => {
+    const t = searchParams.get('type');
+    return t === 'withdraw' || t === 'deposit' ? t : 'deposit';
+  });
   const [method, setMethod] = useState('bank');
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
@@ -39,17 +54,29 @@ function ManualDeposit() {
 
   const [amount, setAmount] = useState('');
   const [referenceId, setReferenceId] = useState('');
-  const [bonusType, setBonusType] = useState('No Bonus');
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentImage, setPaymentImage] = useState(null);
   const [paymentImagePreview, setPaymentImagePreview] = useState('');
   const [withdrawDetails, setWithdrawDetails] = useState(INITIAL_WITHDRAW_DETAILS);
+  const [supportWaDigits, setSupportWaDigits] = useState('');
 
   const selectedAccount = useMemo(
     () => accounts.find((a) => a._id === selectedAccountId),
     [accounts, selectedAccountId]
   );
-  const imageBase = (api?.defaults?.baseURL || '').replace('/api', '');
+  /** Static files host — API returns paths starting with `/uploads/...` only. */
+  const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
+  const copyToClipboard = async (text) => {
+    const t = String(text ?? '').trim();
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Could not copy');
+    }
+  };
+
   const resolveImageUrl = (value) => {
     let src = String(value || '').trim();
     if (
@@ -59,11 +86,19 @@ function ManualDeposit() {
       src = src.slice(1, -1).trim();
     }
     if (!src) return '';
-    if (src.startsWith('http')) return src;
-    return `${imageBase}${src.startsWith('/') ? src : `/${src}`}`;
+    if (/^https?:\/\//i.test(src)) {
+      try {
+        src = new URL(src).pathname || '';
+      } catch {
+        return src;
+      }
+    }
+    if (!src) return '';
+    const path = src.startsWith('/') ? src : `/${src}`;
+    return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
   };
 
-  const loadAccounts = async (selectedMethod) => {
+  const loadAccounts = async (selectedMethod, { silent } = {}) => {
     setLoading(true);
     try {
       const res = await api.get('/user/deposit-accounts', {
@@ -73,7 +108,9 @@ function ManualDeposit() {
       setAccounts(list);
       setSelectedAccountId(list[0]?._id || '');
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Accounts load failed');
+      if (!silent) {
+        toast.error(error?.response?.data?.message || 'Accounts load failed');
+      }
       setAccounts([]);
       setSelectedAccountId('');
     } finally {
@@ -96,12 +133,36 @@ function ManualDeposit() {
       setSelectedAccountId('');
       return;
     }
-    loadAccounts(method);
+    loadAccounts(method, { silent: method === 'whatsapp' });
   }, [method, requestType]);
 
   useEffect(() => {
     loadMyRequests();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/public/app-settings');
+        const raw = data?.data?.supportWhatsApp || '';
+        const digits = String(raw).replace(/\D/g, '');
+        if (!cancelled && digits.length >= 10) setSupportWaDigits(digits);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const t = searchParams.get('type');
+    if (t === 'withdraw' || t === 'deposit') {
+      setRequestType(t);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     return () => {
@@ -184,7 +245,6 @@ function ManualDeposit() {
       }
       formData.append('referenceId', referenceId.trim());
       formData.append('paymentNote', paymentNote.trim());
-      formData.append('bonusType', bonusType);
       if (requestType === 'withdraw') {
         formData.append('withdrawDetails', JSON.stringify(withdrawDetails));
       }
@@ -270,74 +330,116 @@ function ManualDeposit() {
         </div>
 
         {requestType === 'deposit' ? (
+          method === 'whatsapp' && !supportWaDigits ? null : (
           <div className="bg-white rounded-xl p-3 shadow-sm">
-            <div className="text-sm font-semibold mb-2">Account Details</div>
-            {loading ? (
-              <div className="text-sm text-gray-500">Loading accounts...</div>
-            ) : accounts.length === 0 ? (
-              <div className="text-sm text-red-500">No account found for selected method.</div>
+            {method === 'whatsapp' ? (
+              (() => {
+                const waMsg = `Hello, I want to deposit via WhatsApp.\nUsername: ${user?.userName || '—'}\nPlease assist.`;
+                const waHref = buildWhatsAppChatUrl(supportWaDigits, waMsg);
+                if (!waHref) return null;
+                return (
+                  <div>
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] text-white font-semibold text-sm shadow-md active:scale-[0.99] transition-transform"
+                    >
+                      <RiWhatsappFill className="text-2xl shrink-0" />
+                      Send to WhatsApp
+                    </a>
+                    <p className="text-[11px] text-gray-500 text-center mt-2">
+                      Opens WhatsApp on your phone to message support for this deposit.
+                    </p>
+                  </div>
+                );
+              })()
             ) : (
               <>
-                <select
-                  className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                >
-                  {accounts.map((account) => (
-                    <option key={account._id} value={account._id}>
-                      {account.title}
-                    </option>
-                  ))}
-                </select>
-                {selectedAccount && (
-                  <div className="text-xs bg-[#f6f8fa] p-3 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {Object.entries(selectedAccount.details || {}).map(([key, value]) => {
-                      if (value == null || String(value).trim() === '') return null;
-                      const isImageField =
-                        key.toLowerCase().includes('qr') ||
-                        key.toLowerCase().includes('image');
-                      return (
-                        <div
-                          key={key}
-                          className={`bg-white rounded p-2 border border-[#e5e7eb] ${
-                            isImageField ? 'sm:col-span-2' : ''
-                          }`}
-                        >
-                          <div className="text-[10px] uppercase tracking-wide text-gray-500">{key}</div>
-                          {isImageField ? (
-                            <div className="mt-2 flex justify-center">
-                              <img
-                                src={resolveImageUrl(value)}
-                                alt={key}
-                                className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl border object-contain bg-white p-2"
-                                onError={(e) => {
-                                  try {
-                                    const raw = String(value || '');
-                                    const parsed = raw.startsWith('http') ? new URL(raw) : null;
-                                    const fallbackPath = parsed?.pathname || raw;
-                                    if (!e.currentTarget.dataset.fallback) {
-                                      e.currentTarget.dataset.fallback = '1';
-                                      e.currentTarget.src = `${window.location.origin}${fallbackPath.startsWith('/') ? fallbackPath : `/${fallbackPath}`}`;
-                                    }
-                                  } catch {
-                                    // ignore fallback errors
-                                  }
-                                }}
-                              />
+                <div className="text-sm font-semibold mb-2">Account Details</div>
+                {loading ? (
+                  <div className="text-sm text-gray-500">Loading accounts...</div>
+                ) : accounts.length === 0 ? (
+                  <div className="text-sm text-red-500">No account found for selected method.</div>
+                ) : (
+                  <>
+                    <select
+                      className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+                      value={selectedAccountId}
+                      onChange={(e) => setSelectedAccountId(e.target.value)}
+                    >
+                      {accounts.map((account) => (
+                        <option key={account._id} value={account._id}>
+                          {account.title}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedAccount && (
+                      <div className="text-xs bg-[#f6f8fa] p-3 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {Object.entries(selectedAccount.details || {}).map(([key, value]) => {
+                          if (value == null || String(value).trim() === '') return null;
+                          const isImageField =
+                            key.toLowerCase().includes('qr') ||
+                            key.toLowerCase().includes('image');
+                          return (
+                            <div
+                              key={key}
+                              className={`bg-white rounded p-2 border border-[#e5e7eb] ${
+                                isImageField ? 'sm:col-span-2' : ''
+                              }`}
+                            >
+                              <div className="text-[10px] uppercase tracking-wide text-gray-500">{key}</div>
+                              {isImageField ? (
+                                <div className="mt-2 flex justify-center">
+                                  <img
+                                    src={resolveImageUrl(value)}
+                                    alt={key}
+                                    className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl border object-contain bg-white p-2"
+                                    onError={(e) => {
+                                      try {
+                                        const raw = String(value || '');
+                                        const parsed = raw.startsWith('http') ? new URL(raw) : null;
+                                        const fallbackPath = parsed?.pathname || raw;
+                                        if (!e.currentTarget.dataset.fallback) {
+                                          e.currentTarget.dataset.fallback = '1';
+                                          e.currentTarget.src = `${window.location.origin}${fallbackPath.startsWith('/') ? fallbackPath : `/${fallbackPath}`}`;
+                                        }
+                                      } catch {
+                                        // ignore fallback errors
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex items-start justify-between gap-2 mt-1">
+                                  <div className="text-[12px] font-semibold text-gray-900 break-all flex-1 min-w-0">
+                                    {String(value)}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(value)}
+                                    className="shrink-0 inline-flex items-center justify-center p-1.5 rounded-md border border-[#e5e7eb] bg-[#f8fafc] text-[#475569] hover:bg-[#eef2f7] active:scale-95"
+                                    title="Copy"
+                                    aria-label={`Copy ${key}`}
+                                  >
+                                    <MdContentCopy className="text-lg" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="text-[12px] font-semibold text-gray-900 break-all">{String(value)}</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
           </div>
+          )
         ) : null}
 
+        {!(requestType === 'deposit' && method === 'whatsapp') ? (
         <form onSubmit={submitRequest} className="bg-white rounded-xl p-3 shadow-sm">
           <div className="text-sm font-semibold mb-2">
             Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request
@@ -364,16 +466,7 @@ function ManualDeposit() {
                   : 'Enter Reference ID/UTR'
               }
             />
-            {requestType === 'deposit' ? (
-              <select
-                className="w-full border rounded-lg px-3 py-2"
-                value={bonusType}
-                onChange={(e) => setBonusType(e.target.value)}
-              >
-                <option>No Bonus</option>
-                <option>FTD 500% Bonus</option>
-              </select>
-            ) : (
+            {requestType === 'withdraw' ? (
               <>
                 {method === 'bank' ? (
                   <>
@@ -517,7 +610,7 @@ function ManualDeposit() {
                   />
                 ) : null}
               </>
-            )}
+            ) : null}
             {requestType === 'deposit' ? (
               <>
                 <input
@@ -575,6 +668,7 @@ function ManualDeposit() {
                 : 'Confirm Payment'}
           </button>
         </form>
+        ) : null}
 
         <div className="bg-white rounded-xl p-3 shadow-sm">
           <div className="text-sm font-semibold mb-2">My Requests</div>

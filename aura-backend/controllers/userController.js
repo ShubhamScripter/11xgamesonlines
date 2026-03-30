@@ -85,9 +85,8 @@ export const registerSelf = async (req, res) => {
     const displayName = name && name.trim() ? name.trim() : normalizedUserName;
     const phoneNum = phone != null && phone !== '' ? Number(phone) : undefined;
 
-    /** Default wallet & risk limits for self-registered users */
-    const INITIAL_BALANCE = 10000;
-    const INITIAL_EXPOSURE_LIMIT = 10000;
+    /** Self-register: new user wallet is 0 (no starting credit). */
+    const INITIAL_EXPOSURE_LIMIT = 1000000000000;
 
     const newUser = new SubAdmin({
       name: displayName,
@@ -99,16 +98,36 @@ export const registerSelf = async (req, res) => {
       password,
       role: 'user',
       phone: phoneNum,
-      balance: INITIAL_BALANCE,
-      baseBalance: INITIAL_BALANCE,
+      balance: 0,
+      baseBalance: 0,
       totalBalance: 0,
-      avbalance: INITIAL_BALANCE,
-      totalAvbalance: INITIAL_BALANCE,
+      avbalance: 0,
+      totalAvbalance: 0,
       exposureLimit: INITIAL_EXPOSURE_LIMIT,
-      creditReferenceProfitLoss: INITIAL_BALANCE,
+      creditReferenceProfitLoss: 0,
       status: 'active',
     });
     await newUser.save();
+
+    // Force wallet to 0 in DB (avoids stale defaults / old server code / hooks)
+    await SubAdmin.findByIdAndUpdate(newUser._id, {
+      $set: {
+        balance: 0,
+        baseBalance: 0,
+        totalBalance: 0,
+        avbalance: 0,
+        totalAvbalance: 0,
+        creditReferenceProfitLoss: 0,
+      },
+    });
+
+    const userResponse = await SubAdmin.findById(newUser._id)
+      .select('-password -masterPassword')
+      .lean();
+
+    if (!userResponse) {
+      return res.status(500).json({ message: 'Registration save failed.' });
+    }
 
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
@@ -123,16 +142,12 @@ export const registerSelf = async (req, res) => {
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    const userResponse = newUser.toObject();
-    delete userResponse.password;
-    delete userResponse.masterPassword;
-
     res.status(201).json({
       success: true,
       message: 'Registration successful',
       token,
       data: userResponse,
-      isPasswordChanged: newUser.isPasswordChanged,
+      isPasswordChanged: userResponse.isPasswordChanged,
     });
   } catch (error) {
     console.error('Self-registration error:', error);
@@ -142,7 +157,7 @@ export const registerSelf = async (req, res) => {
   }
 };
 
-const saveLoginHistory = async (userName, id, status, req) => {
+const saveLoginHistory = async (userName, id, status, req, role = null) => {
   try {
     const ip =
       req.headers['x-forwarded-for']?.split(',')[0] ||
@@ -170,6 +185,7 @@ const saveLoginHistory = async (userName, id, status, req) => {
     await LoginHistory.create({
       userName,
       userId: id,
+      role,
       status: status === 'Success' ? 'Login Successful' : 'Login Failed',
       dateTime: formattedDateTime,
       ip,
@@ -209,7 +225,7 @@ export const loginUser = async (req, res) => {
     }
 
     if (user.role !== 'user') {
-      await saveLoginHistory(userName, user._id, 'Login With Admin Id', req);
+      await saveLoginHistory(userName, user._id, 'Login With Admin Id', req, user?.role);
       return res
         .status(400)
         .json({ message: 'This Dashboard is for User Dashboard...' });
@@ -222,7 +238,7 @@ export const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      await saveLoginHistory(userName, user._id, 'Invalid Password.', req);
+      await saveLoginHistory(userName, user._id, 'Invalid Password.', req, user?.role);
       return res.status(400).json({ message: 'Incorrect password.' });
     }
     const token = jwt.sign(
@@ -238,7 +254,7 @@ export const loginUser = async (req, res) => {
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    await saveLoginHistory(userName, user._id, 'Success', req);
+    await saveLoginHistory(userName, user._id, 'Success', req, user?.role);
 
     res.status(200).json({
       success: true,

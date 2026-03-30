@@ -10,6 +10,12 @@ const BetCard = ({ data }) => {
     setExpandedIndex((prev) => (prev === index ? null : index));
   };
 
+  const getSignedColorClass = (value) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount === 0) return "";
+    return amount < 0 ? "text-red-600" : "text-green-600";
+  };
+
   return (
     <div className=" flex flex-col gap-4 justify-center p-4">
         {data.length ===0 &&(
@@ -60,7 +66,9 @@ const BetCard = ({ data }) => {
                 </td>
                 <td className="p-2">
                   <span className="text-gray-600 md:text-lg">Matched (PKU)</span>
-                  <div className="font-semibold md:text-base">{bet.matched}</div>
+                  <div className={`font-semibold md:text-base ${getSignedColorClass(bet.matched)}`}>
+                    {bet.matched}
+                  </div>
                 </td>
               </tr>
               <tr className="border-b">
@@ -94,13 +102,33 @@ const BetCard = ({ data }) => {
                 </td>
                 <td className="p-2">
                   <span className="text-gray-600 md:text-lg">Matched (PKU)</span>
-                  <div className="font-semibold md:text-base">{bet.matched}</div>
+                  <div className={`font-semibold md:text-base ${getSignedColorClass(bet.matched)}`}>
+                    {bet.matched}
+                  </div>
                 </td>
                   </tr>
                   <tr>
-                    <td className="p-2 md:text-lg font-semibold text-gray-700">Profit (PKU):</td>
+                    <td className="p-2 md:text-lg font-semibold text-gray-700">
+                      {bet.possibleProfit !== undefined || bet.possibleLoss !== undefined
+                        ? "Expected Profit / Loss:"
+                        : "Profit (PKU):"}
+                    </td>
                     <td colSpan={2} className="p-2 md:text-lg">
-                      <span className="text-green-600 font-semibold">{bet.profit}</span>
+                      {bet.possibleProfit !== undefined || bet.possibleLoss !== undefined ? (
+                        <>
+                          <span className="font-semibold text-green-600">
+                            +{Number(bet.possibleProfit || 0)}
+                          </span>
+                          <span className="mx-2 text-gray-500">/</span>
+                          <span className="font-semibold text-red-600">
+                            -{Number(bet.possibleLoss || 0)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className={`font-semibold ${getSignedColorClass(bet.profit)}`}>
+                          {bet.profit}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 </>

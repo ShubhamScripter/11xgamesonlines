@@ -330,7 +330,7 @@ function SoccerOver25({ openBetSlip, matchOddsList, gameid, match, selectedBetDa
         <GrStarOutline className="text-white" />
         <span className="text-white">Over/Under 2.5</span>
         </div>
-        <span className=''>MatchedBDT &nbsp;{matchOddsList[0]?.matched}</span>
+        <span className=''>Matched INR &nbsp;{matchOddsList[0]?.matched}</span>
       </div>
 
       {/* Back / Lay Header */}

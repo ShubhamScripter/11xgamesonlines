@@ -8,7 +8,7 @@ import CreditRef from "./CreditRef";
 import ChangeStatus from "./ChangeStatus";
 import BlockMarket from "./BlockMarket";
 
-function AccountTableUser({ users,refreshDownlines }) {
+function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) {
   console.log("users",users)
   const title = {
     superadmin: "SUD",
@@ -22,12 +22,11 @@ function AccountTableUser({ users,refreshDownlines }) {
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 6;
+  const rowsPerPage = 10;
 
-  // Reset to page 1 when users list changes (e.g., after filtering)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [users]);
+    if (!serverPaginated) setCurrentPage(1);
+  }, [users, serverPaginated]);
 
   function getPageNumbers(current, total, maxButtons = 7) {
     const pages = [];
@@ -75,9 +74,10 @@ function AccountTableUser({ users,refreshDownlines }) {
   };
 
   const currentUsers = useMemo(() => {
+    if (serverPaginated) return users;
     const start = (currentPage - 1) * rowsPerPage;
     return users.slice(start, start + rowsPerPage);
-  }, [users, currentPage, rowsPerPage]);
+  }, [users, currentPage, rowsPerPage, serverPaginated]);
 
   const pageButtons = useMemo(() => getPageNumbers(currentPage, totalPages, 9), [currentPage, totalPages]);
 
@@ -258,48 +258,52 @@ function AccountTableUser({ users,refreshDownlines }) {
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex justify-center items-center mt-4 gap-2">
-        <button
-          onClick={handlePrev}
-          disabled={currentPage === 1}
-          className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
-        >
-          &lt;
-        </button>
+      {!serverPaginated && (
+        <div className="flex justify-center items-center mt-4 gap-2">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+            className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
+          >
+            &lt;
+          </button>
 
-        {pageButtons.map((p, idx) => {
-          if (p === "left-ellipsis" || p === "right-ellipsis") {
+          {pageButtons.map((p, idx) => {
+            if (p === "left-ellipsis" || p === "right-ellipsis") {
+              return (
+                <span key={p + idx} className="px-3 text-gray-500">
+                  ...
+                </span>
+              );
+            }
+
             return (
-              <span key={p + idx} className="px-3 text-gray-500">
-                ...
-              </span>
+              <button
+                type="button"
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`px-2 border rounded ${
+                  currentPage === p
+                    ? "bg-[#ffa00c] text-white border-[#cb8009] scale-105"
+                    : "bg-gray-200 border-gray-400"
+                }`}
+              >
+                {p}
+              </button>
             );
-          }
+          })}
 
-          return (
-            <button
-              key={p}
-              onClick={() => setCurrentPage(p)}
-              className={`px-2 border rounded ${
-                currentPage === p
-                  ? "bg-[#ffa00c] text-white border-[#cb8009] scale-105"
-                  : "bg-gray-200 border-gray-400"
-              }`}
-            >
-              {p}
-            </button>
-          );
-        })}
-
-        <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages}
-          className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
-        >
-          &gt;
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            className="bg-gray-200 px-2 rounded border border-gray-400 disabled:opacity-50"
+          >
+            &gt;
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       {isStatusChangeOpen && <ChangeStatus
