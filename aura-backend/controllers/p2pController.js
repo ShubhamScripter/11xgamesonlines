@@ -17,6 +17,7 @@ function pipelineCreditBalance(amt) {
         balance: { $add: ['$balance', amt] },
         baseBalance: { $add: ['$baseBalance', amt] },
         avbalance: { $add: ['$avbalance', amt] },
+        exposureLimit: { $add: [{ $ifNull: ['$exposureLimit', 0] }, amt] },
         creditReferenceProfitLoss: {
           $subtract: [
             { $add: ['$baseBalance', amt] },

@@ -154,30 +154,38 @@
 
 // export default Header;
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import Logo from '../../assets/logo.png';
 import { IoMdRefresh } from "react-icons/io";
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAccountSummary } from '../../store/accountSummarySlice';
 
+const BALANCE_REFRESH_MS = 5_000;
+
 function Header() {
   const user = useSelector(state => state.auth.user); // login info
-  const currentUser = useSelector(state => state.downline.currentUser);
-  const { summary, loading } = useSelector(state => state.accountSummary);
+  const { summary } = useSelector(state => state.accountSummary);
   const dispatch = useDispatch();
+  const sessionUserId = user?._id || user?.id;
 
-  const fetchSummary = () => {
-    if (user?._id) dispatch(fetchAccountSummary(user._id));
-  };
+  const fetchSummary = useCallback(() => {
+    if (sessionUserId) dispatch(fetchAccountSummary(sessionUserId));
+  }, [sessionUserId, dispatch]);
 
   useEffect(() => {
+    if (!sessionUserId) return;
     fetchSummary();
-  }, [user?._id]);
+    const intervalId = setInterval(fetchSummary, BALANCE_REFRESH_MS);
+    return () => clearInterval(intervalId);
+  }, [sessionUserId, fetchSummary]);
 
   if (!user) return null; // or a loading placeholder
-console.log("summary is in header: ",user);
-  // Use financialInfo.avbalance from summary if available, else fallback to auth user
-  const balance = summary?.financialInfo?.avbalance ?? user.avbalance ?? 0;
+  const balance = Number(
+    summary?.financialInfo?.avbalance ??
+      summary?.avbalance ??
+      user.avbalance ??
+      0
+  );
 
   return (
     <div className='bg-[#17934e] h-20 flex items-center justify-between px-2 fixed w-full z-50'>

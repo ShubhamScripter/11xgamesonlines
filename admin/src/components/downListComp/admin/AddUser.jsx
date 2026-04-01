@@ -65,7 +65,7 @@ function AddUser({ onClose, roleToCreate, parentId, siteTag = "baaji.net", maxCo
         exposureLimit: Number(formData.exposureLimit) || 0,
       };
       const { data } = await axios.post('/sub-admin/create', payload);
-      alert("User created successfully!");
+      alert(`${modalTitle} created successfully!`);
       onClose(); // close modal and refresh
     } catch (err) {
       console.error("Error creating user:", err);

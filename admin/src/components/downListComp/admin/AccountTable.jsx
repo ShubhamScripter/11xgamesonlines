@@ -25,7 +25,29 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
+  const rowsPerPage = 8;
+
+  const getRoleBadgeClass = (role) => {
+    if (role === "admin") return "bg-[#1e66d0] text-white";
+    if (role === "user") return "bg-[#2f9e44] text-white";
+    return "bg-[#6c8ebf] text-white";
+  };
+
+  const getRoleRowClass = (role, idx) => {
+    // Keep zebra striping but add a subtle tint for key roles
+    const base =
+      idx % 2 === 0
+        ? "border-y border-[#7e97a7]"
+        : "border-y border-[#7e97a7]";
+
+    if (role === "admin") {
+      return `${base} ${idx % 2 === 0 ? "bg-[#eaf2ff]" : "bg-[#f4f8ff]"}`;
+    }
+    if (role === "user") {
+      return `${base} ${idx % 2 === 0 ? "bg-[#eaf7ef]" : "bg-[#f3fbf6]"}`;
+    }
+    return `${base} ${idx % 2 === 0 ? "bg-[#f1eee9]" : "bg-white"}`;
+  };
 
   // Reset to page 1 when users list changes (e.g., after filtering) — only for client-side pages
   useEffect(() => {
@@ -154,17 +176,17 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
               currentUsers.map((user, idx) => (
                 <tr
                   key={user._id || user.id || idx}
-                  className={
-                    idx % 2 === 0
-                      ? "bg-[#f1eee9] border-y border-[#7e97a7]"
-                      : "bg-white border-y border-[#7e97a7]"
-                  }
+                  className={getRoleRowClass(user.role, idx)}
                 >
                   <td className="px-2 py-2">
                     {idx + 1 + (currentPage - 1) * rowsPerPage}
                   </td>
                   <td className="px-2 py-2">
-                    <span className="bg-[#6c8ebf] text-white text-[10px] font-semibold px-2 py-1 rounded mr-1">
+                    <span
+                      className={`${getRoleBadgeClass(
+                        user.role
+                      )} text-[10px] font-semibold px-2 py-1 rounded mr-1`}
+                    >
                       {title[user.role]}
                     </span>
                     <span

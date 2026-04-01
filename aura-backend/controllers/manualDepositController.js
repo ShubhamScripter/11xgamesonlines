@@ -2,11 +2,53 @@ import DepositHistory from '../models/depositeHistoryModel.js';
 import ManualDepositAccount from '../models/manualDepositAccountModel.js';
 import ManualDepositRequest from '../models/manualDepositRequestModel.js';
 import SubAdmin from '../models/subAdminModel.js';
+import mongoose from 'mongoose';
 import { sendBalanceUpdates, sendToUser, sendUserRefresh } from '../socket/bettingSocket.js';
 import TransactionHistory from '../models/transtionHistoryModel.js';
 import WithdrawalHistory from '../models/withdrawalHistoryModel.js';
 
 const VALID_METHODS = ['bank', 'upi', 'crypto', 'whatsapp'];
+
+function round2(n) {
+  return Math.round(Number(n) * 100) / 100;
+}
+
+function pipelineCreditBalance(amt) {
+  return [
+    {
+      $set: {
+        balance: { $add: ['$balance', amt] },
+        baseBalance: { $add: ['$baseBalance', amt] },
+        avbalance: { $add: ['$avbalance', amt] },
+        exposureLimit: { $add: [{ $ifNull: ['$exposureLimit', 0] }, amt] },
+        creditReferenceProfitLoss: {
+          $subtract: [
+            { $add: ['$baseBalance', amt] },
+            { $ifNull: ['$creditReference', 0] },
+          ],
+        },
+      },
+    },
+  ];
+}
+
+function pipelineDebitBalance(amt) {
+  return [
+    {
+      $set: {
+        balance: { $subtract: ['$balance', amt] },
+        baseBalance: { $subtract: ['$baseBalance', amt] },
+        avbalance: { $subtract: ['$avbalance', amt] },
+        creditReferenceProfitLoss: {
+          $subtract: [
+            { $subtract: ['$baseBalance', amt] },
+            { $ifNull: ['$creditReference', 0] },
+          ],
+        },
+      },
+    },
+  ];
+}
 
 const parseDetailsPayload = (details) => {
   if (!details) return {};
@@ -87,6 +129,8 @@ export const createManualDepositAccount = async (req, res) => {
       isActive: parseIsActive(isActive),
       createdBy: req.admin || 'admin',
       updatedBy: req.admin || 'admin',
+      createdById: req.id || null,
+      updatedById: req.id || null,
     });
 
     return res.status(201).json({
@@ -109,6 +153,12 @@ export const updateManualDepositAccount = async (req, res) => {
     const account = await ManualDepositAccount.findById(accountId);
     if (!account) {
       return res.status(404).json({ message: 'Deposit account not found.' });
+    }
+    if (
+      (account.createdById && String(account.createdById) !== String(req.id)) ||
+      (!account.createdById && account.createdBy && String(account.createdBy) !== String(req.admin))
+    ) {
+      return res.status(403).json({ message: 'Access denied.' });
     }
 
     if (method !== undefined) {
@@ -135,6 +185,7 @@ export const updateManualDepositAccount = async (req, res) => {
       account.isActive = parsedIsActive;
     }
     account.updatedBy = req.admin || 'admin';
+    account.updatedById = req.id || null;
 
     await account.save();
 
@@ -156,6 +207,12 @@ export const deleteManualDepositAccount = async (req, res) => {
     if (!account) {
       return res.status(404).json({ message: 'Deposit account not found.' });
     }
+    if (
+      (account.createdById && String(account.createdById) !== String(req.id)) ||
+      (!account.createdById && account.createdBy && String(account.createdBy) !== String(req.admin))
+    ) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
 
     await ManualDepositAccount.findByIdAndDelete(accountId);
 
@@ -168,15 +225,18 @@ export const deleteManualDepositAccount = async (req, res) => {
   }
 };
 
-export const getManualDepositAccountsForAdmin = async (_req, res) => {
+export const getManualDepositAccountsForAdmin = async (req, res) => {
   try {
-    const accounts = await ManualDepositAccount.find({}).sort({
+    const filter = {
+      $or: [{ createdById: req.id }, { createdById: null, createdBy: req.admin }],
+    };
+    const accounts = await ManualDepositAccount.find(filter).sort({
       method: 1,
       createdAt: -1,
     });
 
     const resolvedAccounts = accounts.map((account) =>
-      withResolvedAccountImage(_req, account)
+      withResolvedAccountImage(req, account)
     );
 
     return res.status(200).json({
@@ -191,6 +251,16 @@ export const getManualDepositAccountsForAdmin = async (_req, res) => {
 export const getManualDepositAccountsForUser = async (req, res) => {
   try {
     const { method } = req.query;
+    const user = await SubAdmin.findById(req.id).lean();
+    if (!user || user.role !== 'user') {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    const ownerAdmin =
+      user.invite ? await SubAdmin.findOne({ code: user.invite }).lean() : null;
+    if (!ownerAdmin) {
+      return res.status(400).json({ message: 'User upline admin not found.' });
+    }
+
     const filter = { isActive: true };
     if (method) {
       if (!VALID_METHODS.includes(method)) {
@@ -198,6 +268,10 @@ export const getManualDepositAccountsForUser = async (req, res) => {
       }
       filter.method = method;
     }
+    filter.$or = [
+      { createdById: ownerAdmin._id },
+      { createdById: null, createdBy: ownerAdmin.userName },
+    ];
 
     const accounts = await ManualDepositAccount.find(filter).sort({
       method: 1,
@@ -236,6 +310,10 @@ export const createManualDepositRequest = async (req, res) => {
     if (!parsedAmount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ message: 'Invalid deposit amount.' });
     }
+    const amt = round2(parsedAmount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ message: 'Invalid deposit amount.' });
+    }
     if (!['deposit', 'withdraw'].includes(requestType)) {
       return res.status(400).json({ message: 'Invalid request type.' });
     }
@@ -251,6 +329,11 @@ export const createManualDepositRequest = async (req, res) => {
     const user = await SubAdmin.findById(userId);
     if (!user || user.role !== 'user') {
       return res.status(404).json({ message: 'User not found.' });
+    }
+    const ownerAdmin =
+      user.invite ? await SubAdmin.findOne({ code: user.invite }) : null;
+    if (!ownerAdmin) {
+      return res.status(400).json({ message: 'User upline admin not found.' });
     }
 
     let finalAccountId = null;
@@ -335,6 +418,10 @@ export const createManualDepositRequest = async (req, res) => {
         _id: accountId,
         method: normalizedMethod,
         isActive: true,
+        $or: [
+          { createdById: ownerAdmin._id },
+          { createdById: null, createdBy: ownerAdmin.userName },
+        ],
       });
       if (!account) {
         return res
@@ -353,20 +440,94 @@ export const createManualDepositRequest = async (req, res) => {
         ? `/uploads/deposits/${uploadedImage.filename}`
         : '';
 
-    const request = await ManualDepositRequest.create({
-      userId: user._id,
-      userName: user.userName,
-      requestType,
-      amount: parsedAmount,
-      method: normalizedMethod,
-      accountId: finalAccountId,
-      accountSnapshot,
-      referenceId,
-      paymentNote,
-      bonusType,
-      paymentImageUrl,
-      status: 'pending',
-    });
+    // If withdraw request: debit wallet immediately (even while request stays pending).
+    let debitedUser = null;
+    if (requestType === 'withdraw') {
+      debitedUser = await SubAdmin.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(String(userId)),
+          role: 'user',
+          status: 'active',
+          avbalance: { $gte: amt },
+          balance: { $gte: amt },
+        },
+        pipelineDebitBalance(amt),
+        { new: true }
+      );
+
+      if (!debitedUser) {
+        return res.status(400).json({ message: 'Insufficient balance for withdrawal.' });
+      }
+    }
+
+    let request;
+    try {
+      request = await ManualDepositRequest.create({
+        userId: user._id,
+        userName: user.userName,
+        requestType,
+        amount: amt,
+        method: normalizedMethod,
+        accountId: finalAccountId,
+        accountSnapshot,
+        referenceId,
+        paymentNote,
+        bonusType,
+        paymentImageUrl,
+        status: 'pending',
+        ownerAdminId: ownerAdmin._id,
+        ownerAdminUserName: ownerAdmin.userName,
+        ownerAdminCode: ownerAdmin.code,
+      });
+    } catch (err) {
+      // If request create fails after debit, rollback the wallet.
+      if (debitedUser) {
+        await SubAdmin.findOneAndUpdate(
+          { _id: debitedUser._id },
+          pipelineCreditBalance(amt),
+          { new: true }
+        );
+      }
+      throw err;
+    }
+
+    // Record history now for withdraw request (money already deducted).
+    if (requestType === 'withdraw') {
+      const latest = debitedUser || (await SubAdmin.findById(userId));
+      try {
+        await TransactionHistory.create({
+          userId: latest._id,
+          userName: latest.userName,
+          withdrawl: amt,
+          deposite: 0,
+          amount: Number(latest.avbalance || 0),
+          remark: `Manual self withdraw request submitted (${normalizedMethod})`,
+          from: latest.userName,
+          to: 'withdraw-request',
+          invite: latest.invite,
+        });
+      } catch (histErr) {
+        console.error('Withdraw request history write failed:', histErr);
+      }
+
+      try {
+        // Push realtime wallet update to user's websocket clients
+        const wsUserId = String(latest._id);
+        sendBalanceUpdates(wsUserId, Number(latest.avbalance || 0));
+        sendUserRefresh(wsUserId);
+        sendToUser(wsUserId, {
+          type: 'balance_update',
+          userId: wsUserId,
+          newBalance: Number(latest.avbalance || 0),
+        });
+        sendToUser(wsUserId, {
+          type: 'user_refresh_needed',
+          userId: wsUserId,
+        });
+      } catch (wsErr) {
+        console.error('Withdraw request WS push failed:', wsErr);
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -399,7 +560,7 @@ export const getMyManualDepositRequests = async (req, res) => {
 export const getManualDepositRequestsForAdmin = async (req, res) => {
   try {
     const { status, method, userName, requestType } = req.query;
-    const filter = {};
+    const filter = { ownerAdminId: req.id };
 
     if (status) {
       if (!['pending', 'approved', 'rejected'].includes(status)) {
@@ -427,9 +588,43 @@ export const getManualDepositRequestsForAdmin = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Backward compatibility: old requests without ownerAdminId -> derive ownership from user.invite
+    const legacyRequests = [];
+    try {
+      const admin = await SubAdmin.findById(req.id).lean();
+      if (admin?.code) {
+        const downlineUsers = await SubAdmin.find({
+          invite: admin.code,
+          role: 'user',
+        })
+          .select('_id')
+          .lean();
+        const ids = downlineUsers.map((u) => u._id);
+        if (ids.length) {
+          const legacy = await ManualDepositRequest.find({
+            ownerAdminId: null,
+            userId: { $in: ids },
+            ...(filter.status ? { status: filter.status } : {}),
+            ...(filter.method ? { method: filter.method } : {}),
+            ...(filter.requestType ? { requestType: filter.requestType } : {}),
+            ...(filter.userName ? { userName: filter.userName } : {}),
+          })
+            .sort({ createdAt: -1 })
+            .lean();
+          legacyRequests.push(...legacy);
+        }
+      }
+    } catch {
+      // ignore legacy fetch failures
+    }
+
+    const merged = [...requests, ...legacyRequests].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
     return res.status(200).json({
       success: true,
-      data: requests,
+      data: merged,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });
@@ -449,6 +644,9 @@ export const reviewManualDepositRequest = async (req, res) => {
     if (!requestDoc) {
       return res.status(404).json({ message: 'Deposit request not found.' });
     }
+    if (requestDoc.ownerAdminId && String(requestDoc.ownerAdminId) !== String(req.id)) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
 
     if (requestDoc.status !== 'pending') {
       return res
@@ -460,6 +658,47 @@ export const reviewManualDepositRequest = async (req, res) => {
     const adminUserName = adminUser?.userName || req.admin || 'admin';
 
     if (action === 'reject') {
+      const isWithdraw = requestDoc.requestType === 'withdraw';
+      // If withdraw was already debited on submission, refund on reject.
+      if (isWithdraw) {
+        const amountToRefund = round2(Number(requestDoc.amount));
+        const refundedUser = await SubAdmin.findOneAndUpdate(
+          {
+            _id: requestDoc.userId,
+            role: 'user',
+          },
+          pipelineCreditBalance(amountToRefund),
+          { new: true }
+        );
+
+        if (refundedUser) {
+          await TransactionHistory.create({
+            userId: refundedUser._id,
+            userName: refundedUser.userName,
+            withdrawl: 0,
+            deposite: amountToRefund,
+            amount: Number(refundedUser.avbalance || 0),
+            remark: `Manual self withdraw request rejected - refund (${requestDoc.method})`,
+            from: 'withdraw-reject',
+            to: refundedUser.userName,
+            invite: refundedUser.invite,
+          });
+
+          const wsUserId = String(refundedUser._id);
+          sendBalanceUpdates(wsUserId, Number(refundedUser.avbalance || 0));
+          sendUserRefresh(wsUserId);
+          sendToUser(wsUserId, {
+            type: 'balance_update',
+            userId: wsUserId,
+            newBalance: Number(refundedUser.avbalance || 0),
+          });
+          sendToUser(wsUserId, {
+            type: 'user_refresh_needed',
+            userId: wsUserId,
+          });
+        }
+      }
+
       requestDoc.status = 'rejected';
       requestDoc.adminRemark = adminRemark || 'Rejected by admin';
       requestDoc.approvedById = req.id;
@@ -469,34 +708,76 @@ export const reviewManualDepositRequest = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: 'Deposit request rejected.',
+        message: requestDoc.requestType === 'withdraw'
+          ? 'Withdraw request rejected and refunded.'
+          : 'Deposit request rejected.',
         data: requestDoc,
       });
     }
+
+    const amount = round2(Number(requestDoc.amount));
+    const isWithdraw = requestDoc.requestType === 'withdraw';
 
     const user = await SubAdmin.findById(requestDoc.userId);
     if (!user || user.role !== 'user') {
       return res.status(404).json({ message: 'Requested user does not exist.' });
     }
 
-    const amount = Number(requestDoc.amount);
-    const isWithdraw = requestDoc.requestType === 'withdraw';
+    let debitedAdmin = null;
 
-    if (isWithdraw) {
-      if (Number(user.avbalance || 0) < amount || Number(user.balance || 0) < amount) {
-        return res.status(400).json({ message: 'Insufficient user balance for withdrawal.' });
+    if (!isWithdraw) {
+      // Deposit approval:
+      // Deduct from approver wallet first (admin/subadmin/etc), then credit user.
+      debitedAdmin = await SubAdmin.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(String(req.id)),
+          status: 'active',
+          avbalance: { $gte: amount },
+          balance: { $gte: amount },
+          role: { $ne: 'user' },
+        },
+        pipelineDebitBalance(amount),
+        { new: true }
+      );
+
+      if (!debitedAdmin) {
+        return res
+          .status(400)
+          .json({ message: 'Insufficient admin balance to approve this deposit.' });
       }
-      user.balance -= amount;
-      user.avbalance = Math.max(0, Number(user.avbalance || 0) - amount);
-      user.baseBalance -= amount;
-      user.creditReferenceProfitLoss = user.baseBalance - user.creditReference;
+
+      const creditedUser = await SubAdmin.findOneAndUpdate(
+        { _id: user._id, role: 'user' },
+        pipelineCreditBalance(amount),
+        { new: true }
+      );
+
+      if (!creditedUser) {
+        // rollback admin debit
+        await SubAdmin.findOneAndUpdate(
+          { _id: debitedAdmin._id },
+          pipelineCreditBalance(amount),
+          { new: true }
+        );
+        return res.status(500).json({ message: 'Could not credit user for deposit.' });
+      }
+
+      // keep user in sync for WS + history below
+      user.balance = creditedUser.balance;
+      user.baseBalance = creditedUser.baseBalance;
+      user.avbalance = creditedUser.avbalance;
+      user.creditReferenceProfitLoss = creditedUser.creditReferenceProfitLoss;
     } else {
-      user.balance += amount;
-      user.avbalance += amount;
-      user.baseBalance += amount;
-      user.creditReferenceProfitLoss = user.baseBalance - user.creditReference;
+      // Withdraw approval: wallet already debited at request submit time.
+      // IMPORTANT: do NOT credit admin/subadmin wallet on withdraw approval.
     }
-    await user.save();
+
+    requestDoc.status = 'approved';
+    requestDoc.adminRemark = adminRemark || 'Approved by admin';
+    requestDoc.approvedById = req.id;
+    requestDoc.approvedByUserName = adminUserName;
+    requestDoc.reviewedAt = new Date();
+    await requestDoc.save();
 
     // Push realtime wallet update to user's websocket clients
     const wsUserId = String(user._id);
@@ -523,11 +804,11 @@ export const reviewManualDepositRequest = async (req, res) => {
       await TransactionHistory.create({
         userId: user._id,
         userName: user.userName,
-        withdrawl: amount,
+        withdrawl: 0,
         deposite: 0,
         amount: user.avbalance,
         remark: `Manual self withdraw approved (${requestDoc.method})`,
-        from: user.userName,
+        from: adminUserName,
         to: 'self-withdraw',
         invite: user.invite,
       });
@@ -549,23 +830,36 @@ export const reviewManualDepositRequest = async (req, res) => {
         to: user.userName,
         invite: user.invite,
       });
-    }
 
-    requestDoc.status = 'approved';
-    requestDoc.adminRemark = adminRemark || 'Approved by admin';
-    requestDoc.approvedById = req.id;
-    requestDoc.approvedByUserName = adminUserName;
-    requestDoc.reviewedAt = new Date();
-    await requestDoc.save();
+      // Record admin-side debit history (optional but useful for audits)
+      try {
+        await TransactionHistory.create({
+          userId: req.id,
+          userName: adminUserName,
+          withdrawl: amount,
+          deposite: 0,
+          amount: Number(debitedAdmin?.avbalance ?? 0),
+          remark: `Manual deposit approved for ${user.userName} (${requestDoc.method})`,
+          from: adminUserName,
+          to: user.userName,
+          invite: debitedAdmin?.invite,
+        });
+      } catch (histErr) {
+        console.error('Admin debit history write failed:', histErr);
+      }
+    }
 
     return res.status(200).json({
       success: true,
       message: isWithdraw
         ? 'Withdraw approved and wallet debited.'
-        : 'Deposit approved and wallet credited.',
+        : 'Deposit approved, user credited and admin debited.',
       data: requestDoc,
     });
   } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

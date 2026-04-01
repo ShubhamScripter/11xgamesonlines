@@ -11,6 +11,7 @@ import AddSubAdmin from '../../components/downListComp/admin/AddSubAdmin';
 import AddUser from '../../components/downListComp/admin/AddUser';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDownlineTree } from '../../store/downlineSlice';
+import axios from '../../utils/axiosInstance.jsx';
 
 const roleHierarchy = {
   superadmin: "admin",
@@ -31,6 +32,7 @@ function DownLineView() {
   );
   console.log("my currentUser is2:",currentUser);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [parentTrail, setParentTrail] = useState([]);
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -48,12 +50,41 @@ function DownLineView() {
         fetchDownlineTree({
           userId,
           page,
-          limit: pageSize || 10,
+          limit: pageSize || 8,
           searchQuery: appliedSearch,
         })
       );
     }
   }, [userId, page, appliedSearch, pageSize, dispatch]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadParents = async () => {
+      try {
+        if (!userId) return;
+        const res = await axios.get(`/get/bet-perents/${userId}`, {
+          withCredentials: true,
+        });
+        const arr = Array.isArray(res?.data?.data) ? res.data.data : [];
+        // API returns [current, parent, grandparent]. Reverse to show root → current.
+        const normalized = arr
+          .filter(Boolean)
+          .reverse()
+          .map((u) => ({
+            id: u._id,
+            userName: u.userName || u.username || u.name || 'N/A',
+            role: u.role || u.account || 'N/A',
+          }));
+        if (mounted) setParentTrail(normalized);
+      } catch (e) {
+        if (mounted) setParentTrail([]);
+      }
+    };
+    loadParents();
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   // Get the role from the currentUser object (should be set in your slice)
   const userRole = currentUser?.role || null;
@@ -95,7 +126,7 @@ function DownLineView() {
         fetchDownlineTree({
           userId,
           page,
-          limit: pageSize || 10,
+          limit: pageSize || 8,
           searchQuery: appliedSearch,
         })
       );
@@ -112,6 +143,25 @@ function DownLineView() {
         <FaMicrophone className="text-white text-sm" />
         <span className="text-white text-sm">News</span>
       </div>
+
+      {/* Context / Breadcrumb */}
+      {parentTrail?.length ? (
+        <div className="mt-2 text-xs font-['Times_New_Roman'] text-[#243a48] bg-[#f3f4f6] border border-[#7e97a7] rounded px-2 py-1">
+          <span className="font-semibold">You are inside:</span>{" "}
+          {parentTrail.map((p, idx) => (
+            <span key={p.id || idx}>
+              <span className="font-semibold">
+                {(p.role || "").toString().toUpperCase()}
+              </span>
+              {" "}
+              <span className="text-[#2066c6]">
+                {p.userName}
+              </span>
+              {idx < parentTrail.length - 1 ? "  >  " : ""}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {/* Search and Actions */}
       <div className="mt-4 flex justify-between items-center">
@@ -185,7 +235,7 @@ function DownLineView() {
                 fetchDownlineTree({
                   userId,
                   page,
-                  limit: pageSize || 10,
+                  limit: pageSize || 8,
                   searchQuery: appliedSearch,
                 })
               )
@@ -211,7 +261,7 @@ function DownLineView() {
               fetchDownlineTree({
                 userId,
                 page,
-                limit: pageSize || 10,
+                  limit: pageSize || 8,
                 searchQuery: appliedSearch,
               })
             )
@@ -228,7 +278,7 @@ function DownLineView() {
               fetchDownlineTree({
                 userId,
                 page,
-                limit: pageSize || 10,
+                limit: pageSize || 8,
                 searchQuery: appliedSearch,
               })
             )

@@ -1,6 +1,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../utils/axiosInstance';
+import { fetchAccountSummary } from './accountSummarySlice';
 
 const tokenFromStorage = localStorage.getItem('token');
 const userFromStorage = tokenFromStorage
@@ -78,6 +79,25 @@ const authSlice = createSlice({
       .addCase(loginAsync.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(fetchAccountSummary.fulfilled, (state, action) => {
+        if (!state.user) return;
+        const payload = action.payload;
+        const fin = payload?.financialInfo;
+        if (!fin) return;
+        const sessionId = state.user._id || state.user.id;
+        const payloadUserId = payload?.basicInfo?.id;
+        if (payloadUserId && sessionId && String(payloadUserId) !== String(sessionId)) {
+          return;
+        }
+        state.user = {
+          ...state.user,
+          avbalance: fin.avbalance ?? state.user.avbalance,
+          balance: fin.balance ?? state.user.balance,
+          totalBalance: fin.totalBalance ?? state.user.totalBalance,
+          exposure: fin.exposure ?? state.user.exposure,
+        };
+        localStorage.setItem('user', JSON.stringify(state.user));
       });
   },
 });

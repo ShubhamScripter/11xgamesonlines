@@ -22,7 +22,7 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
 
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
+  const rowsPerPage = 8;
 
   useEffect(() => {
     if (!serverPaginated) setCurrentPage(1);

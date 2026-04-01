@@ -58,6 +58,16 @@ const manualDepositRequestSchema = new mongoose.Schema(
     },
     approvedByUserName: { type: String, trim: true },
     reviewedAt: { type: Date, default: null },
+
+    /** Creator-scoped ownership: which admin/superadmin "owns" this user's requests. */
+    ownerAdminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubAdmin',
+      default: null,
+      index: true,
+    },
+    ownerAdminUserName: { type: String, trim: true, default: '' },
+    ownerAdminCode: { type: String, trim: true, default: '' },
   },
   { timestamps: true }
 );

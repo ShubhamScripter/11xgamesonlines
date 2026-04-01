@@ -102,7 +102,6 @@ export const fetchAccountSummary = createAsyncThunk(
       if (data.success) {
         return data.data; // full profile object
       }
-      console.log("data.data",data.data)
       return rejectWithValue(data.message || 'Failed to fetch profile');
     } catch (err) {
       return rejectWithValue(

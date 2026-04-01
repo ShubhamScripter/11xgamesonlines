@@ -279,28 +279,98 @@ export const createSubAdmin = async (req, res) => {
     const uniqueCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
     // Parent account (downline attaches under this node)
-    const admin = await SubAdmin.findById(id);
-    if (!admin) {
+    const parent = await SubAdmin.findById(id);
+    if (!parent) {
       return res.status(400).json({ message: 'Admin not found' });
     }
-    const role = admin.role;
+    const role = parent.role;
 
-    if (admin.secret === 0) {
+    if (parent.secret === 0) {
       return res.status(403).json({
         message: 'Admin account is not authorized to create users',
       });
     }
 
-    // Authenticated superadmin may only create end-user (player) accounts
-    if (req.role === 'superadmin' && accountType !== 'user') {
+    // Helper: verify a target account is within caller's downline tree
+    const isWithinDownline = async (rootCode, targetCode) => {
+      if (!rootCode || !targetCode) return false;
+      if (String(rootCode) === String(targetCode)) return true;
+
+      const visited = new Set();
+      let frontier = [String(rootCode)];
+      let safety = 0;
+
+      while (frontier.length && safety < 5000) {
+        safety += 1;
+        const batch = frontier.filter((c) => c && !visited.has(c));
+        if (!batch.length) break;
+        batch.forEach((c) => visited.add(c));
+
+        const rows = await SubAdmin.find(
+          { invite: { $in: batch }, status: { $ne: 'delete' } },
+          { code: 1 }
+        ).lean();
+
+        const next = [];
+        for (const r of rows) {
+          const c = r?.code ? String(r.code) : '';
+          if (!c) continue;
+          if (c === String(targetCode)) return true;
+          if (!visited.has(c)) next.push(c);
+        }
+        frontier = next;
+      }
+      return false;
+    };
+
+    /**
+     * Parent selection rules:
+     * - admin can only create under self
+     * - superadmin can create:
+     *   - admin under self (top-level)
+     *   - user under ANY downline admin (so user attaches under that admin)
+     */
+    if (req.role === 'admin' && String(req.id) !== String(id)) {
       return res.status(403).json({
-        message: 'Superadmin can only create user accounts.',
+        message: 'You can only create accounts under your own profile.',
       });
+    }
+    if (req.role === 'superadmin') {
+      const creatingAdmin = accountType === 'admin';
+      const creatingUser = accountType === 'user';
+
+      if (creatingAdmin && String(req.id) !== String(id)) {
+        return res.status(403).json({
+          message: 'You can only create admin under your own profile.',
+        });
+      }
+
+      if (creatingUser) {
+        // user must be created under an admin node (as requested)
+        if (parent.role !== 'admin') {
+          return res.status(403).json({
+            message: 'Superadmin can create user only under an admin node.',
+          });
+        }
+
+        const superSelf = await SubAdmin.findById(req.id).select('code role status');
+        if (!superSelf || superSelf.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Unauthorized.' });
+        }
+        const ok = await isWithinDownline(superSelf.code, parent.code);
+        if (!ok) {
+          return res.status(403).json({
+            message: 'Selected parent admin is not in your downline.',
+          });
+        }
+      }
     }
 
     const roleHierarchy = {
-      superadmin: ['user'],
-      admin: ['subadmin'],
+      // Requested: superadmin can create both admin and user
+      superadmin: ['admin', 'user'],
+      // Requested: admin can create user
+      admin: ['user'],
       subadmin: ['seniorSuper'],
       seniorSuper: ['superAgent'],
       superAgent: ['agent'],
@@ -308,13 +378,7 @@ export const createSubAdmin = async (req, res) => {
     };
 
     const allowedForParent = roleHierarchy[role]?.includes(accountType);
-    const superadminCreatesUser =
-      req.role === 'superadmin' && accountType === 'user';
-
-    if (
-      !superadminCreatesUser &&
-      (!roleHierarchy[role] || !allowedForParent)
-    ) {
+    if (!roleHierarchy[role] || !allowedForParent) {
       return res.status(403).json({
         message: `${role} can only create ${(roleHierarchy[role] || []).join(', ')} accounts.`,
       });
@@ -389,7 +453,7 @@ export const createSubAdmin = async (req, res) => {
       totalAvbalance: balance,
       rollingCommission,
       code: uniqueCode,
-      invite: admin.code,
+      invite: parent.code,
       password,
       role: accountType,
       masterPassword,
@@ -406,14 +470,14 @@ export const createSubAdmin = async (req, res) => {
       deposite: balance,
       amount: balance,
       remark: 'Opening Balance',
-      from: admin.userName,
+      from: parent.userName,
       to: subAdmin.userName,
-      invite: admin.code,
+      invite: parent.code,
     });
 
     // Downline calculations (exclude deleted users)
     const downlineUser = await SubAdmin.find({
-      invite: admin.code,
+      invite: parent.code,
       status: { $ne: 'delete' },
     });
     const DownlineTotalExposure = downlineUser.reduce(
@@ -430,20 +494,20 @@ export const createSubAdmin = async (req, res) => {
     );
 
     //  CLEAN SEPARATION: Update admin with separate fields (same as updateAdmin)
-    admin.avbalance -= balance;
-    admin.bettingProfitLoss = DownlineTotalBettingProfitLoss; // Sum of downlines' betting P/L
-    admin.uplineBettingProfitLoss = DownlineTotalBettingProfitLoss; // Same for upline calculation
+    parent.avbalance -= balance;
+    parent.bettingProfitLoss = DownlineTotalBettingProfitLoss; // Sum of downlines' betting P/L
+    parent.uplineBettingProfitLoss = DownlineTotalBettingProfitLoss; // Same for upline calculation
 
     // Calculate totalBalance using clean separation
-    admin.totalBalance =
-    DownlineTotalBaseBalance + admin.uplineBettingProfitLoss;
-    admin.totalAvbalance = admin.avbalance + admin.totalBalance;
-    admin.exposure = DownlineTotalExposure;
-    admin.totalExposure = DownlineTotalExposure;
-    admin.agentAvbalance = admin.totalBalance - admin.totalExposure;
+    parent.totalBalance =
+    DownlineTotalBaseBalance + parent.uplineBettingProfitLoss;
+    parent.totalAvbalance = parent.avbalance + parent.totalBalance;
+    parent.exposure = DownlineTotalExposure;
+    parent.totalExposure = DownlineTotalExposure;
+    parent.agentAvbalance = parent.totalBalance - parent.totalExposure;
 
-    await admin.save();
-    console.log('The admin is updated', admin);
+    await parent.save();
+    console.log('The admin is updated', parent);
 
     // Generate token
     const token = await createToken({
@@ -596,6 +660,20 @@ export const loginSubAdmin = async (req, res) => {
     if (!subAdmin) {
       await saveLoginHistory(userName, userName, 'UserName Wrong', req);
       return res.status(400).json({ message: 'Sub-admin not found.' });
+    }
+
+    // Prevent end-users from logging into admin panel
+    if (subAdmin.role === 'user') {
+      await saveLoginHistory(
+        userName,
+        subAdmin._id,
+        'User tried admin login',
+        req,
+        subAdmin?.role
+      );
+      return res.status(403).json({
+        message: 'Users cannot login to admin panel.',
+      });
     }
 
     //  Compare password
@@ -1109,9 +1187,22 @@ export const getAllUser = async (req, res) => {
       })
     );
 
+    const split = usersWithDownlineUserBalance.reduce(
+      (acc, row) => {
+        if (row.role === 'admin') acc.admins.push(row);
+        else if (row.role === 'user') acc.users.push(row);
+        else acc.others.push(row);
+        return acc;
+      },
+      { admins: [], users: [], others: [] }
+    );
+
     return res.status(200).json({
       message: 'All sub-admin details retrieved successfully',
       data: usersWithDownlineUserBalance,
+      admins: split.admins,
+      users: split.users,
+      others: split.others,
       selfData: admin,
       totalUserDownlineBalance,
       totalUserDownlineExposure,
@@ -1236,9 +1327,23 @@ export const getUsersByInvite = async (req, res) => {
         .json({ message: 'No users found for this invite code.' });
     }
 
+    const split = usersData.reduce(
+      (acc, row) => {
+        const r = row?.role;
+        if (r === 'admin') acc.admins.push(row);
+        else if (r === 'user') acc.users.push(row);
+        else acc.others.push(row);
+        return acc;
+      },
+      { admins: [], users: [], others: [] }
+    );
+
     res.status(200).json({
       message: 'Users retrieved successfully',
       data: usersData,
+      admins: split.admins,
+      users: split.users,
+      others: split.others,
     });
   } catch (error) {
     console.error('Error fetching users by invite code:', error);
@@ -1628,6 +1733,7 @@ export const withdrowalAndDeposite = async (req, res) => {
         editUser.balance += balance;
         editUser.avbalance += balance;
         editUser.baseBalance += balance;
+        editUser.exposureLimit = (editUser.exposureLimit || 0) + balance;
         // editUser.totalAvbalance += balance;
         editUser.remark = remark || editUser.remark;
 
@@ -1647,6 +1753,7 @@ export const withdrowalAndDeposite = async (req, res) => {
         editUser.balance += balance;
         editUser.avbalance += balance;
         editUser.baseBalance += balance;
+        editUser.exposureLimit = (editUser.exposureLimit || 0) + balance;
         // editUser.totalAvbalance += balance;
         editUser.remark = remark || editUser.remark;
 

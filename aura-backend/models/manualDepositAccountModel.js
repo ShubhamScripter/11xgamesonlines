@@ -31,8 +31,20 @@ const manualDepositAccountSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
-    createdBy: { type: String, trim: true },
-    updatedBy: { type: String, trim: true },
+    createdBy: { type: String, trim: true }, // legacy (username)
+    updatedBy: { type: String, trim: true }, // legacy (username)
+    createdById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubAdmin',
+      default: null,
+      index: true,
+    },
+    updatedById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubAdmin',
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
 );

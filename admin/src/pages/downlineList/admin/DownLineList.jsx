@@ -27,17 +27,19 @@ function DownLineList() {
   );
   const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalRole, setModalRole] = useState("user");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const showAddUser = !!canAddUserRole[user?.role];
+  // const showAddAdmin = user?.role === "superadmin";
 
   const fetchParams = () => ({
     userId: user.id,
     page,
-    limit: pageSize || 10,
+    limit: pageSize || 8,
     searchQuery: appliedSearch,
   });
 
@@ -73,7 +75,10 @@ function DownLineList() {
     return filtered;
   }, [downlines, statusFilter]);
 
-  const openModal = () => setIsModalOpen(true);
+  const openModal = (roleToCreate = "user") => {
+    setModalRole(roleToCreate);
+    setIsModalOpen(true);
+  };
   const closeModal = () => {
     setIsModalOpen(false);
     if (user?.id) dispatch(fetchDownlineTree(fetchParams()));
@@ -145,12 +150,24 @@ function DownLineList() {
           {showAddUser && (
             <div
               className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
-              onClick={openModal}
+              onClick={() => openModal("user")}
             >
               <MdPersonAddAlt1 className="text-xl" />
               <span className="text-sm font-medium">Add User</span>
             </div>
           )}
+
+          {/* Add Admin — UI hidden; uncomment showAddAdmin + block below to restore
+          {showAddAdmin && (
+            <div
+              className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
+              onClick={() => openModal("admin")}
+            >
+              <MdPersonAddAlt1 className="text-xl" />
+              <span className="text-sm font-medium">Add Admin</span>
+            </div>
+          )}
+          */}
 
           {/* Refresh Button */}
           <div
@@ -200,7 +217,7 @@ function DownLineList() {
       {isModalOpen && (
         <AddUser
           onClose={closeModal}
-          roleToCreate="user"
+          roleToCreate={modalRole}
           parentId={user?.id}
           maxCommission={user?.commissionPercentage ?? 0}
         />

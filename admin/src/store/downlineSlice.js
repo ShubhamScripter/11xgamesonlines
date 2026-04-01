@@ -167,7 +167,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../utils/axiosInstance';
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 8;
 
 // --- Async thunk --- (string userId = page 1; or { userId, page, limit, searchQuery })
 export const fetchDownlineTree = createAsyncThunk(
