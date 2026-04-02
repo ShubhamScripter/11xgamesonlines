@@ -13,6 +13,10 @@ function round2(n) {
   return Math.round(Number(n) * 100) / 100;
 }
 
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function pipelineCreditBalance(amt) {
   return [
     {
@@ -435,6 +439,22 @@ export const createManualDepositRequest = async (req, res) => {
       };
     }
 
+    const trimmedDepositRef =
+      requestType === 'deposit' ? String(referenceId ?? '').trim() : '';
+    if (requestType === 'deposit' && trimmedDepositRef) {
+      const dup = await ManualDepositRequest.findOne({
+        requestType: 'deposit',
+        status: { $in: ['pending', 'approved'] },
+        referenceId: new RegExp(`^${escapeRegex(trimmedDepositRef)}$`, 'i'),
+      }).lean();
+      if (dup) {
+        return res.status(400).json({
+          message:
+            'Duplicate UTR ID. This reference is already used in a pending or approved deposit request.',
+        });
+      }
+    }
+
     const paymentImageUrl =
       requestType === 'deposit' && uploadedImage
         ? `/uploads/deposits/${uploadedImage.filename}`
@@ -470,7 +490,10 @@ export const createManualDepositRequest = async (req, res) => {
         method: normalizedMethod,
         accountId: finalAccountId,
         accountSnapshot,
-        referenceId,
+        referenceId:
+          requestType === 'deposit'
+            ? trimmedDepositRef || undefined
+            : referenceId,
         paymentNote,
         bonusType,
         paymentImageUrl,
