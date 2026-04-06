@@ -720,14 +720,6 @@
             "icon": "https://bulkapi.in/jili/Witches-Night.png"
         },
         {
-            "id": 729,
-            "game_name": "Big Small",
-            "game_uid": "25822eb4d6459cc8b39c4f7b69b1bf2c",
-            "game_type": "Table Game",
-            "provider": "jili",
-            "icon": "https://bulkapi.in/jili/Big-Small.png"
-        },
-        {
             "id": 730,
             "game_name": "Number King",
             "game_uid": "36d20c24669dca7630715f2e0a7c18be",
@@ -735,14 +727,7 @@
             "provider": "jili",
             "icon": "https://bulkapi.in/jili/Number-King.png"
         },
-        {
-            "id": 731,
-            "game_name": "Journey West M",
-            "game_uid": "0d0a5a1731a6a05ffeb0e0f9d1948f80",
-            "game_type": "Table Game",
-            "provider": "jili",
-            "icon": "https://bulkapi.in/jili/Journey-West-M.png"
-        },
+      
         {
             "id": 732,
             "game_name": "Poker King",
@@ -886,14 +871,6 @@
             "game_type": "Table Game",
             "provider": "jili",
             "icon": "https://bulkapi.in/jili/Bingo-Adventure.png"
-        },
-        {
-            "id": 750,
-            "game_name": "Golden Land",
-            "game_uid": "05fc951a633d4c6b4bbe8c429cd63658",
-            "game_type": "Table Game",
-            "provider": "jili",
-            "icon": "https://bulkapi.in/jili/Golden-Land.png"
         },
         {
             "id": 751,

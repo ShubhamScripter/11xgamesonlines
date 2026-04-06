@@ -10,7 +10,6 @@ import KingMaker from './KingMaker';
 const categories = [
   { name: "Jili", icon: <BsFire size={45} /> },
   { name: "PlayTech", icon: <FaArrowUpAZ size={40} /> },
-  { name: "Pragmatic", icon: <FaArrowUpAZ size={40} /> },
   { name: "KingMaker", icon: <FaArrowUpAZ size={40} /> },
 ];
 function Table() {

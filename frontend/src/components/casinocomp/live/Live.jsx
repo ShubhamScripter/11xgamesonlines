@@ -14,7 +14,7 @@ const categories = [
   // { name: "Latest", icon: <BsFire size={45} /> },
   // { name: "A-Z", icon: <FaArrowUpAZ size={40} /> },
   { name: "Evolution", icon: <BsFire size={45} /> },
-  { name: "Pragmatic", icon: <FaArrowUpAZ size={40} /> },
+  // { name: "Pragmatic", icon: <FaArrowUpAZ size={40} /> },
   { name: "PlayTech", icon: <FaArrowUpAZ size={40} /> },
   { name: "Ezugi", icon: <FaArrowUpAZ size={40} /> },
 ];

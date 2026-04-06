@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 
 import axiosInstance from '../../utils/axiosInstance';
 
-const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
+const DEPOSIT_UPLOADS_BASE = 'https://11xgames.online';
 
 function resolveDepositImageUrl(value) {
   let src = String(value || '').trim();
@@ -32,7 +32,6 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
   const [reviewingId, setReviewingId] = useState('');
   const [rejectingId, setRejectingId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
-  const imageBase = (axiosInstance?.defaults?.baseURL || '').replace('/api', '');
   const statusOptions = ['pending', 'approved', 'rejected'];
   const isWithdrawPage = requestType === 'withdraw';
 

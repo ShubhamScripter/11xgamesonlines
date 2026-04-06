@@ -34,7 +34,7 @@ function DownLineList() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const showAddUser = !!canAddUserRole[user?.role];
-  // const showAddAdmin = user?.role === "superadmin";
+  const showAddAdmin = user?.role === "superadmin";
 
   const fetchParams = () => ({
     userId: user.id,
@@ -157,7 +157,6 @@ function DownLineList() {
             </div>
           )}
 
-          {/* Add Admin — UI hidden; uncomment showAddAdmin + block below to restore
           {showAddAdmin && (
             <div
               className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
@@ -167,7 +166,6 @@ function DownLineList() {
               <span className="text-sm font-medium">Add Admin</span>
             </div>
           )}
-          */}
 
           {/* Refresh Button */}
           <div

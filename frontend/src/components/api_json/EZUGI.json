@@ -328,14 +328,6 @@
     "icon": "https://bulkapi.in/EZUGI/EZUGI_228000.png"
   },
   {
-    "id": 42,
-    "game_name": "32 Cards",
-    "game_uid": "69e690d4f810d033fb4bb8ac7f3cc12f",
-    "game_type": "CasinoLive",
-    "provider": "ezugi",
-    "icon": "https://bulkapi.in/EZUGI/EZUGI_228002.png"
-  },
-  {
     "id": 43,
     "game_name": "Skyline Roulette",
     "game_uid": "88317b0c9ebdb820791b9a04f7f4cb53",
@@ -446,14 +438,6 @@
     "game_type": "CasinoLive",
     "provider": "ezugi",
     "icon": "https://bulkapi.in/EZUGI/EZUGI_6001.png"
-  },
-  {
-    "id": 57,
-    "game_name": "Matka",
-    "game_uid": "ceb0eb8957571ee0852c6f7eb761ebe1",
-    "game_type": "CasinoLive",
-    "provider": "ezugi",
-    "icon": "https://bulkapi.in/EZUGI/EZUGI_5700.png"
   },
   {
     "id": 58,

@@ -30,7 +30,6 @@ const categories = [
     { name: "Habanero", icon: <FaArrowUpAZ size={40} /> },
     { name: "NoLimit", icon: <FaArrowUpAZ size={40} /> },
     { name: "OneGame", icon: <FaArrowUpAZ size={40} /> },
-    { name: "Pragmatic", icon: <FaArrowUpAZ size={40} /> },
     { name: "RelaxGaming", icon: <FaArrowUpAZ size={40} /> },
 ];
 function Slot() {

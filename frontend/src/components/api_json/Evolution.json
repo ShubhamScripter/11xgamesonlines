@@ -1,13 +1,5 @@
 [
   {
-    "id": 1,
-    "game_name": "Blackjack VIP A",
-    "game_uid": "555681ca33cd74847afbab62a9c446a3",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/0mvn914lkmo9vaq8.png"
-  },
-  {
     "id": 2,
     "game_name": "Speed Blackjack G",
     "game_uid": "fb166643bac3b714a7ce524c2fb0eb00",
@@ -78,14 +70,6 @@
     "game_type": "CasinoLive",
     "provider": "evolutionlive",
     "icon": "https://bulkapi.in/EVO_Video/bghflgi59db7d7r2.png"
-  },
-  {
-    "id": 11,
-    "game_name": "Cash or Crash",
-    "game_uid": "b53a604877024ef2eab9946898e65d6b",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/CashOrCrash00001.png"
   },
   {
     "id": 12,
@@ -536,14 +520,6 @@
     "icon": "https://bulkapi.in/EVO_Video/mdkqijp3dctrhnuv.png"
   },
   {
-    "id": 68,
-    "game_name": "Mega Ball",
-    "game_uid": "3955853fc6a0b53f7f9b9cff0be19cb8",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/MegaBall00000001.png"
-  },
-  {
     "id": 69,
     "game_name": "Dream Catcher",
     "game_uid": "7f50a6fbfcd9257299303b5757d43525",
@@ -599,14 +575,7 @@
     "provider": "evolutionlive",
     "icon": "https://bulkapi.in/EVO_Video/ndgv45bghfuaaebf.png"
   },
-  {
-    "id": 76,
-    "game_name": "No Commission Speed Baccarat A",
-    "game_uid": "b82371488f8fb90efb946634ac61d7f5",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/ndgv76kehfuaaeec.png"
-  },
+  
   {
     "id": 77,
     "game_name": "Baccarat C",
@@ -840,14 +809,6 @@
     "icon": "https://bulkapi.in/EVO_Video/ocye2ju2bsoyq6vv.png"
   },
   {
-    "id": 106,
-    "game_name": "No Commission Speed Baccarat B",
-    "game_uid": "7f5b0d20c3f491c4fc9456e951ea7005",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/ocye5hmxbsoyrcii.png"
-  },
-  {
     "id": 107,
     "game_name": "Salon Baccarat C",
     "game_uid": "d0fd04343f3d6e77136f4752d93c7610",
@@ -918,14 +879,6 @@
     "game_type": "CasinoLive",
     "provider": "evolutionlive",
     "icon": "https://bulkapi.in/EVO_Video/ovu5fzje4ccmyqnr.png"
-  },
-  {
-    "id": 116,
-    "game_name": "No Commission Speed Baccarat C",
-    "game_uid": "f9e106cfc932d1f0fdb0cc3dd1057c1a",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/ovu5h6b3ujb4y53w.png"
   },
   {
     "id": 117,
@@ -1694,14 +1647,6 @@
     "game_type": "CasinoLive",
     "provider": "evolutionlive",
     "icon": "https://bulkapi.in/EVO_Video/xstnlyzrm345ev95.png"
-  },
-  {
-    "id": 213,
-    "game_name": "XXXtreme Lightning Roulette",
-    "game_uid": "394fe6a2cde24bc487767236cc6eccd6",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/XxxtremeLigh0001.png"
   },
   {
     "id": 214,

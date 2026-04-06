@@ -13,7 +13,7 @@ const categories = [
   { name: "Spribe", icon: <FaArrowUpAZ size={40} /> },
   { name: "Inout", icon: <FaArrowUpAZ size={40} /> },
   { name: "Jili", icon: <FaArrowUpAZ size={40} /> },
-  { name: "Pragmatic", icon: <FaArrowUpAZ size={40} /> },
+
   // { name: "smartSoft", icon: <FaArrowUpAZ size={40} /> },
 ];
 function Egame() {
