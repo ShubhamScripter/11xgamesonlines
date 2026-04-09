@@ -5,6 +5,7 @@ import TransactionHistoryTable from "./TransactionHistoryTable";
 import axiosInstance from "../../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+import { formatIST } from "../../../utils/time";
 // Sample JSON data
 const sampleTransactions = [
   {
@@ -69,7 +70,7 @@ function TransactionHistory() {
       .then(({ data }) => {
         if (Array.isArray(data?.data)) {
           const mapped = data.data.map(item => ({
-            datetime: item.date ? new Date(item.date).toLocaleString() : '-',
+            datetime: formatIST(item.date),
             depositFromUpline: item.deposite > 0 ? item.deposite : '-',
             depositToDownline: item.withdrawl === 0 && item.deposite > 0 ? item.deposite : '-',
             withdrawByUpline: item.withdrawl > 0 ? item.withdrawl : '-',

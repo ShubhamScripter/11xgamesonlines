@@ -188,6 +188,13 @@ function ManualDeposit() {
       toast.error('Please upload payment screenshot');
       return;
     }
+    if (requestType === 'deposit') {
+      const utrDigits = String(referenceId || '').replace(/\D/g, '');
+      if (utrDigits.length !== 12) {
+        toast.error('UTR must be exactly 12 digits');
+        return;
+      }
+    }
     if (requestType === 'withdraw') {
       if (method === 'bank') {
         if (!withdrawDetails.accountHolderName.trim()) {
@@ -244,7 +251,12 @@ function ManualDeposit() {
       if (requestType === 'deposit') {
         formData.append('accountId', selectedAccountId);
       }
-      formData.append('referenceId', referenceId.trim());
+      formData.append(
+        'referenceId',
+        requestType === 'deposit'
+          ? String(referenceId || '').replace(/\D/g, '')
+          : referenceId.trim()
+      );
       formData.append('paymentNote', paymentNote.trim());
       if (requestType === 'withdraw') {
         formData.append('withdrawDetails', JSON.stringify(withdrawDetails));
@@ -458,14 +470,24 @@ function ManualDeposit() {
             />
             <input
               type="text"
+              inputMode={requestType === 'deposit' ? 'numeric' : 'text'}
+              autoComplete="off"
               value={referenceId}
-              onChange={(e) => setReferenceId(e.target.value)}
+              onChange={(e) => {
+                if (requestType === 'deposit') {
+                  const d = e.target.value.replace(/\D/g, '').slice(0, 12);
+                  setReferenceId(d);
+                } else {
+                  setReferenceId(e.target.value);
+                }
+              }}
               className="w-full border rounded-lg px-3 py-2"
               placeholder={
                 requestType === 'withdraw'
                   ? 'Enter UPI ID / Mobile / Request Ref'
-                  : 'Enter Reference ID/UTR'
+                  : 'Enter 12-digit UTR'
               }
+              required={requestType === 'deposit'}
             />
             {requestType === 'withdraw' ? (
               <>

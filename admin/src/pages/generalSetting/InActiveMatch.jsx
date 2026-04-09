@@ -98,6 +98,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { IoSearchSharp } from "react-icons/io5";
 import axiosInstance from "../../utils/axiosInstance";
+import { formatIST } from "../../utils/time";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 
@@ -122,8 +123,8 @@ function InActiveMatch() {
           marketId: match.matchId || "",
           match: match.matchName || `Match ${match.matchId}`,
           date: match.suspendedAt
-            ? new Date(match.suspendedAt).toLocaleString()
-            : new Date().toLocaleString(),
+            ? formatIST(match.suspendedAt)
+            : formatIST(new Date()),
           status: "Suspended",
           reason: match.reason || "",
           _id: match._id,

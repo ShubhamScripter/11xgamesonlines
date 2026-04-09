@@ -45,16 +45,28 @@ function AccountStatement() {
         );
         
         if (response.data.success && response.data.data) {
-          // Show only deposit/withdrawal related entries
+          // Deposit/withdrawal entries, plus rejected deposit audit rows (no balance movement)
           const filteredTransactions = response.data.data.filter(
-            (item) => Number(item?.deposite || 0) > 0 || Number(item?.withdrawl || 0) > 0
+            (item) =>
+              Number(item?.deposite || 0) > 0 ||
+              Number(item?.withdrawl || 0) > 0 ||
+              item?.from === 'deposit-reject'
           );
 
           const mappedData = filteredTransactions.map((item) => {
             const depositeAmount = Number(item?.deposite || 0);
             const withdrawalAmount = Number(item?.withdrawl || 0);
-            const change = depositeAmount > 0 ? depositeAmount : -withdrawalAmount;
-            const txnType = depositeAmount > 0 ? "Deposit" : "Withdrawal";
+            const isDepositReject = item?.from === 'deposit-reject';
+            const change = isDepositReject
+              ? 0
+              : depositeAmount > 0
+                ? depositeAmount
+                : -withdrawalAmount;
+            const txnType = isDepositReject
+              ? 'Deposit (rejected)'
+              : depositeAmount > 0
+                ? 'Deposit'
+                : 'Withdrawal';
 
             return {
               date: new Date(item.createdAt).toLocaleString(),

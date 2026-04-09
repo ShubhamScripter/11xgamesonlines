@@ -28,7 +28,7 @@ function Navbar({ onClose, open }) {
     { label: "Account Statement", icon: <RiFileList3Fill />, path: "/user/account-statement" },
     { label: "Current Bets", icon: <RiHandCoinFill />, path: "/user/current-bets", badge: currentBetCount },
     { label: "Bets History", icon: <RiHistoryFill />, path: "/user/bet-history" },
-    { label: "Profit & Loss Market Wise", icon: <RiBarChart2Fill />, path: "/user/profit-loss" },
+    // Removed: "Profit & Loss Market Wise" menu entry as requested.
     { label: "Active Log", icon: <RiEyeLine />, path: "/user/active-log" },
     { label: "My Profile", icon: <RiUser3Fill />, path: "/user/profile" },
     { label: "Self Deposit / Withdraw", icon: <RiBankCardFill />, path: "/user/manual-deposit" },

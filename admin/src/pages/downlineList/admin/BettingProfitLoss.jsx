@@ -5,6 +5,7 @@ import ProfitLossTableCasino from "./ProfitLossTableCasino";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance from "../../../utils/axiosInstance";
+import { formatIST } from "../../../utils/time";
 const ExchangeData = [
   {
     sport: "Cricket",
@@ -205,7 +206,7 @@ function BettingProfitLoss() {
         const transformedData = response.data.data.map(item => ({
           sport: item.gameName,
           match: item.eventName,
-          settled: new Date(item.settledDate).toLocaleString(),
+          settled: formatIST(item.settledDate),
           profitLoss: item.totalProfitLoss,
           expanded: false,
           bets: item.bets.map(bet => ({
@@ -215,7 +216,7 @@ function BettingProfitLoss() {
             odds: bet.odds,
             stake: bet.stake,
             type: bet.type,
-            placed: new Date(bet.placedAt).toLocaleString(),
+            placed: formatIST(bet.placedAt),
             pnl: bet.profitLoss,
           }))
         }));
@@ -264,7 +265,7 @@ function BettingProfitLoss() {
             groupedData[key] = {
               sport: "Casino",
               match: bet.game_uid || "Unknown Game",
-              settled: new Date(bet.provider_timestamp || bet.createdAt).toLocaleString(),
+            settled: formatIST(bet.provider_timestamp || bet.createdAt),
               profitLoss: 0,
               expanded: false,
               bets: []

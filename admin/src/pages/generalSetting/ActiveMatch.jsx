@@ -3,6 +3,7 @@ import { IoSearchSharp } from "react-icons/io5";
 import toast from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 import { useSelector, useDispatch } from "react-redux";
+import { formatIST } from "../../utils/time";
 function ActiveMatch() {
   const user = useSelector((state) => state.auth.user);
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,7 +47,7 @@ function ActiveMatch() {
           eventId: match.id || "",
           marketId: match.id || "",
           match: match.match || "",
-          date: match.date || new Date().toLocaleString(),
+          date: match.date || formatIST(new Date()),
           status: match.inplay ? "In Play" : "Active",
         }));
       } else if (sport === "soccer" && data.data && Array.isArray(data.data)) {
@@ -56,7 +57,7 @@ function ActiveMatch() {
           eventId: match.id || "",
           marketId: match.id || "",
           match: match.match || "",
-          date: match.date || new Date().toLocaleString(),
+          date: match.date || formatIST(new Date()),
           status: match.inplay ? "In Play" : "Active",
         }));
       } else if (sport === "tennis" && data.data && Array.isArray(data.data)) {
@@ -66,7 +67,7 @@ function ActiveMatch() {
           eventId: match.id || "",
           marketId: match.id || "",
           match: match.match || "",
-          date: match.date || new Date().toLocaleString(),
+          date: match.date || formatIST(new Date()),
           status: match.inplay ? "In Play" : "Active",
         }));
       }
@@ -101,7 +102,7 @@ function ActiveMatch() {
             eventId: match.id || "",
             marketId: match.id || "",
             match: match.match || "",
-            date: match.date || new Date().toLocaleString(),
+            date: match.date || formatIST(new Date()),
             status: match.inplay ? "In Play" : "Active",
           });
         });
@@ -115,7 +116,7 @@ function ActiveMatch() {
             eventId: match.id || "",
             marketId: match.id || "",
             match: match.match || "",
-            date: match.date || new Date().toLocaleString(),
+            date: match.date || formatIST(new Date()),
             status: match.inplay ? "In Play" : "Active",
           });
         });
@@ -129,7 +130,7 @@ function ActiveMatch() {
             eventId: match.id || "",
             marketId: match.id || "",
             match: match.match || "",
-            date: match.date || new Date().toLocaleString(),
+            date: match.date || formatIST(new Date()),
             status: match.inplay ? "In Play" : "Active",
           });
         });

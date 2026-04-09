@@ -1,13 +1,5 @@
 [
   {
-    "id": 2,
-    "game_name": "Speed Blackjack G",
-    "game_uid": "fb166643bac3b714a7ce524c2fb0eb00",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/1xwfnktjybsolkn6.png"
-  },
-  {
     "id": 3,
     "game_name": "Baccarat B",
     "game_uid": "0ea8519b837ebd62f5a8978acca33e1d",
@@ -310,14 +302,6 @@
     "game_type": "CasinoLive",
     "provider": "evolutionlive",
     "icon": "https://bulkapi.in/EVO_Video/GoldVaultRo00001.png"
-  },
-  {
-    "id": 42,
-    "game_name": "Gonzo's Treasure Map",
-    "game_uid": "3f0b35e91f18915f5c5e88f3e1daf66e",
-    "game_type": "CasinoLive",
-    "provider": "evolutionlive",
-    "icon": "https://bulkapi.in/EVO_Video/GonzoTM000000001.png"
   },
   {
     "id": 43,

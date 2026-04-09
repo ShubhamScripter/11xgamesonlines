@@ -4189,6 +4189,7 @@ export const getTransactionHistoryByUserAndDate = async (req, res) => {
         typeof masked.remark === 'string' && /^P2P/i.test(masked.remark.trim());
       if (
         !isP2P &&
+        masked.from !== 'deposit-reject' &&
         masked.to === currentUserName &&
         masked.from !== currentUserName
       ) {

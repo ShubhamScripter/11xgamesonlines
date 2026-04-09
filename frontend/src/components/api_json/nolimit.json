@@ -56,14 +56,6 @@
     "icon": "https://bulkapi.in/NoLimit/nlc_blood_diamond.png"
   },
   {
-    "id": 8,
-    "game_name": "Outsourced: Slash Game",
-    "game_uid": "bec50445bc19b6f1ad9a380b41a2906c",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_outsourced_payday.png"
-  },
-  {
     "id": 9,
     "game_name": "Tanked",
     "game_uid": "2c46b695160455e6a4673dd2ad4364f9",
@@ -126,14 +118,6 @@
     "game_type": "slot",
     "provider": "NoLimit",
     "icon": "https://bulkapi.in/NoLimit/nlc_beheaded.png"
-  },
-  {
-    "id": 17,
-    "game_name": "Deadwood RIP",
-    "game_uid": "af767fb845d38b31d21bb36ea6394e7d",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_deadwood_rip.png"
   },
   {
     "id": 18,
@@ -343,14 +327,7 @@
     "provider": "NoLimit",
     "icon": "https://bulkapi.in/NoLimit/nlc_the_border.png"
   },
-  {
-    "id": 44,
-    "game_name": "Road Rage",
-    "game_uid": "deb5a68e6a9844df172046620b88595b",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_road_rage.png"
-  },
+  
   {
     "id": 45,
     "game_name": "LuFolsom Prisondo",
@@ -486,14 +463,6 @@
     "game_type": "slot",
     "provider": "NoLimit",
     "icon": "https://bulkapi.in/NoLimit/nlc_hot_4_cash.webp"
-  },
-  {
-    "id": 62,
-    "game_name": "Manhattan Goes Wild",
-    "game_uid": "e313c707097ddd09313ce4739faf3250",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_manhattan_goes_wild.webp"
   },
   {
     "id": 63,
@@ -680,14 +649,6 @@
     "icon": "https://bulkapi.in/NoLimit/nlc_xways_hoarder_xsplit.webp"
   },
   {
-    "id": 86,
-    "game_name": "Das xBoot",
-    "game_uid": "92b70fc82d0159207cb2eea975fb8f68",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_das_xboot.webp"
-  },
-  {
     "id": 87,
     "game_name": "Evil Goblins xBomb",
     "game_uid": "b46caa599caa7ef96c87cba6539cd8ba",
@@ -742,14 +703,6 @@
     "game_type": "slot",
     "provider": "NoLimit",
     "icon": "https://bulkapi.in/NoLimit/nlc_remember_gulag.webp"
-  },
-  {
-    "id": 94,
-    "game_name": "Karen Maneater",
-    "game_uid": "41f76203e1fe3aa96a834ce5d1c63add",
-    "game_type": "slot",
-    "provider": "NoLimit",
-    "icon": "https://bulkapi.in/NoLimit/nlc_karen_maneater.webp"
   },
   {
     "id": 95,

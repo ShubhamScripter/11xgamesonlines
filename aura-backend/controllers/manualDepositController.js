@@ -439,9 +439,15 @@ export const createManualDepositRequest = async (req, res) => {
       };
     }
 
-    const trimmedDepositRef =
-      requestType === 'deposit' ? String(referenceId ?? '').trim() : '';
-    if (requestType === 'deposit' && trimmedDepositRef) {
+    let trimmedDepositRef = '';
+    if (requestType === 'deposit') {
+      const digitsOnly = String(referenceId ?? '').replace(/\D/g, '');
+      if (digitsOnly.length !== 12) {
+        return res.status(400).json({
+          message: 'UTR must be exactly 12 digits.',
+        });
+      }
+      trimmedDepositRef = digitsOnly;
       const dup = await ManualDepositRequest.findOne({
         requestType: 'deposit',
         status: { $in: ['pending', 'approved'] },
@@ -491,9 +497,7 @@ export const createManualDepositRequest = async (req, res) => {
         accountId: finalAccountId,
         accountSnapshot,
         referenceId:
-          requestType === 'deposit'
-            ? trimmedDepositRef || undefined
-            : referenceId,
+          requestType === 'deposit' ? trimmedDepositRef : referenceId,
         paymentNote,
         bonusType,
         paymentImageUrl,
@@ -719,6 +723,28 @@ export const reviewManualDepositRequest = async (req, res) => {
             type: 'user_refresh_needed',
             userId: wsUserId,
           });
+        }
+      } else {
+        // Deposit reject: no wallet movement; still log on account statement.
+        const depositUser = await SubAdmin.findById(requestDoc.userId).lean();
+        if (depositUser && depositUser.role === 'user') {
+          const reqAmt = round2(Number(requestDoc.amount));
+          const utr = String(requestDoc.referenceId || '').trim();
+          try {
+            await TransactionHistory.create({
+              userId: depositUser._id,
+              userName: depositUser.userName,
+              withdrawl: 0,
+              deposite: 0,
+              amount: Number(depositUser.avbalance || 0),
+              remark: `Manual self deposit rejected (${requestDoc.method}) — requested ₹${reqAmt}${utr ? ` | UTR ${utr}` : ''}`,
+              from: 'deposit-reject',
+              to: depositUser.userName,
+              invite: depositUser.invite,
+            });
+          } catch (histErr) {
+            console.error('Deposit reject history write failed:', histErr);
+          }
         }
       }
 

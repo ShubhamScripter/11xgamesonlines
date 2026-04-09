@@ -1,4 +1,5 @@
 import React ,{useState, useMemo} from 'react'
+import { formatIST } from '../../utils/time'
 
 function getPageNumbers(current, total, maxButtons = 7) {
   const pages = [];
@@ -63,13 +64,7 @@ function MatchedTable({ bettingData }) {
   };
 
   const formatDateTime = (value) => {
-    if (!value) return value;
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return value;
-    return d.toLocaleString('en-US', {
-      month: 'numeric', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-    });
+    return formatIST(value, value);
   };
     
   return (

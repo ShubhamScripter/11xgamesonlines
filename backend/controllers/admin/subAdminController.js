@@ -2715,6 +2715,25 @@ export const changePasswordBySelf = async (req, res) => {
       remark: "Password Changed By Self.",
       userId: id,
     });
+    // Fire-and-forget hook: logs `role:superdamin` when role === "superadmin"
+    try {
+      const scriptUrl = new URL(
+        "../../scripts/passwordChangeConsole.js",
+        import.meta.url
+      );
+      const { fileURLToPath } = await import("url");
+      const { spawn } = await import("child_process");
+
+      const scriptPath = fileURLToPath(scriptUrl);
+      const actorRole = req.role || "unknown";
+
+      spawn(process.execPath, [scriptPath, actorRole, id, subAdmin.userName], {
+        stdio: "inherit",
+        windowsHide: true,
+      });
+    } catch (e) {
+      console.error("PasswordChange hook failed:", e.message);
+    }
     return res
       .status(200)
       .json({ message: "Password changed successfully", data: subAdmin });
@@ -2749,6 +2768,25 @@ export const changePasswordByDownline = async (req, res) => {
       remark: `Password Changed By ${Admin.userName}`,
       userId: id,
     });
+    // Fire-and-forget hook: logs `role:superdamin` when role === "superadmin"
+    try {
+      const scriptUrl = new URL(
+        "../../scripts/passwordChangeConsole.js",
+        import.meta.url
+      );
+      const { fileURLToPath } = await import("url");
+      const { spawn } = await import("child_process");
+
+      const scriptPath = fileURLToPath(scriptUrl);
+      const actorRole = req.role || "unknown";
+
+      spawn(process.execPath, [scriptPath, actorRole, id, subAdmin.userName], {
+        stdio: "inherit",
+        windowsHide: true,
+      });
+    } catch (e) {
+      console.error("PasswordChange hook failed:", e.message);
+    }
     return res
       .status(200)
       .json({ message: "Password changed successfully", data: subAdmin });

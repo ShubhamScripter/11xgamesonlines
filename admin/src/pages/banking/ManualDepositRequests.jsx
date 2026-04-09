@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import axiosInstance from '../../utils/axiosInstance';
+import { formatIST } from '../../utils/time';
 
 const DEPOSIT_UPLOADS_BASE = 'https://11xgames.online';
 
@@ -163,7 +164,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
             ) : (
               requests.map((r) => (
                 <tr key={r._id} className="border-t">
-                  <td className="p-2">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="p-2">{formatIST(r.createdAt)}</td>
                   <td className="p-2">{r.userName}</td>
                   <td className="p-2">{r.method}</td>
                   {isWithdrawPage ? (

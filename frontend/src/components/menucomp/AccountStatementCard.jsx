@@ -20,9 +20,9 @@ function AccountStatementCard({ accountdata }) {
               <td width="50%" style={{ padding: '3px 5px' }}>
                 <div className='flex flex-col '>
                   <span className='text-sm md:text-base'>
-                    {item.change < 0 ? 'Debits' : item.change > 0 ? 'Credits' : 'Debits'}
+                    {item.change < 0 ? 'Debits' : item.change > 0 ? 'Credits' : 'No change'}
                   </span>
-                  <strong className={`text-sm md:text-base ${item.change < 0 ? 'text-red-600' : item.change > 0 ? 'text-green-600' : ''}`}>
+                  <strong className={`text-sm md:text-base ${item.change < 0 ? 'text-red-600' : item.change > 0 ? 'text-green-600' : 'text-gray-600'}`}>
                     {Math.abs(item.change || 0).toFixed(2)}
                   </strong>
                 </div>

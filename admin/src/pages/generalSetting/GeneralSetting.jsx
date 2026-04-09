@@ -13,6 +13,7 @@ import EditPopup from './EditPopup'
 import { useNavigate } from 'react-router'
 import { useSelector } from 'react-redux'
 import axios from '../../utils/axiosInstance'
+import { formatIST } from '../../utils/time'
 
 function GeneralSetting() {
     const navigate = useNavigate()
@@ -105,7 +106,7 @@ function GeneralSetting() {
                             <span 
                               key={u._id} 
                               className='inline-block bg-[#dc3545] text-white px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-[#c82333]'
-                              title={`Last login: ${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'}`}
+                              title={`Last login: ${u.lastLogin ? formatIST(u.lastLogin) : 'Never'}`}
                             >
                               {u.userName}
                             </span>

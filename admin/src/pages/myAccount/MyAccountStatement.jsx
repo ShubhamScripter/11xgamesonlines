@@ -147,11 +147,12 @@ import { useDispatch, useSelector } from "react-redux";
 import Navigation from "../../components/myAccount/Navigation";
 import AccountStatementTable from "./AccountStatementTable";
 import { fetchAgentTransactions } from "../../store/transactionsSlice";
+import { formatIST } from "../../utils/time";
 
 // Helper: convert API object to table row shape
 function mapApiTxToRow(tx) {
   return {
-    datetime: new Date(tx.date || tx.createdAt).toLocaleString(),
+    datetime: formatIST(tx.date || tx.createdAt),
     depositFromUpline: tx.deposite > 0 ? tx.deposite.toFixed(2) : "-",
     depositToDownline: "-", // API doesn't supply this
     withdrawByUpline: "-",  // API doesn't supply this

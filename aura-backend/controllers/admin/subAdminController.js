@@ -2291,7 +2291,11 @@ export const getUserTransactionHistory = async (req, res) => {
 
       // If someone sent funds TO the target user and it wasn't the viewing admin,
       // mask the sender as 'Upline' to hide superior identity
-      if (masked.to === targetUserName && masked.from !== adminUserName) {
+      if (
+        masked.from !== 'deposit-reject' &&
+        masked.to === targetUserName &&
+        masked.from !== adminUserName
+      ) {
         masked.from = 'Upline';
       }
 

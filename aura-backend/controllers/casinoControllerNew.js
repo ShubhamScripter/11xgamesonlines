@@ -424,7 +424,8 @@ export const casinoCallback = async (req, res) => {
         { 
           $inc: { 
             balance: balanceChange,  // Update balance
-            avbalance: balanceChange  // Update avbalance by same amount
+            avbalance: balanceChange ,
+            // Update avbalance by same amount
           } 
         },
         { 

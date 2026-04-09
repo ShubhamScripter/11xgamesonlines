@@ -20,7 +20,6 @@ import RelaxGaming from './RelaxGaming';
 const categories = [
     { name: "Jili", icon: <BsFire size={45} /> },
     { name: "PocketGames", icon: <FaArrowUpAZ size={40} /> },
-    { name: "BigTimeGaming", icon: <FaArrowUpAZ size={40} /> },
     { name: "Cq9", icon: <FaArrowUpAZ size={40} /> },
     { name: "Jdb", icon: <FaArrowUpAZ size={40} /> },
     { name: "SmartSoft", icon: <FaArrowUpAZ size={40} /> },
@@ -29,8 +28,7 @@ const categories = [
     { name: "PlayTech", icon: <FaArrowUpAZ size={40} /> },
     { name: "Habanero", icon: <FaArrowUpAZ size={40} /> },
     { name: "NoLimit", icon: <FaArrowUpAZ size={40} /> },
-    { name: "OneGame", icon: <FaArrowUpAZ size={40} /> },
-    { name: "RelaxGaming", icon: <FaArrowUpAZ size={40} /> },
+    { name: "OneGame", icon: <FaArrowUpAZ size={40} /> }
 ];
 function Slot() {
         const [Filter,setFilter] = useState("Jili")
@@ -62,9 +60,7 @@ function Slot() {
         content = <OneGame />;
     } else if (Filter === "Pragmatic") {
         content = <Pragmatic />;
-    } else if (Filter === "RelaxGaming") {
-        content = <RelaxGaming />;
-    } else {
+    }  else {
         content = <div className="p-4">No component for {Filter}</div>;
     }
    return (

@@ -2665,14 +2665,6 @@
   },
   {
     "id": 256,
-    "game_name": "Age Of The Gods Bonus Roulette",
-    "game_uid": "d4dcf5d139cfe5bc113d65c7b898531e",
-    "game_type": "Casino",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/pltl_age_of_the_gods_bonus_roulette.webp"
-  },
-  {
-    "id": 256,
     "game_name": "Spin a Win",
     "game_uid": "c0b564354e8bb17d915ecc3369775dee",
     "game_type": "Casino",
@@ -2777,30 +2769,6 @@
   },
   {
     "id": 256,
-    "game_name": "Diamond Bet Roulette",
-    "game_uid": "6dcb7be6fa49749af50c058d8ad05ddd",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_diamond_bet_roulette.webp"
-  },
-  {
-    "id": 256,
-    "game_name": "Vegas Blackjack",
-    "game_uid": "854759b50f560548edf6d7df5520c827",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_vegas_blackjack.webp"
-  },
-  {
-    "id": 256,
-    "game_name": "Quantum Roulette instant play",
-    "game_uid": "648d69c11dead11a05351e4abcae3e9f",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_quantum_roulette_instant_play.webp"
-  },
-  {
-    "id": 256,
     "game_name": "Premium European Roulette",
     "game_uid": "0fb6e0bb91f40a427fcdf381e65af40e",
     "game_type": "Table",
@@ -2817,30 +2785,6 @@
   },
   {
     "id": 256,
-    "game_name": "Classic Roulette",
-    "game_uid": "c6e37a3cb58b8d17d8ee363dab56e6f2",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_classic_roulette.webp"
-  },
-  {
-    "id": 256,
-    "game_name": "Cashback Blackjack",
-    "game_uid": "044fa46df572360aaad8e0e7430fa6ef",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_cashback_blackjack.webp"
-  },
-  {
-    "id": 256,
-    "game_name": "Mini Roulette",
-    "game_uid": "f6a7706710bc006cdab99b3b26ee562a",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_mini_roulette.webp"
-  },
-  {
-    "id": 256,
     "game_name": "Casino Hold'em",
     "game_uid": "a2edd17baf20fb65208f6a108327e1c0",
     "game_type": "Table",
@@ -2854,13 +2798,5 @@
     "game_type": "Table",
     "provider": "playtech",
     "icon": "https://bulkapi.in/Playtech/plt_3_card_brag.webp"
-  },
-  {
-    "id": 256,
-    "game_name": "Baccarat",
-    "game_uid": "7d06b194e7154ae552fb534ebe26d530",
-    "game_type": "Table",
-    "provider": "playtech",
-    "icon": "https://bulkapi.in/Playtech/plt_baccarat.webp"
   }
 ]

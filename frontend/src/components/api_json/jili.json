@@ -520,14 +520,6 @@
             "icon": "https://bulkapi.in/jili/Bone-Fortune.png"
         },
         {
-            "id": 699,
-            "game_name": "JILI CAISHEN",
-            "game_uid": "11e330c2b23f106815f3b726d04e4316",
-            "game_type": "Slot Game",
-            "provider": "jili",
-            "icon": "https://bulkapi.in/jili/JILI-CAISHEN.png"
-        },
-        {
             "id": 700,
             "game_name": "Bonus Hunter",
             "game_uid": "39775cdc4170e56c5f768bdee8b4fa00",

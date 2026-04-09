@@ -20,7 +20,8 @@ const casinoBetHistorySchema = new mongoose.Schema(
     provider_timestamp: { type: Date },
     providerRaw: { type: Object },
     processedAt: { type: Date, default: Date.now },
-    notes: { type: String }
+    notes: { type: String },
+    game_name: { type: String },
   },
   { timestamps: true }
 );

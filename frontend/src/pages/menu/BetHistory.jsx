@@ -16,32 +16,32 @@ function BetHistory() {
   const [limit, setLimit] = useState(10);
   const [casinoBets, setCasinoBets] = useState([]);
   
-    // Function to map API response to UI format
+    // Sports bet history → fields for BetCard (betKind: 'sports')
     const mapBetData = (apiData) => {
       if (!apiData || !Array.isArray(apiData)) return [];
-      
-      return apiData.map((bet) => ({
-        id: bet._id || bet.id || Math.random().toString(36).substr(2, 9),
-        match: bet.eventName || 'Unknown Match',
-        market: bet.marketName || 'Unknown Market',
-        type: bet.otype === 'back' ? 'Back' : 'Lay',
-        selection: bet.teamName || 'Unknown Selection',
-        oddsReq: bet.xValue || 0,
-        avgOdds: bet.xValue || 0, // Using same value as oddsReq since API doesn't provide avgOdds
-        matched: bet.price || 0,
-        placed: new Date(bet.createdAt).toLocaleString(),
-        taken: new Date(bet.createdAt).toLocaleString(),
-        profit: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
-        status: getStatusFromVoid(bet.void, bet.settled),
-        date: new Date(bet.date || bet.createdAt).toISOString().split('T')[0]
-      }));
-    };
 
-    // Helper function to determine status based on void and settled fields
-    const getStatusFromVoid = (voidStatus, settled) => {
-      if (voidStatus === 'void') return 'Voided';
-      if (settled === 'settled') return 'Completed';
-      return 'Cancelled';
+      return apiData.map((bet) => {
+        const created = bet.createdAt ? new Date(bet.createdAt) : new Date();
+        return {
+          betKind: 'sports',
+          id: bet._id || bet.id || Math.random().toString(36).substr(2, 9),
+          marketName: bet.marketName || '—',
+          gameName: bet.gameName || '—',
+          eventName: bet.eventName || '—',
+          odd:
+            bet.xValue != null && bet.xValue !== ''
+              ? Number(bet.xValue)
+              : Number(bet.price ?? 0),
+          stake: Number(bet.betAmount ?? 0),
+          profitLoss: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
+          time: created.toLocaleString(),
+          placedTs: created.getTime(),
+          selection: bet.teamName || '',
+          otype: bet.otype === 'back' ? 'Back' : 'Lay',
+          betResult: bet.betResult || '—',
+          fancyScore: bet.fancyScore ?? bet.fancy_score ?? null,
+        };
+      });
     };
 
     const [filteredBets, setFilteredBets] = useState([]);
@@ -62,16 +62,6 @@ function BetHistory() {
         limit 
       }));
     };
-
-    // Update filteredBets when betHistory changes
-    useEffect(() => {
-      if (betHistory && betHistory.length > 0) {
-        const mappedData = mapBetData(betHistory);
-        setFilteredBets(mappedData);
-      } else {
-        setFilteredBets([]);
-      }
-    }, [betHistory]);
 
     // Initial fetch on component mount
     useEffect(() => {
@@ -99,29 +89,25 @@ function BetHistory() {
 
     useEffect(() => {
       const sportsMapped = mapBetData(betHistory || []);
-      const casinoMapped = (casinoBets || []).map((bet, idx) => ({
-        id: bet._id || bet.game_round || `casino-${idx}`,
-        gameName: 'Casino',
-        match: bet.game_uid || 'Casino',
-        market: 'Casino',
-        type: 'Casino',
-        selection: bet.game_round || 'Casino Bet',
-        oddsReq: '-',
-        avgOdds: '-',
-        matched: Number(bet.bet_amount || 0),
-        placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : '',
-        taken: bet.provider_timestamp
-          ? new Date(bet.provider_timestamp).toLocaleString()
-          : (bet.createdAt ? new Date(bet.createdAt).toLocaleString() : ''),
-        profit: Number(bet.change || 0),
-        status: 'Casino',
-        date: bet.createdAt
-          ? new Date(bet.createdAt).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0]
-      }));
+      const casinoMapped = (casinoBets || []).map((bet, idx) => {
+        const created = bet.createdAt ? new Date(bet.createdAt) : null;
+        const ts = created ? created.getTime() : 0;
+        return {
+          betKind: 'casino',
+          id: bet._id || bet.game_round || `casino-${idx}`,
+          gameName:
+            (bet.game_name && String(bet.game_name).trim()) ||
+            bet.game_uid ||
+            'Casino',
+          betAmount: Number(bet.bet_amount ?? 0),
+          profitLoss: bet?.change>=0?Number(bet.change-bet.bet_amount) : Number(bet.change),
+          time: created ? created.toLocaleString() : '',
+          placedTs: ts,
+        };
+      });
 
       const merged = [...sportsMapped, ...casinoMapped].sort(
-        (a, b) => new Date(b.placed).getTime() - new Date(a.placed).getTime()
+        (a, b) => (b.placedTs || 0) - (a.placedTs || 0)
       );
       setFilteredBets(merged);
     }, [betHistory, casinoBets]);

@@ -207,25 +207,32 @@ function CurrentBets() {
     if (!Array.isArray(betHistory)) return [];
     return betHistory
       .filter((bet) => Number(bet?.status) === 0)
-      .map((bet, idx) => ({
-      id: bet._id || bet.id || `bet-${idx}`,
-      gameName: bet.gameName || 'Sports',
-      match: bet.eventName || "Unknown Match",
-      market: bet.marketName || "Unknown Market",
-      type: bet.otype === 'back' ? 'Back' : 'Lay',
-      selection: bet.teamName || "Unknown Selection",
-      oddsReq: bet.xValue || 0,
-      avgOdds: bet.xValue || 0,
-      matched: bet.price || 0,
-      placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
-      taken: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
-      // Expected P/L for current bets
-      possibleProfit: Number(bet.betAmount ?? 0),
-      possibleLoss: Number(bet.price ?? 0),
-      profit: Number(bet.profitLossChange ?? 0),
-      status: 'Unsettled',
-      date: bet.date ? new Date(bet.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-    }));
+      .map((bet, idx) => {
+        const created = bet.createdAt ? new Date(bet.createdAt) : new Date();
+        return {
+          betKind: 'sports',
+          id: bet._id || bet.id || `bet-${idx}`,
+          marketName: bet.marketName || '—',
+          gameName: bet.gameName || '—',
+          eventName: bet.eventName || '—',
+          odd:
+            bet.xValue != null && bet.xValue !== ''
+              ? Number(bet.xValue)
+              : Number(bet.price ?? 0),
+          stake: Number(bet.betAmount ?? 0),
+          // Expected P/L for current (unsettled) bets:
+          // - expected profit = betAmount
+          // - expected loss = price
+          possibleProfit: Number(bet.betAmount ?? 0),
+          possibleLoss: Number(bet.price ?? 0),
+          profitLoss: Number(bet.profitLossChange ?? 0),
+          time: created.toLocaleString(),
+          placedTs: created.getTime(),
+          selection: bet.teamName || '',
+          otype: bet.otype === 'back' ? 'Back' : 'Lay',
+          fancyScore: bet.fancyScore ?? bet.fancy_score ?? null,
+        };
+      });
   }, [betHistory]);
 
   return (

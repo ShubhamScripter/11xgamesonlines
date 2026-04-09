@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { geAllBetHistory } from '../../../store/subadminSlice'
 import axiosInstance from '../../../utils/axiosInstance'
 import { use } from 'react';
+import { formatIST } from '../../../utils/time';
 const ExchangeData =[]
 //  [
 //   {
@@ -492,7 +493,7 @@ function BettingHistory() {
         const transformedData = response.data.data.map((bet) => ({
           betId: bet.game_round || bet._id?.toString() || "-",
           plId: bet.userName || "-",
-          date: bet.provider_timestamp ? new Date(bet.provider_timestamp).toLocaleString() : (bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "-"),
+          date: formatIST(bet.provider_timestamp || bet.createdAt),
           market: "Casino",
           match: bet.game_uid || "Unknown Game",
           stake: bet.bet_amount || 0,

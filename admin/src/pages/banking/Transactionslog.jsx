@@ -103,6 +103,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+import { formatIST } from "../../utils/time";
 
 function Transactionslog() {
   const { userId } = useParams();
@@ -176,7 +177,7 @@ function Transactionslog() {
               logs.map((tx) => (
                 <tr key={tx._id} className="bg-white border-y border-y-[#7e97a7]">
                   <td className="px-2 py-2">
-                    {new Date(tx.date || tx.createdAt).toLocaleString()}
+                    {formatIST(tx.date || tx.createdAt)}
                   </td>
                   <td className="px-2 py-2">
                     {tx.deposite?.toFixed(2) ?? "-"}

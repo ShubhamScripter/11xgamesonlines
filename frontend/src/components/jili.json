@@ -584,15 +584,7 @@
         "iconlink": "../../assets/jili/Bone-Fortune.png",
         "icon": "https://huidu-bucket.s3.ap-southeast-1.amazonaws.com/api/jili/Bone-Fortune.png"
     },
-    {
-        "id": 699,
-        "game_name": "JILI CAISHEN",
-        "game_uid": "11e330c2b23f106815f3b726d04e4316",
-        "game_type": "Slot Game",
-        "provider": "jili",
-        "iconlink": "../../assets/jili/JILI-CAISHEN.png",
-        "icon": "https://huidu-bucket.s3.ap-southeast-1.amazonaws.com/api/jili/JILI-CAISHEN.png"
-    },
+    
     {
         "id": 700,
         "game_name": "Bonus Hunter",
