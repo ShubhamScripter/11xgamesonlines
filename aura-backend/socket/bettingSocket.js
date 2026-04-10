@@ -13,6 +13,11 @@ import {
 } from '../utils/cashoutUtils.js';
 import { getBestOddsForTeam } from '../controllers/cashoutController.js';
 
+import {
+  fetchMatchData,
+  fetchCasinoData as fetchCasinoDataApi,
+} from '../services/matchApi/index.js';
+
 dotenv.config();
 
 const API_URL = process.env.API_URL;
@@ -224,9 +229,11 @@ const pollBettingData = async () => {
       else if (apitype === 'soccer') sid = 1;
       else if (apitype === 'horse-racing') sid = 10;
 
-      const endpoint = `${API_URL}/getPriveteData?key=${API_KEY}&gmid=${gameid}&sid=${sid}`;
-      const response = await axios.get(endpoint);
-      const newData = response.data;
+      // const endpoint = `${API_URL}/getPriveteData?key=${API_KEY}&gmid=${gameid}&sid=${sid}`;
+      // const response = await axios.get(endpoint);
+      // const newData = response.data;
+
+      const newData = await fetchMatchData(gameid, sid);
 
       if (newData.success) {
         const cacheKey = `${gameid}_${apitype}`;

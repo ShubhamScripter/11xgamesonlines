@@ -24,8 +24,7 @@ export const fetchCricketData = createAsyncThunk(
   "cricket/fetchCricketData",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/cricket/matches"); // Your backend API
-      console.log("responce", response);
+      const response = await api.get("/cricket/matches"); // Your backend AP
 
       return normalizeCricketMatches(response.data.matches);
     } catch (error) {

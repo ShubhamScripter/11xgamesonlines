@@ -369,7 +369,7 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
                       gameName: gameName || "Cricket Game",
                       min: oddsData?.[0]?.min ?? 0,
                       max: oddsData?.[0]?.max ?? 0,
-                      sid: 4,
+                      sid: oddsData,
                       marketId: matchOddsList?.[0]?.id,
                     })
                   }

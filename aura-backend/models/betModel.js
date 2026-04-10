@@ -15,6 +15,7 @@ const betSchema = new mongoose.Schema(
     cid: { type: Number },
     gid: { type: Number },
     tabno: { type: Number },
+    fancyId: { type: String },
 
     gameId: {
       type: String,

@@ -54,7 +54,7 @@ function Cricket({ activeTab }) {
     title,
     matches: groupedMatches[title]
   }));
-  console.log("groupedArray",groupedArray);
+  
 
   const handleToggle = idx => {
     setOpenIndexes(prev =>

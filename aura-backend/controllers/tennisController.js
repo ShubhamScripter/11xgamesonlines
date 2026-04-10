@@ -1,43 +1,40 @@
 // controllers/tennisController.js
-import axios from 'axios';
 import dotenv from 'dotenv';
+import { fetchMatchList, fetchMatchData } from '../services/matchApi/index.js';
 
 dotenv.config();
 
-const API_URL = process.env.API_URL;
-const API_KEY = process.env.API_KEY;
-
 export const fetchTennisData = async (req, res) => {
   try {
-    const response = await axios.get(`${API_URL}/esid?key=${API_KEY}&sid=2`);
+    const data = await fetchMatchList(2);
 
-    const t1Data = response.data.data.t1 || [];
-    const t2Data = response.data.data.t2 || [];
+    const t1Data = data.data.t1 || [];
+    const t2Data = data.data.t2 || [];
 
     const combinedData = [...t1Data, ...t2Data]
       .map((match) => ({
         id: match.gmid,
         match: match.ename,
         date: match.stime,
-        inplay: !!match.iplay,
-        // League/competition name for frontend grouping
-        cname: match.cname,
-        title: match.cname || match.comp || 'Tennis',
+        cname:match.cname,
+        iplay: match.iplay,
         channels: match.f ? ['F'] : [],
-        odds: (match.section || []).reduce((acc, section, index) => {
-          const homeOdds = section.odds?.[0]?.odds || '0';
-          const awayOdds = section.odds?.[1]?.odds || '0';
+        odds: match.section.reduce((acc, section, index) => {
+          const homeOdds = section.odds[0]?.odds || '0';
+          const awayOdds = section.odds[1]?.odds || '0';
+
           acc.push({ home: homeOdds, away: awayOdds });
-          if (index < (match.section?.length || 0) - 1) {
+
+          if (index < match.section.length - 1) {
             acc.push({ home: '0', away: '0' });
           }
+
           return acc;
         }, []),
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const inplayOnly = combinedData.filter((m) => m.inplay === true);
-    res.status(200).json({ success: true, data: combinedData, matches: inplayOnly });
+    res.status(200).json({ success: true, data: combinedData });
   } catch (error) {
     console.error('Error fetching tennis data:', error.message);
     res
@@ -54,16 +51,12 @@ export const fetchTannisBettingData = async (req, res) => {
   }
 
   try {
-    const response = await axios.get(
-      `${API_URL}/getPriveteData?key=${API_KEY}&gmid=${gameid}&sid=2`
-    );
-
-    const json = response.data;
+    const json = await fetchMatchData(gameid, 2);
 
     if (json.success) {
       res.status(200).json({
         success: true,
-        data: response.data,
+        data: json,
       });
     } else {
       res

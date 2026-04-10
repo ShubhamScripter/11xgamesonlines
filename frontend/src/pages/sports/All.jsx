@@ -164,7 +164,7 @@ function All() {
 
   const { matches, loader, error } = useSelector((state) => state.cricket);
   const [openIndexes, setOpenIndexes] = useState([0]);
-  console.log("cricket matches",matches)
+  
 
   // Group matches by title
   const groupedMatches = matches?.reduce((acc, match) => {
@@ -186,7 +186,7 @@ function All() {
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
     );
   };
-  console.log("grouped cricket data",groupedArray)
+  
   useEffect(() => {
     dispatch(fetchCricketData());
   }, [dispatch]);

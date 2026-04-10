@@ -1,20 +1,17 @@
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 import adminModel from '../models/adminModel.js';
+import { fetchMatchData, fetchMatchList } from '../services/matchApi/index.js';
 
 dotenv.config();
 
-const API_URL = process.env.API_URL;
-const API_KEY = process.env.API_KEY;
-
 export const getCricketData = async (req, res) => {
   try {
-    const response = await axios.get(`${API_URL}/esid?sid=4&key=${API_KEY}`);
+    const data = await fetchMatchList(4);
 
-    if (response.data.success) {
-      const t1 = response.data.data.t1 || [];
-      const t2 = response.data.data.t2 || [];
+    if (data.success) {
+      const t1 = data.data.t1 || [];
+      const t2 = data.data.t2 || [];
       const allMatches = [...t1, ...t2];
 
       const transformed = allMatches
@@ -38,15 +35,25 @@ export const getCricketData = async (req, res) => {
           const oddsArr = [team1Odds, { home: '0', away: '0' }, team2Odds];
 
           return {
-            id: match.gmid,
+            id: match.beventId || match.oldgmid || match.gmid,
+            beventId: match.beventId || null,
             match: match.ename,
             date: match.stime,
-            // League/competition name for frontend grouping
-            cname: match.cname,
+            cname:match.cname,
             channels: [],
             odds: oddsArr,
             inplay: match.iplay,
           };
+        })
+        .filter((m) => {
+          const matchName = (m.match || '').toString().trim().toLowerCase();
+          const categoryName = (m.cname || '').toString().trim().toLowerCase();
+
+          if (!matchName) return false;
+          if (!categoryName) return true;
+
+          // Drop league/header rows where match name == competition name
+          return matchName !== categoryName;
         })
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -69,8 +76,6 @@ export const getCricketData = async (req, res) => {
 };
 
 export const fetchCrirketBettingData = async (req, res) => {
-
-  console.log('my fetchCrirketBettingData');
   const { gameid } = req.query;
 
   if (!gameid) {
@@ -78,11 +83,7 @@ export const fetchCrirketBettingData = async (req, res) => {
   }
 
   try {
-    const response = await axios.get(
-      `${API_URL}/getPriveteData?key=${API_KEY}&gmid=${gameid}&sid=4`
-    );
-
-    const json = response.data;
+    const json = await fetchMatchData(gameid, 4);
 
     if (json.success) {
       return res.status(200).json({ success: true, data: json });

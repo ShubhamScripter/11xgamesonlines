@@ -338,7 +338,7 @@ function HeaderLogin() {
 
   // 🔁 Refresh handler
   const handleRefresh = async () => {
-    console.log('[WS][HeaderLogin] handleRefresh() called');
+    
     setRefreshing(true);
     try {
       await dispatch(getUser());
@@ -346,7 +346,6 @@ function HeaderLogin() {
       console.error("Failed to refresh user data:", error);
     } finally {
       setRefreshing(false);
-      console.log('[WS][HeaderLogin] handleRefresh() finished');
     }
   };
 

@@ -234,8 +234,7 @@ import { IoInformationCircle } from "react-icons/io5";
 import { getPendingBetAmo } from "../../features/sports/betReducer";
 function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
   const { pendingBet } = useSelector((state) => state.bet);
-  console.log("pending bet", pendingBet)
-  console.log("fancy1Data in fancybet", fancy1Data);
+  
 
   // Transform backend fancy data
   const fancyMarkets = Array.isArray(fancy1Data)
@@ -259,7 +258,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
       };
     })
     : [];
-console.log("fancyMarkets.........", fancyMarkets)
+
   const formatToK = (num) => {
     if (!num || num < 1000) return num;
     const n = Number(num);

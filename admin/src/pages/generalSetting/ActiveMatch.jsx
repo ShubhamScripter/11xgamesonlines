@@ -41,7 +41,7 @@ function ActiveMatch() {
       let transformedData = [];
       
       if (sport === "cricket" && data.matches && Array.isArray(data.matches)) {
-        console.log("Processing cricket matches:", data.matches.length);
+       
         transformedData = data.matches.map((match) => ({
           sport: "cricket",
           eventId: match.id || "",
