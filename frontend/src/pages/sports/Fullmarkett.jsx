@@ -745,7 +745,7 @@ function Fullmarkett() {
   const hasCheckedRef = useRef(false); // ✅ run only once
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(false);
   const [TiedOddSelected, setTiedOddSelected] = useState("odds");
 
   const [betSlipOpen, setBetSlipOpen] = useState(false);
@@ -1258,11 +1258,7 @@ const fetchScorecard = async (isInitial = false) => {
     if (!isLive && gameid) {
       // Fetch immediately with loading indicator
       fetchScorecard(true);
-      
-      // Set up auto-refresh every 3 seconds (without loading indicator)
-      intervalId = setInterval(() => {
-        fetchScorecard(false);
-      }, 3000);
+      // Don't auto-refresh the iframe; it causes blinking due to reloads.
     } else if (isLive) {
       // Clear scorecard when switching to Live
       setScorecardHtml(null);

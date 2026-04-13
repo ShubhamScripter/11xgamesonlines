@@ -343,7 +343,7 @@ function Fullmarket1() {
   const key = "gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f";
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(false);
 
   const [betSlipOpen, setBetSlipOpen] = useState(false);
   const [betSlipData, setBetSlipData] = useState(null);
@@ -550,7 +550,8 @@ function Fullmarket1() {
 
     if (!isLive && gameid) {
       fetchScorecard(true);
-      intervalId = setInterval(() => fetchScorecard(false), 3000);
+      // Don't auto-refresh the iframe; it causes blinking due to reloads.
+      // If you want periodic refresh later, only update when URL changes.
     } else if (isLive) {
       setScorecardHtml(null);
       setScorecardUrl("");

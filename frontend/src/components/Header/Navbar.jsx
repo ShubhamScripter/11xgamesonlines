@@ -38,14 +38,15 @@ function Navbar({ onClose, open }) {
     { label: "Logout", icon: <RiLogoutBoxRFill />, action: "logout" }
   ];
 
-  const handleItemClick = (item) => {
+  const handleItemClick = async (item) => {
     if (item.disabled) {
       return;
     }
     if (item.action === "logout") {
-      dispatch(logout());
+      await dispatch(logout());
       dispatch(reset());
-      // navigate("/login");
+      onClose();
+      navigate("/login", { replace: true });
       return;
     }
     navigate(item.path);

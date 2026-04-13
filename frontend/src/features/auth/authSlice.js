@@ -197,8 +197,13 @@ export const changePassword = createAsyncThunk(
 );
 
 
-// Logout
+// Logout — clear httpOnly session cookie on server, then wipe client storage
 export const logout = createAsyncThunk("auth/logout", async () => {
+  try {
+    await api.get("/customer/logout");
+  } catch {
+    // Still sign out locally if the request fails (offline, etc.)
+  }
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 });
