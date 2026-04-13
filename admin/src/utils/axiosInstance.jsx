@@ -12,6 +12,7 @@ const axiosInstance = axios.create({
   // baseURL:'https://7billion.online/api',
 
   // baseURL: "/api",
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },

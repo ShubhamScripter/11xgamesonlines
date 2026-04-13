@@ -103,4 +103,18 @@ const authSlice = createSlice({
 });
 
 export const { logout, setAuthFromStorage } = authSlice.actions;
+
+/** Clears server session + httpOnly cookie, then local auth state */
+export const logoutAsync = createAsyncThunk(
+  'auth/logoutAsync',
+  async (_, { dispatch }) => {
+    try {
+      await axios.post('/user-logout');
+    } catch {
+      // Token may already be invalid; still clear client
+    }
+    dispatch(logout());
+  }
+);
+
 export default authSlice.reducer;

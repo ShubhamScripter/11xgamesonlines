@@ -847,8 +847,9 @@ export const logout = async (req, res) => {
 
     res.clearCookie('auth', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
+      secure: true,
+      sameSite: 'None',
+      path: '/',
     });
 
     res.status(200).json({

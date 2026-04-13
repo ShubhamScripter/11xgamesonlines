@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import * as Icons from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { logout } from "../../store/authSlice";
+import { logoutAsync } from "../../store/authSlice";
 import axiosInstance from "../../utils/axiosInstance";
 
 const navData = [
@@ -132,10 +132,10 @@ const SidebarItem = ({ item, badges }) => {
   const dispatch = useDispatch();
   const badgeValue = item.badgeKey ? Number(badges?.[item.badgeKey] || 0) : 0;
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (item.label === "Logout") {
-      dispatch(logout());
-      navigate("/admin/login");
+      await dispatch(logoutAsync());
+      navigate("/admin/login", { replace: true });
       return;
     }
 
