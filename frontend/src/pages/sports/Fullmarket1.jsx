@@ -336,11 +336,17 @@ import { getUser } from '../../features/auth/authSlice';
 import { div } from 'motion/react-client';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
+import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
 function Fullmarket1() {
   const dispatch = useDispatch();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
   const key = "gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f";
+  const mediaUrls = getSportsMediaUrls({
+    sport: SPORTS_MEDIA_TYPE.FOOTBALL,
+    gameid,
+    key,
+  });
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
   const [isLive, setIsLive] = useState(false);
@@ -521,9 +527,7 @@ function Fullmarket1() {
         if (isInitial) setScorecardLoading(true);
 
         const response = await fetch(
-          `https://test.bulkapi.co.in/api/v1/live-score?key=${encodeURIComponent(
-            key
-          )}&gmid=${encodeURIComponent(gameid)}`
+          mediaUrls.scorecardUrl
         );
         const json = await response.json();
 
@@ -656,40 +660,11 @@ function Fullmarket1() {
   // }, [isLive, gameid, match]);
 
   useEffect(() => {
-        const fetchLiveStreamUrl = async () => {
-          if (!gameid || !key) return;
-    
-          setIsLoadingStream(true);
-          try {
-            const response = await axios.get(
-              'https://bulkapi.co.in/api/v1/live-stream',
-              {
-                params: {
-                  key: key,
-                  gmid: gameid,
-                },
-              }
-            );
-    
-            // Extract URL from response - adjust based on actual API response structure
-            if (response?.data?.url) {
-              setLiveStreamUrl(response.data.url);
-            } else if (response?.data?.data?.url) {
-              setLiveStreamUrl(response.data.data.url);
-            } else if (typeof response?.data === 'string') {
-              setLiveStreamUrl(response.data);
-            }
-          } catch (error) {
-            console.error('Error fetching live stream URL:', error);
-            // Fallback to default URL if API fails
-            setLiveStreamUrl(`https://bulkapi.co.in/api/v1/live-stream?gmid=${gameid}&key=${key}`);
-          } finally {
-            setIsLoadingStream(false);
-          }
-        };
-    
-        fetchLiveStreamUrl();
-      }, [gameid, key]);
+    if (!gameid || !key) return;
+    setIsLoadingStream(true);
+    setLiveStreamUrl(mediaUrls.liveStreamUrl);
+    setIsLoadingStream(false);
+  }, [gameid, key, mediaUrls.liveStreamUrl]);
 
   // Reset live stream when switching away from Live
   useEffect(() => {
@@ -1016,7 +991,7 @@ const oddevenData =
               <iframe
                 src={
                  
-                  `https://test.bulkapi.co.in/api/v1/live-stream?gmid=${gameid}&key=${key}`
+                  liveStreamUrl || mediaUrls.liveStreamUrl
                 }
                 title='Watch Live'
                 className='w-full'

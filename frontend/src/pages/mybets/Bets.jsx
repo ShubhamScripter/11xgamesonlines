@@ -1,55 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import HeaderLogin from "../../components/Header/HeaderLogin";
-import { MdArrowBackIos, MdPlayArrow, MdKeyboardArrowRight, MdKeyboardArrowLeft } from "react-icons/md";
-import { IoClose } from "react-icons/io5";
-import Exchange from "./Exchange";
+import { MdArrowBackIos } from "react-icons/md";
+import BetCard from "../../components/Bethistory/BetCard";
 import { getBetHistory } from "../../features/sports/betReducer";
 import api from "../../utils/axiosConfig";
-const parlaybet=[]
+
 function Bets() {
   const dispatch = useDispatch();
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
   const { user } = useSelector((state) => state.auth);
   
-  const [selected, setselected] = useState("Sports");
-  const [showdetails, setshowdetails] = useState(false);
-  const [betdata, setBetdata] = useState([]);
+  const [settlementFilter, setSettlementFilter] = useState("unsettle");
   const [casinoBetdata, setCasinoBetdata] = useState([]);
   const [casinoLoading, setCasinoLoading] = useState(false);
   const [casinoError, setCasinoError] = useState("");
 
-  // Function to map API response to UI format for current bets
-  const mapCurrentBetData = (apiData) => {
+  const mapSportsBetData = (apiData, filterValue) => {
     if (!apiData || !Array.isArray(apiData)) return [];
-    
+
     return apiData
-      .filter((bet) => Number(bet?.status) === 0)
-      .map((bet) => ({
-      id: bet._id || bet.id || Math.random().toString(36).substr(2, 9),
-      match: bet.eventName || 'Unknown Match',
-      market: bet.marketName || 'Unknown Market',
-      type: bet.otype === 'back' ? 'BACK' : 'LAY',
-      selection: bet.teamName || 'Unknown Selection',
-      odds: bet.xValue || 0,
-      stake: bet.price || 0,
-      profit: bet.betAmount || 0,
-      placed: new Date(bet.createdAt).toLocaleString()
-    }));
+      .filter((bet) =>
+        filterValue === "settel" ? Number(bet?.status) !== 0 : Number(bet?.status) === 0
+      )
+      .map((bet, idx) => {
+        const created = bet.createdAt ? new Date(bet.createdAt) : new Date();
+        return {
+          betKind: "sports",
+          id: bet._id || bet.id || `sports-${idx}`,
+          marketName: bet.marketName || "—",
+          gameName: bet.gameName || "—",
+          eventName: bet.eventName || "—",
+          odd:
+            bet.xValue != null && bet.xValue !== ""
+              ? Number(bet.xValue)
+              : Number(bet.price ?? 0),
+          stake: Number(bet.betAmount ?? 0),
+          profitLoss: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
+          possibleProfit:
+            filterValue === "unsettle" ? Number(bet.betAmount ?? 0) : undefined,
+          possibleLoss:
+            filterValue === "unsettle" ? Number(bet.price ?? 0) : undefined,
+          time: created.toLocaleString(),
+          placedTs: created.getTime(),
+          selection: bet.teamName || "",
+          otype: bet.otype === "back" ? "Back" : "Lay",
+          betResult: bet.betResult || "—",
+          fancyScore: bet.fancyScore ?? bet.fancy_score ?? null,
+        };
+      });
   };
 
-  // Function to fetch current bets (unsettled)
-  const fetchCurrentBets = () => {
+  const fetchSportsBets = () => {
     const currentDate = new Date();
-    const startDate = currentDate.toISOString().split('T')[0];
-    const endDate = currentDate.toISOString().split('T')[0];
-    
+    const startDate = new Date(currentDate);
+    startDate.setDate(currentDate.getDate() - 30);
+    const endDate = currentDate.toISOString().split("T")[0];
+
     dispatch(getBetHistory({ 
-      startDate,
+      startDate: startDate.toISOString().split("T")[0],
       endDate,
       page: 1, 
       selectedGame: '', 
-      selectedVoid: 'unsettle', 
+      selectedVoid: settlementFilter,
       limit: 50 
     }));
   };
@@ -57,17 +70,24 @@ function Bets() {
   const mapCasinoBetData = (apiData) => {
     if (!apiData || !Array.isArray(apiData)) return [];
 
-    return apiData.map((bet, idx) => ({
-      id: bet._id || bet.game_round || `casino-${idx}`,
-      match: bet.game_uid || "Casino",
-      market: "Casino",
-      type: "CASINO",
-      selection: bet.game_round || "-",
-      odds: "-",
-      stake: Number(bet.bet_amount || 0),
-      profit: Number(bet.change || 0),
-      placed: bet.createdAt ? new Date(bet.createdAt).toLocaleString() : "",
-    }));
+    return apiData.map((bet, idx) => {
+      const created = bet.createdAt ? new Date(bet.createdAt) : null;
+      return {
+        betKind: "casino",
+        id: bet._id || bet.game_round || `casino-${idx}`,
+        gameName:
+          (bet.game_name && String(bet.game_name).trim()) ||
+          bet.game_uid ||
+          "Casino",
+        betAmount: Number(bet.bet_amount ?? 0),
+        profitLoss:
+        settlementFilter === "unsettle"
+            ? Number(bet.bet_amount ?? 0)
+            : Number(bet?.change ?? 0) - Number(bet.bet_amount ?? 0),
+        time: created ? created.toLocaleString() : "",
+        placedTs: created ? created.getTime() : 0,
+      };
+    });
   };
 
   const fetchCasinoBets = async () => {
@@ -85,9 +105,17 @@ function Bets() {
       }
       if (!userId) return;
 
-      const response = await api.get(`/casino/bet-history/${userId}`, {
-        withCredentials: true,
-      });
+      const response =
+        settlementFilter === "unsettle"
+          ? await api.get(`/casino/bet-history/${userId}`, {
+              withCredentials: true,
+            })
+          : await api.get(
+              `/casino/all-bet-history?id=${userId}&page=1&limit=500`,
+              {
+                withCredentials: true,
+              }
+            );
 
       const list = response?.data?.data || [];
       setCasinoBetdata(mapCasinoBetData(list));
@@ -100,21 +128,39 @@ function Bets() {
     }
   };
 
-  // Update betdata when betHistory changes
-  useEffect(() => {
-    if (betHistory && betHistory.length > 0) {
-      const mappedData = mapCurrentBetData(betHistory);
-      setBetdata(mappedData);
-    } else {
-      setBetdata([]);
-    }
-  }, [betHistory]);
+  const sportsBetData = useMemo(
+    () => mapSportsBetData(betHistory, settlementFilter),
+    [betHistory, settlementFilter]
+  );
+  const combinedBetData = useMemo(() => {
+    return [...sportsBetData, ...casinoBetdata].sort(
+      (a, b) => Number(b?.placedTs ?? 0) - Number(a?.placedTs ?? 0)
+    );
+  }, [sportsBetData, casinoBetdata]);
 
-  // Fetch current bets on component mount
   useEffect(() => {
-    fetchCurrentBets();
+    fetchSportsBets();
     fetchCasinoBets();
-  }, []);
+  }, [settlementFilter, user]);
+
+  let betsContent = null;
+  if (loading || casinoLoading) {
+    betsContent = (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg font-semibold text-gray-600">Loading bets...</div>
+      </div>
+    );
+  } else if (errorMessage || casinoError) {
+    betsContent = (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg font-semibold text-red-600">
+          Error: {errorMessage || casinoError}
+        </div>
+      </div>
+    );
+  } else {
+    betsContent = <BetCard data={combinedBetData} />;
+  }
 
   return (
     <div>
@@ -128,56 +174,34 @@ function Bets() {
         </span>
       </div>
 
-      <div className="bg-[#d4e0e5] p-2 flex items-center justify-around">
-        <div
-          className={`${
-            selected === "Sports" ? "border-b-2 font-semibold" : ""
-          } flex gap-2 cursor-pointer`}
-          onClick={() => setselected("Sports")}
-        >
-          <span>Sports</span>
-          <span className="bg-black text-white rounded-lg px-1 mb-1">{betdata.length}</span>
-        </div>
-        <div
-          className={`${
-            selected === "Casino" ? "border-b-2 font-semibold" : ""
-          } flex gap-2 cursor-pointer`}
-          onClick={() => setselected("Casino")}
-        >
-          <span>Casino</span>
-          <span className="bg-black text-white rounded-lg px-1 mb-1">{casinoBetdata.length}</span>
+      <div className="bg-white px-3 py-2 border-b border-gray-200">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSettlementFilter("unsettle")}
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              settlementFilter === "unsettle"
+                ? "bg-[#17934e] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            Unsettled
+          </button>
+          <button
+            onClick={() => setSettlementFilter("settel")}
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              settlementFilter === "settel"
+                ? "bg-[#17934e] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            Settled
+          </button>
         </div>
       </div>
 
       {/* Bets List */}
       <div className="bg-[#f1f7ff] min-h-[70vh]">
-        <div className=" flex flex-col gap-4 justify-center p-4">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-lg font-semibold text-gray-600">Loading current bets...</div>
-            </div>
-          ) : errorMessage ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-lg font-semibold text-red-600">Error: {errorMessage}</div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {selected === "Sports" ? (
-                <Exchange betdata={betdata} />
-              ) : casinoLoading ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="text-lg font-semibold text-gray-600">Loading casino bets...</div>
-                </div>
-              ) : casinoError ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="text-lg font-semibold text-red-600">Error: {casinoError}</div>
-                </div>
-              ) : (
-                <Exchange betdata={casinoBetdata} />
-              )}
-            </div>
-          )}
-        </div>
+        {betsContent}
       </div>
     </div>
   );
