@@ -38,7 +38,7 @@ function statusClass(status) {
 
 function ActivelogCard({ logdata }) {
   return (
-    <div className="flex flex-col gap-3 px-2 pb-6 max-w-lg mx-auto w-full">
+    <div className="flex flex-col gap-3 pb-6 mx-auto w-full">
       {logdata.map((log, idx) => {
         const loc = locationLine(log);
         const isp = log.isp != null && String(log.isp).trim() !== '' ? log.isp : '—';
@@ -46,35 +46,35 @@ function ActivelogCard({ logdata }) {
         return (
           <div
             key={log._id || idx}
-            className="rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm"
+            className="rounded-xl overflow-hidden bg-[#1b1f23] shadow-sm"
           >
-            <div className="bg-[#d5f2b8] px-3 py-2.5">
-              <span className="font-bold text-gray-900 text-sm md:text-base">
+            <div className="bg-gray-800 px-3 py-2.5">
+              <span className="font-bold text-white text-sm md:text-base">
                 {formatHeaderDate(log)}
               </span>
             </div>
-            <div className="divide-y divide-gray-100 text-sm md:text-base">
+            <div className="divide-y divide-gray-600 text-sm">
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-600">Login Status</span>
+                <span className="text-gray-400">Login Status</span>
                 <span className={`text-right ${statusClass(log.status)}`}>
                   {log.status || '—'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-600">IP Address</span>
-                <span className="text-right font-medium text-gray-900 break-all">
+                <span className="text-gray-400">IP Address</span>
+                <span className="text-right font-medium text-gray-200 break-all">
                   {log.ip || '—'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-600">ISP</span>
-                <span className="text-right font-medium text-gray-900 break-all">
+                <span className="text-gray-400">ISP</span>
+                <span className="text-right font-medium text-gray-200 break-all">
                   {isp}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-600">City/State/Country</span>
-                <span className="text-right font-medium text-gray-900">
+                <span className="text-gray-400">City/State/Country</span>
+                <span className="text-right font-medium text-gray-200">
                   {loc || '—'}
                 </span>
               </div>

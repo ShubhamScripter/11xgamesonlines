@@ -1,41 +1,64 @@
-import React, { useState } from 'react';
-import { MdSportsKabaddi } from "react-icons/md";
-import { CgMediaLive } from "react-icons/cg";
-import { TbPlayCardStarFilled } from "react-icons/tb";
-import { AiFillCalendar } from "react-icons/ai";
-import { GiAnglerFish } from "react-icons/gi";
-import { IoGameController } from "react-icons/io5";
+import React, { useRef } from 'react';
+
+import fishing from '../../assets/fishing.png';
+import slotGame from '../../assets/slotGame.png';
+import casino from '../../assets/casinoGame.png';
+import crash from '../../assets/crashGame.png';
+import table from '../../assets/tableGame.png';
+import arcade from '../../assets/arcadeGame.png';
 
 const categories = [
-  { name: "Sports", icon: <MdSportsKabaddi size={24} /> },
-  { name: "Live", icon: <CgMediaLive size={24} /> },
-  { name: "Table", icon: <TbPlayCardStarFilled size={24} /> },
-  { name: "Slot", icon: <AiFillCalendar size={24} /> },
-  { name: "Fishing", icon: <GiAnglerFish size={24} /> },
-  { name: "Egame", icon: <IoGameController size={24} /> },
+  { name: "Casino", sprite: casino },
+  { name: "Crash", sprite: crash },
+  { name: "Slot", sprite: slotGame },
+  { name: "Table", sprite: table },
+  { name: "Fishing", sprite: fishing },
+  { name: "Arcade", sprite: arcade },
 ];
 
-function Category({active, setActive}) {
+function Category({ active, setActive }) {
+  const prevActive = useRef(null);
+
+  const handleClick = (name) => {
+    prevActive.current = active;
+    setActive(name);
+  };
 
   return (
-    <div className="bg-[#1b1f23] w-full h-20 flex items-center overflow-x-auto no-scrollbar px-4 space-x-4">
-      {categories.map((cat) => (
-        <div
-          key={cat.name}
-          onClick={() => setActive(cat.name)}
-          className={`
-            flex flex-col items-center justify-center 
-            text-sm cursor-pointer px-4 py-2 rounded-xl 
-            transition-all duration-200
-            ${active === cat.name 
-              ? 'bg-gray-700 text-white -translate-y-1' 
-              : 'text-gray-400 hover:bg-gray-800'}
-          `}
-        >
-          {cat.icon}
-          <span className="mt-1">{cat.name}</span>
-        </div>
-      ))}
+    <div className="bg-[#141515] w-full px-4">
+      <div className="flex items-center overflow-x-auto no-scrollbar space-x-4 pt-10 pb-5">
+        {categories.map((cat) => {
+          const isActive = active === cat.name;
+          const isPrev = prevActive.current === cat.name;
+
+          return (
+            <div
+              key={cat.name}
+              onClick={() => handleClick(cat.name)}
+              className={`
+                relative flex flex-col items-center justify-center font-bold
+                text-sm cursor-pointer min-w-[85px] pb-2 rounded-md pt-3
+                transition-all duration-300
+                ${isActive ? 'bg-[#14805e] text-white' : 'text-gray-400 bg-[#222424]'}
+              `}
+            >
+              <div
+                className={`
+                  absolute -top-5 w-10 h-10 bg-no-repeat
+                  ${isActive ? "animate-forward scale-110" : ""}
+                  ${isPrev ? "animate-backward" : ""}
+                `}
+                style={{
+                  backgroundImage: `url(${cat.sprite})`,
+                  backgroundSize: "auto 100%",
+                }}
+              />
+
+              <span className="mt-2">{cat.name}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

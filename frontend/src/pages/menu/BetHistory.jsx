@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import HeaderLogin from '../../components/Header/HeaderLogin';
 import { MdArrowBackIos } from "react-icons/md";
 import BetCard from '../../components/Bethistory/BetCard';
 import { getBetHistory } from '../../features/sports/betReducer';
@@ -113,21 +112,20 @@ function BetHistory() {
     }, [betHistory, casinoBets]);
   
   return (
-    <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
-        <div
-        onClick={() => window.history.back()} 
-        >
-          <MdArrowBackIos className='text-white text-2xl font-semibold' />
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+      <div className="bg-[#000] h-10 flex items-center">
+        <div onClick={() => window.history.back()}>
+          <MdArrowBackIos className="text-white text-md font-semibold" />
         </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">My Bets</span>
+        <span className="text-[18px] font-bold">
+          My Bets
+        </span>
       </div>
 
       {/* Filters removed as requested */}
 
       {/* Bets List */}
-      <div className='bg-[#f1f7ff] min-h-[70vh]'>
+      <div>
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-lg font-semibold text-gray-600">Loading bet history...</div>

@@ -4,39 +4,46 @@ import HeaderLogin from "../../components/Header/HeaderLogin";
 import Slider from "../../components/slider/Slider";
 import Category from "../../components/category/Category";
 import Main from "../../components/Homemain/Main";
-import Live from "../../components/Homelive/Live";
-import Tables from "../../components/Hometable/Hometable";
-import Slot from "../../components/HomeSlot/HomeSlot";
-import Fishing from "../../components/HomeFishing/HomeFishing";
-import Egame from "../../components/HomeEgame/Homeegame";
+import Navbar from "../../components/Header/Navbar";
 import { useSelector } from "react-redux";
+import Egame from '../../components/casinocomp/egame/Egame';
+import Fishing from '../../components/casinocomp/gameType/Fishing';
+import Live from '../../components/casinocomp/live/Live';
+import Popular from "../../components/casinocomp/popular/Popular";
+import Slot from "../../components/casinocomp/gameType/Slot";
+import Table from '../../components/casinocomp/gameType/Table';
+import Casino from "../../components/casinocomp/gameType/Casino";
+import Crash from "../../components/casinocomp/gameType/Crash";
+import Arcade from "../../components/casinocomp/gameType/Arcade";
+
 
 function Home() {
-  const [activeCategory, setActiveCategory] = useState("Sports");
-  const { user } = useSelector((state) => state.auth);
+  const [selected, setSelected] = useState('Casino');
 
   let content;
-  if (activeCategory === "Sports") {
-    content = <Main />;
-  } else if (activeCategory === "Live") {
-    content = <Live />;
-  } else if (activeCategory === "Table") {
-    content = <Tables />;
-  } else if (activeCategory === "Slot") {
-    content = <Slot />;
-  } else if (activeCategory === "Fishing") {
-    content = <Fishing />;
-  } else if (activeCategory === "Egame") {
-    content = <Egame />;
+  
+  if (selected === 'Popular') {
+    content = <Popular/>;
+  } else if (selected === 'Crash') {
+    content = <Crash/>;
+  } else if (selected === 'Table') {
+    content = <Table/>;
+  } else if (selected === 'Slot') {
+    content = <Slot/>;
+  } else if (selected === 'Fishing') {
+    content = <Fishing/>;
+  } else if (selected === 'Casino') {
+    content = <Casino/>;
+  } else if (selected === 'Arcade') {
+    content = <Arcade/>;
   } else {
-    content = <div className="p-4">No component for {activeCategory}</div>;
+    content = <div className="p-4 text-white">No Games for {selected}</div>;
   }
 
   return (
     <div>
-      {user ? <HeaderLogin /> : <Header />}
-      <Slider />
-      <Category active={activeCategory} setActive={setActiveCategory} />
+      <Slider/>
+      <Category active={selected} setActive={setSelected}/>
       {content}
     </div>
   );

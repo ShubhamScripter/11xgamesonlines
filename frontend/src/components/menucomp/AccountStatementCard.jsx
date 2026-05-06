@@ -5,7 +5,7 @@ function AccountStatementCard({ accountdata }) {
   return (
     <div className="mt-3">
       {accountdata.map((item, idx) => (
-        <table key={idx} className="rounded overflow-hidden bg-white border w-full rounded-t-xl mb-4">
+        <table key={idx} className="rounded overflow-hidden border w-full rounded-t-xl mb-4">
           <thead className="bg-[#d4e0e5] text-gray-800">
             <tr>
               <th colSpan={4} className="p-2">

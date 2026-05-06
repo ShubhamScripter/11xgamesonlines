@@ -1,43 +1,59 @@
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/pagination";
-// import "swiper/css/navigation";
-import Img1 from "../../assets/sliderimg/img1.png";
-import Img2 from "../../assets/sliderimg/img2.png";
-import Img3 from "../../assets/sliderimg/img3.jpeg";
-import Img4 from "../../assets/sliderimg/img4.png";
-import Img5 from "../../assets/sliderimg/img5.png";
-import Img6 from "../../assets/sliderimg/img6.png";
-const images = [
-  Img1,
-  Img2,
-  Img3,
-  Img4,
-  Img5,
-  Img6
-];
+import React from 'react';
+import SlickSlider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import Img1 from "../../assets/sliderimg/image_241615.jpg";
+import Img2 from "../../assets/sliderimg/image_241703.jpg";
+import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from 'react-icons/md';
 
-function Slider() {
-  return (
-    <div className="w-full max-w-3xl ">
-      <Swiper
-        modules={[Autoplay, Pagination]}
-        spaceBetween={30}
-        slidesPerView={1}
-        autoplay={{ delay: 3000 }}
-        pagination={{ clickable: true }}
-        navigation
-        loop
+const banner = [
+  Img1,
+  Img2
+];
+const Slider = ({sidebarOpen}) =>{
+   const PrevArrow = ({ onClick }) => {
+    return (
+      <div
+        className={`absolute  ${sidebarOpen ? "left-[4%]":"left-[10%]"} top-1/2 z-1 transform -translate-y-1/2 bg-gray-800 text-white w-8 h-8 flex justify-center items-center rounded-[3px] cursor-pointer`}
+        onClick={onClick}
       >
-        {images.map((src, idx) => (
-          <SwiperSlide key={idx}>
-            <img src={src} alt={`Slide ${idx}`} className="w-full h-30 object-cover" />
-          </SwiperSlide>
+        <MdKeyboardArrowLeft size={22}/>
+      </div>
+    );
+  };
+  const NextArrow = ({ onClick }) => {
+    return (
+      <div
+        className={`absolute ${sidebarOpen ? "right-[4%]":"right-[10%]"} top-1/2 transform -translate-y-1/2 bg-gray-800 text-white w-8 h-8 flex justify-center items-center rounded-[3px] cursor-pointer`}
+        onClick={onClick}
+      >
+        <MdKeyboardArrowRight size={22}/>
+      </div>
+    );
+  };
+ 
+  const sliderSettings = {
+    dots: false,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3000,
+    arrows: true, 
+    nextArrow: <NextArrow />,
+    prevArrow: <PrevArrow />,
+  };
+
+  return (
+    <div className="w-full">
+      <SlickSlider {...sliderSettings}>
+        {banner.map((item, i) => (
+          <img key={i} src={item} alt="banner" className="object-cover h-[200px] w-full block" />
         ))}
-      </Swiper>
+      </SlickSlider>
     </div>
   )
 }
 
-export default Slider
+export default Slider;

@@ -139,7 +139,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from "react-redux";
 import { getBetHistory } from '../../features/sports/betReducer';
 import { MdArrowBackIos } from "react-icons/md";
-import HeaderLogin from '../../components/Header/HeaderLogin'
 import BetCard from '../../components/Bethistory/BetCard';
 
 // Remove the hardcoded allBetData array
@@ -236,33 +235,34 @@ function CurrentBets() {
   }, [betHistory]);
 
   return (
-    <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+      <div className="bg-[#000] h-10 flex items-center">
         <div onClick={() => window.history.back()}>
-          <MdArrowBackIos className='text-white text-2xl font-semibold' />
+          <MdArrowBackIos className="text-white text-md font-semibold" />
         </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">Current Bets</span>
+        <span className="text-[18px] font-bold">
+         Current Bet
+        </span>
       </div>
-      <div className='bg-[#eef6fb] h-15 flex items-center justify-around'>
-        <span>Exchange</span>
-        <span>Bookmaker</span>
-        <span>FancyBet</span>
-        <span>SportsBook</span>
+      <div className='grid grid-cols-4 gap-3'>
+        <span className='col-span-1 text-center bg-gray-800 py-2 rounded-sm'>Exchange</span>
+        <span className='col-span-1 text-center bg-gray-800 py-2 rounded-sm'>Bookmaker</span>
+        <span className='col-span-1 text-center bg-gray-800 py-2 rounded-sm'>FancyBet</span>
+        <span className='col-span-1 text-center bg-gray-800 py-2 rounded-sm'>SportsBook</span>
       </div>
       <div className='bg-[#262c32] p-4'>
         {/* Bet Status Dropdown */}
         <div className='flex items-center justify-between relative'>
           <select
             name="Bet Status"
-            className='bg-[#1b1f23] text-white pl-20 py-2 rounded-lg w-full'
+            className='bg-[#1b1f23] text-white py-2 pl-1 rounded-lg w-full'
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
           >
             <option value="Completed">Matched</option>
             <option value="Cancelled">UnMatched</option>
           </select>
-          <span className='absolute left-0 text-white pl-2'>Bet Status</span>
+          {/* <span className='absolute left-0 text-white pl-2'>Bet Status</span> */}
         </div>
         <div className='flex items-center mt-4 justify-end gap-5'>
           <span className='text-xl font-bold text-[#17934e]'>Order By</span>
@@ -277,7 +277,7 @@ function CurrentBets() {
         </div>
       </div>
       {/* Main Section */}
-      <div className='bg-[#f1f7ff] min-h-[70vh] '>
+      <div>
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-lg font-semibold text-gray-600">Loading current bets...</div>

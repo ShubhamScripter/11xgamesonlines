@@ -27,12 +27,12 @@ const BetCard = ({ data }) => {
   );
 
   return (
-    <div className="flex flex-col gap-4 justify-center p-4">
+    <div className="flex flex-col gap-4 justify-center">
       {data.length === 0 && (
-        <div className="flex flex-col gap-4 pt-4">
-          <div className="bg-white p-4 rounded-lg shadow-md max-w-md mx-auto w-full">
+        <div className="flex flex-col gap-4 pt-4 bg-[#262c32] p-4">
+          <div className="rounded-lg shadow-md mx-auto w-full">
             <h2 className="text-lg font-semibold">Bet Details</h2>
-            <p className="text-gray-700">No bet history available.</p>
+            <p className="text-gray-400">No bet history available.</p>
           </div>
         </div>
       )}
@@ -42,7 +42,7 @@ const BetCard = ({ data }) => {
         return (
           <div
             key={bet.id}
-            className="shadow-md overflow-hidden w-full max-w-md rounded-2xl bg-white mx-auto"
+            className="shadow-md overflow-hidden w-full rounded-2xl mx-auto"
           >
             <table className="table-auto w-full text-sm bg-white">
               <thead className="bg-[#d4e0e5] text-gray-800">

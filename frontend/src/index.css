@@ -18,3 +18,21 @@ html, body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes spriteForward {
+  from { background-position: 0 0; }
+  to { background-position: 100% 0; }
+}
+
+@keyframes spriteBackward {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+.animate-forward {
+  animation: spriteForward 0.5s steps(14) both;
+}
+
+.animate-backward {
+  animation: spriteBackward 0.5s steps(14) both;
+}

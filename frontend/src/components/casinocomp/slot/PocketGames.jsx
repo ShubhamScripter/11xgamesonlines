@@ -5,10 +5,17 @@ import jiliGames from '../../../components/api_json/pg.json'
 import { startCasinoGame } from '../../../services/casinoService'
 import { getSlotImage } from '../../../components/SlotPics'
 import Spinner from '../../Spinner'
+import { motion } from "framer-motion";
+import { IoIosArrowDown } from "react-icons/io";
+import slot from '../../../assets/icon/icon-slot.png'
+import slotColor from '../../../assets/icon/icon-slotColor.png'
+
+
+
 function PocketGames() {
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
-  
+  const [gameOption, setGameOption] = useState(false);
   // Filter Slot Games and get remaining games for AtoZ (skip first 16)
   const slotGames = jiliGames.filter(game => game.game_type === 'Slot Game')
   
@@ -49,7 +56,27 @@ function PocketGames() {
   };
 
   return (
-    <div className='grid grid-cols-3 gap-2'>
+    <div className='mt-20 px-4 mx-auto'>
+      <div className='relative'>
+        <div className='flex items-center px-4 text-white text-[20px] font-bold h-[52px] leading-none gap-1.5 mb-3' onClick={() => setGameOption(prev=>!prev)}><img src={slot} className='h-full block py-4'/> Slots <span className={`transform transition-transform duration-300  ${gameOption ? 'rotate-[180deg]':''}`}><IoIosArrowDown size={25} /></span></div>
+        {gameOption && (
+          <motion.div
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className='absolute top-[52px] left-0 text-white bg-[#141515] z-10 w-[150px]'
+            >
+            <div className='px-4 h-[52px] flex items-center gap-3 bg-[#303232]'><img src={slotColor} alt="" className='h-full py-4'/> Slot</div>
+            <div className='px-4 h-[52px] flex items-center'>Fishing</div>
+          </motion.div>
+        )}
+      </div>
+      <div className="grid grid-cols-8 gap-2">
+        {loading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+            <Spinner />
+          </div>
+        )}
         {slotGames.map((game, index) => (
           <div 
             key={game.id} 
@@ -59,24 +86,14 @@ function PocketGames() {
             onClick={() => handleGameClick(game)}
           >
             <img 
-            //   src={getSlotImage(game.iconlink)} 
-            src={game.icon}
+              src={game.icon}
               alt={game.game_name} 
-              className='rounded-2xl' 
+              className='rounded-sm w-full h-[200px] object-cover' 
               loading="lazy"
             />
-            {/* {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-2xl">
-                <div className="text-white text-sm">Loading...</div>
-              </div>
-            )} */}
           </div>
         ))}
-        {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <Spinner />
-        </div>
-      )}
+      </div>
     </div>
   )
 }

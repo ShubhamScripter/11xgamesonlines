@@ -1,341 +1,29 @@
-// import React, { useState } from 'react';
-// import { GiHamburgerMenu } from "react-icons/gi";
-// import { FiAlignJustify } from "react-icons/fi";
-// import Logo from '../../assets/logo.png';
-// import { BiRefresh } from "react-icons/bi";
-// import Navbar from './Navbar';
-// import { motion } from "motion/react"
-// import { useSelector } from "react-redux";
-// import Header from './Header';
-// function HeaderLogin() {
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [refreshing, setRefreshing] = useState(false);
-//   const { user } = useSelector((state) => state.auth);
-
-//   return (
-//     <>
-//     {user?
-//     <div>
-//       {/* Header Bar */}
-//       <div className="bg-[#17934e] h-10 relative z-30">
-//         <div className="flex justify-between items-center h-full px-4">
-//           <div className="flex items-center justify-center gap-3">
-//             <GiHamburgerMenu
-//               className="text-white text-2xl"
-//               onClick={() => setSidebarOpen(true)}
-//             />
-//             <img src={Logo} alt="Logo" className="w-20 h-10 mt-2" />
-//           </div>
-//           <div className="flex gap-2 items-center ">
-//             <div className="flex flex-col">
-//               <span className="text-white text-[8px] md:text-sm leading-none">
-//                 {user?.username}
-//               </span>
-//               <span className="text-white text-[10px] md:text-base font-semibold">{user?.currency || "INR"}{" "} <span className='font-normal'>{user?.balance ?? 0}</span>&nbsp; Exp (0.00)</span>
-//             </div>
-//             <motion.div
-//             animate={{rotate:360}} 
-//             transition={{duration:3,delay:1}}
-//             >
-//                 <BiRefresh className="text-white text-2xl" />
-//             </motion.div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* SIDEBAR OVERLAY (now at root level, not inside header) */}
-//       {sidebarOpen && (
-//   <div className="fixed inset-0 z-40 flex justify-center">
-//     <div
-//       className="absolute inset-0 bg-black/50"
-//       onClick={() => setSidebarOpen(false)}
-//     ></div>
-//     {/* Sidebar container, only as wide as mobile */}
-//     <div className="relative w-full max-w-[480px] h-full">
-//       <Navbar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-//     </div>
-//   </div>
-// )}
-//     </div>:<Header/>}
-//     </>
-//   );
-// }
-
-// export default HeaderLogin;
-
-// import React, { useState } from 'react';
-// import { GiHamburgerMenu } from "react-icons/gi";
-// import { FiAlignJustify } from "react-icons/fi";
-// import Logo from '../../assets/logo.png';
-// import { BiRefresh } from "react-icons/bi";
-// import Navbar from './Navbar';
-// import { motion } from "motion/react";
-// import { useSelector, useDispatch } from "react-redux";
-// import { getUser } from '../../features/auth/authSlice';
-// import Header from './Header';
-// import { host } from '../../utils/axiosConfig';
-// function HeaderLogin() {
-//   const dispatch = useDispatch();
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [refreshing, setRefreshing] = useState(false);
-//   const { user } = useSelector((state) => state.auth);
-
-//   const handleRefresh = async () => {
-//     setRefreshing(true);
-//     try {
-//       await dispatch(getUser());
-//     } catch (error) {
-//       console.error('Failed to refresh user data:', error);
-//     } finally {
-//       setRefreshing(false);
-//     }
-//   };
-
-//   return (
-//     <>
-//       {user ? (
-//         <div>
-//           {/* Header Bar */}
-//           <div className="bg-[#17934e] h-10 relative z-30">
-//             <div className="flex justify-between items-center h-full px-4">
-//               <div className="flex items-center justify-center gap-3">
-//                 <GiHamburgerMenu
-//                   className="text-white text-2xl"
-//                   onClick={() => setSidebarOpen(true)}
-//                 />
-//                 <img src={Logo} alt="Logo" className="w-20 h-10 mt-2" />
-//               </div>
-//               <div className="flex gap-2 items-center ">
-//                 <div className="flex flex-col">
-//                   {/* 🔑 use userName from API */}
-//                   <span className="text-white text-[8px] md:text-sm leading-none">
-//                     {user?.userName}
-//                   </span>
-
-//                   {/* 🔑 remove/replace currency if you don't have it */}
-//                   <span className="text-white text-[10px] md:text-base font-semibold">
-//                     INR{" "}
-//                     <span className="font-normal">
-//                       {user?.balance ?? 0}
-//                     </span>
-//                     &nbsp; Exp (<span className="text-[#e52219]">
-//                     {Number(user?.exposure).toFixed(2)}
-//                   </span>)
-//                   </span>
-//                 </div>
-//                 <motion.div
-//                   animate={{ rotate: refreshing ? 360 : 0 }}
-//                   transition={{ duration: refreshing ? 1 : 3, delay: refreshing ? 0 : 1 }}
-//                 >
-//                   <BiRefresh 
-//                     className={`text-white text-2xl cursor-pointer ${refreshing ? 'opacity-70' : ''}`}
-//                     onClick={handleRefresh}
-//                   />
-//                 </motion.div>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Sidebar overlay */}
-//           {sidebarOpen && (
-//             <div className="fixed inset-0 z-40 flex justify-center">
-//               <div
-//                 className="absolute inset-0 bg-black/50"
-//                 onClick={() => setSidebarOpen(false)}
-//               ></div>
-//               <div className="relative w-full max-w-[480px] h-full">
-//                 <Navbar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-//               </div>
-//             </div>
-//           )}
-//         </div>
-//       ) : (
-//         <Header />
-//       )}
-//     </>
-//   );
-// }
-
-// export default HeaderLogin;
-
-
-// import React, { useState, useEffect, useRef } from "react";
-// import { GiHamburgerMenu } from "react-icons/gi";
-// import { BiRefresh } from "react-icons/bi";
-// import { motion } from "motion/react";
-// import { useSelector, useDispatch } from "react-redux";
-// import { getUser } from "../../features/auth/authSlice";
-// import Navbar from "./Navbar";
-// import Header from "./Header";
-// import Logo from "../../assets/logo.png";
-// import { host } from "../../utils/axiosConfig";
-
-// function HeaderLogin() {
-//   const dispatch = useDispatch();
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [refreshing, setRefreshing] = useState(false);
-//   const { user } = useSelector((state) => state.auth);
-//   const socketRef = useRef(null);
-
-//   // 🔁 Refresh handler
-//   const handleRefresh = async () => {
-//     setRefreshing(true);
-//     try {
-//       await dispatch(getUser());
-//     } catch (error) {
-//       console.error("Failed to refresh user data:", error);
-//     } finally {
-//       setRefreshing(false);
-//     }
-//   };
-
-//   // 🔗 Setup WebSocket connection
-//   useEffect(() => {
-//     if (!user) return;
-
-//     // Create a WebSocket connection
-//     socketRef.current = new WebSocket(host);
-
-//     socketRef.current.onopen = () => {
-//       console.log("🔗 Connected to WebSocket");
-
-//       // Identify user for targeted messages
-//       socketRef.current.send(
-//         JSON.stringify({
-//           type: "identify",
-//           userName: user.userName,
-//         })
-//       );
-//     };
-
-//     // Handle messages from the backend
-//     socketRef.current.onmessage = (event) => {
-//       try {
-//         const data = JSON.parse(event.data);
-
-//         if (data.type === "balance_update") {
-//           console.log("💰 Balance update received:", data);
-//           handleRefresh(); // auto-refresh on balance change
-//         }
-//       } catch (err) {
-//         console.error("❌ Invalid socket message:", event.data);
-//       }
-//     };
-
-//     socketRef.current.onclose = () => {
-//       console.log("❌ WebSocket disconnected");
-//     };
-
-//     // Cleanup when component unmounts
-//     return () => {
-//       if (socketRef.current) {
-//         socketRef.current.close();
-//       }
-//     };
-//   }, [user]);
-
-//   return (
-//     <>
-//       {user ? (
-//         <div>
-//           {/* Header Bar */}
-//           <div className="bg-[#17934e] h-10 relative z-30">
-//             <div className="flex justify-between items-center h-full px-4">
-//               <div className="flex items-center justify-center gap-3">
-//                 <GiHamburgerMenu
-//                   className="text-white text-2xl"
-//                   onClick={() => setSidebarOpen(true)}
-//                 />
-//                 <img src={Logo} alt="Logo" className="w-20 h-10 mt-2" />
-//               </div>
-
-//               <div className="flex gap-2 items-center">
-//                 <div className="flex flex-col">
-//                   <span className="text-white text-[8px] md:text-sm leading-none">
-//                     {user?.userName}
-//                   </span>
-
-//                   <span className="text-white text-[10px] md:text-base font-semibold">
-//                     INR{" "}
-//                     <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>
-//                     &nbsp; Exp (
-//                     <span className="text-[#e52219]">
-//                       {Number(user?.exposure || 0).toFixed(2)}
-//                     </span>
-//                     )
-//                   </span>
-//                 </div>
-
-//                 {/* Refresh Icon */}
-//                 <motion.div
-//                   animate={{ rotate: refreshing ? 360 : 0 }}
-//                   transition={{
-//                     duration: refreshing ? 1 : 3,
-//                     delay: refreshing ? 0 : 1,
-//                   }}
-//                 >
-//                   <BiRefresh
-//                     className={`text-white text-2xl cursor-pointer ${
-//                       refreshing ? "opacity-70" : ""
-//                     }`}
-//                     onClick={handleRefresh}
-//                   />
-//                 </motion.div>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Sidebar overlay */}
-//           {sidebarOpen && (
-//             <div className="fixed inset-0 z-40 flex justify-center">
-//               <div
-//                 className="absolute inset-0 bg-black/50"
-//                 onClick={() => setSidebarOpen(false)}
-//               ></div>
-//               <div className="relative w-full max-w-[480px] h-full">
-//                 <Navbar
-//                   open={sidebarOpen}
-//                   onClose={() => setSidebarOpen(false)}
-//                 />
-//               </div>
-//             </div>
-//           )}
-//         </div>
-//       ) : (
-//         <Header />
-//       )}
-//     </>
-//   );
-// }
-
-// export default HeaderLogin;
-
-
 import React, { useState, useEffect, useRef } from "react";
 import { GiHamburgerMenu } from "react-icons/gi";
 import { BiRefresh } from "react-icons/bi";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { getUser, setLiveBalance } from "../../features/auth/authSlice";
-import Navbar from "./Navbar";
 import Header from "./Header";
-import Logo from "../../assets/logo.png";
+import Logo from "../../assets/bajiLogo.png";
+
 // import Logonew from '../../assets/newdiamondlogo.png'
 import { wsClient } from "../../utils/wsClient";
 import { useLocation, useNavigate } from "react-router-dom";
 import { RiBankCardFill, RiWallet3Fill } from "react-icons/ri";
 import { HiOutlineChevronRight } from "react-icons/hi";
+import { GoPlus } from "react-icons/go";
+import { TfiReload } from "react-icons/tfi";
 
-function HeaderLogin() {
+function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const socketRef = useRef(null);
   const currentUserId = user?._id || user?.id || null;
-
+  const [showActions, setShowActions] = useState(false);
   // 🔁 Refresh handler
   const handleRefresh = async () => {
     
@@ -350,7 +38,11 @@ function HeaderLogin() {
   };
 
   useEffect(() => {
-    handleRefresh();
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      handleRefresh();
+    }
   }, []);
 
   useEffect(() => {
@@ -361,7 +53,7 @@ function HeaderLogin() {
 
   // 🔗 Setup WebSocket connection (shared singleton)
   useEffect(() => {
-    if (!user) return;
+    // if (!user) return;
 
     // Register listener and keep socket alive
     const unsubscribe = wsClient.subscribe((data) => {
@@ -408,108 +100,113 @@ function HeaderLogin() {
     };
   }, [currentUserId]);
 
+  const handleClick = () => {
+    navigate('/');
+    closeMenu();
+  }
+
   return (
-    <>
-      {user ? (
-        <div>
-          {/* Header + Deposit / Withdraw — same green as bar */}
-          <div className="bg-[#17934e] relative z-30 shadow-sm">
-            <div className="flex justify-between items-center h-10 px-4">
-              <div className="flex items-center justify-center gap-3">
-                <GiHamburgerMenu
-                  className="text-white text-2xl"
-                  onClick={() => setSidebarOpen(true)}
-                />
-                <img src={Logo} alt="Logo" className="w-20 h-10 mt-2" />
+      <>
+        <div className="bg-[#141515] fixed top-0 left-0 w-full shadow-sm h-[65px] z-20 flex justify-between items-center py-3 px-2 border-b border-gray-700">
+                {/* <span className="text-white text-[8px] md:text-sm leading-none"> 
+                  {user?.userName}
+                  </span> */}
+            
+            <div className="flex items-center justify-center h-[65px] py-2.5">
+              <div className="bg-[#303232] p-3 rounded-[4px] mr-6 hidden md:block" onClick={() => setSidebarOpen(prev => !prev)}>
+                <GiHamburgerMenu className="text-yellow-200 text-[20px]" />
               </div>
+              <img src={Logo} alt="" className="h-full" onClick={handleClick}/>
+            </div>
 
-              <div className="flex gap-2 items-center">
-                <div className="flex flex-col">
-                  <span className="text-white text-[8px] md:text-sm leading-none">
-                    {user?.userName}
-                   </span>
-
-                  <span className="text-white text-[10px] md:text-base font-semibold">
-                   INR{" "}
-                     <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>
+            {user ? (
+              <div className="flex items-center gap-2 h-full py-1">
+                <div className="flex bg-[#303232] pl-3 items-center h-full rounded-sm gap-2">
+                  <span className="text-white text-[14px] md:text-[12px] md:text-base font-semibold">
+                    INR{" "}
+                      <span className="font-normal border-r border-gray-500 pr-1">{Number(user?.avbalance || 0).toFixed(2)}</span>
                     &nbsp; Exp (
-                     <span className="text-[#e52219]">
+                      <span className="text-[#e52219]">
                       {Number(user?.exposure || 0).toFixed(2)}
                     </span>
                     )
                   </span>
+                    <TfiReload className="text-white text-md cursor-pointer md:mr-3"
+                        onClick={handleRefresh}
+                    />
+                  <span
+                    className="bg-[#14805e] text-white h-full w-[40px] flex md:hidden items-center justify-center rounded-r-sm"
+                    onClick={() => setShowActions(prev => !prev)}
+                  >
+                    <GoPlus size={30}/>
+                  </span>
                 </div>
-
-                {/* Refresh Icon */}
-                <motion.div
-                  animate={{ rotate: refreshing ? 360 : 0 }}
-                  transition={{
-                    duration: refreshing ? 1 : 3,
-                    delay: refreshing ? 0 : 1,
-                  }}
-                >
-                  <BiRefresh
-                    className={`text-white text-2xl cursor-pointer ${
-                      refreshing ? "opacity-70" : ""
-                    }`}
-                    onClick={handleRefresh}
-                  />
-                </motion.div>
+                <div className="hidden md:flex items-center gap-2 h-full">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/user/manual-deposit?type=withdraw")}
+                    className="px-3 py-1 text-white bg-[#303232] flex items-center rounded-[3px] h-full font-bold"
+                  >
+                    Withdraw
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => navigate("/user/manual-deposit?type=deposit")}
+                    className="px-3 py-1 text-white bg-[#14805e] flex items-center rounded-[3px] h-full font-bold"
+                  >
+                    Deposit
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="border-t border-white/20 px-3 pb-2 pt-1.5">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/user/manual-deposit?type=deposit")}
-                  className="flex items-center justify-between rounded-xl bg-[#ffc107] px-3 py-2.5 shadow-md active:brightness-95 transition min-w-0 border border-[#e6ac00]/40"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <RiWallet3Fill className="text-xl shrink-0 text-black" />
-                    <span className="text-xs sm:text-sm font-semibold text-black text-left truncate">
-                      Deposit
-                    </span>
-                  </div>
-                  <HiOutlineChevronRight className="text-base shrink-0 text-black" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/user/manual-deposit?type=withdraw")}
-                  className="flex items-center justify-between rounded-xl bg-[#e53935] px-3 py-2.5 shadow-md active:brightness-95 transition min-w-0 border border-[#c62828]/50"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <RiBankCardFill className="text-xl shrink-0 text-white" />
-                    <span className="text-xs sm:text-sm font-semibold text-white text-left truncate">
-                      Withdraw
-                    </span>
-                  </div>
-                  <HiOutlineChevronRight className="text-base shrink-0 text-white" />
-                </button>
+            ) : (
+              <div className="flex gap-1 text-white text-[14px] font-semibold h-full py-1">
+                <div className="border border-gray-600 rounded-sm flex justify-center items-center px-5 text-gray-400" onClick={()=>navigate('/login')}>Log in</div>
+                <div className="bg-[#14805e] rounded-sm flex justify-center items-center px-5 text-gray-200" onClick={()=>navigate('/register')}>Sign up</div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Sidebar overlay */}
-          {sidebarOpen && (
-            <div className="fixed inset-0 z-40 flex justify-center">
-              <div
-                className="absolute inset-0 bg-black/50"
-                onClick={() => setSidebarOpen(false)}
-              ></div>
-              <div className="relative w-full max-w-[480px] h-full">
-                <Navbar
-                  open={sidebarOpen}
-                  onClose={() => setSidebarOpen(false)}
-                />
-              </div>
-            </div>
-          )}
+
+
         </div>
-      ) : (
-        <Header />
-      )}
-    </>
+        {showActions && (
+            <div
+                className="fixed inset-0 bg-black/50 bg-opacity-50 z-12"
+                onClick={() => setShowActions(false)}
+            />
+        )}
+        {showActions && (
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.2 }}
+            className='flex md:hidden bg-[#141515] items-center grid grid-cols-2 gap-2 w-full absolute top-[65px] left-0 z-12 p-4'
+          >
+            <button
+              type="button"
+              onClick={() => {
+                navigate("/user/manual-deposit?type=withdraw");
+                setShowActions(false);
+              }}
+              className="h-14 justify-center text-white text-[20px] bg-[#303232] flex items-center rounded-[3px] font-bold"
+            >
+              Withdrawal
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => {
+                navigate("/user/manual-deposit?type=deposit");
+                setShowActions(false);
+              }}
+              className="h-14 justify-center text-white text-[20px] bg-[#14805e] flex items-center rounded-[3px] font-bold"
+            >
+              Deposit
+            </button>
+          </motion.div>
+        )}
+
+      </>
   );
 }
 
