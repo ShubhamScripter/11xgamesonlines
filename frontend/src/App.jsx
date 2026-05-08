@@ -12,6 +12,9 @@ import Fullmarket1 from './pages/sports/Fullmarket1'
 import Fullmarket2 from './pages/sports/Fullmarket2'
 import Footer from './components/Footer/Footer'
 import SupportWhatsAppFab from './components/Header/SupportWhatsAppFab'
+import Cricket from './pages/sports/Cricket'
+import Soccer from './pages/sports/Soccer'
+import Tennis from './pages/sports/Tennis'
 import { Routes, Route,useLocation } from 'react-router-dom'
 import TransferLog from './pages/menu/TransferLog'
 import UplineWhatsapp from './pages/menu/UplineWhatsapp'
@@ -51,30 +54,34 @@ function App() {
             <Route element={<MainLayout />}>
               {/* Sports & main public pages */}
               <Route path="/" element={<Home />} />
-              <Route path="/leagues" element={<Leagues />} />
+              {/* <Route path="/leagues" element={<Leagues />} />
               <Route path="/casino" element={<Casino />} />
               
               <Route path="/sports" element={<Sports />} />
               <Route path="/sports/fullmarket" element={<Fullmarkett />} />
-              <Route 
-                path="/sports/fullmarket/:match/:gameid"
-                element={<Fullmarkett />} 
-              />
-              <Route 
-                path="/sports/soccer/:match/:gameid"
-                element={<Fullmarket1 />} 
-              />
-              <Route 
-                path="/sports/tennis/:match/:gameid"
-                element={<Fullmarket2 />} 
-              />
+              
 
               <Route path="/sports/fullmarket1" element={<Fullmarket1 />} />
-              <Route path="/fullmarket" element={<Fullmarket />} />
+              <Route path="/fullmarket" element={<Fullmarket />} /> */}
+              <Route path="/cricket" element={<Cricket activeTab="All" />} />
+              <Route path="/football" element={<Soccer activeTab="All" />} />
+              <Route path="/tennis" element={<Tennis activeTab="All" />} />
               <Route path="/casino/:category/:provider" element={<CasinoProvider key={location.pathname} />} />
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/mybets" element={<Bets />} />
+                <Route 
+                  path="/sports/fullmarket/:match/:gameid"
+                  element={<Fullmarkett />} 
+                />
+                <Route 
+                  path="/sports/soccer/:match/:gameid"
+                  element={<Fullmarket1 />} 
+                />
+                <Route 
+                  path="/sports/tennis/:match/:gameid"
+                  element={<Fullmarket2 />} 
+                />
                 <Route path='/user/payment-transfer-log' element={<TransferLog />} />
                 <Route path='/user/upline-whatsapp' element={<UplineWhatsapp />} />
                 <Route path='/user/balance-overview' element={<BalanceOverview />} />

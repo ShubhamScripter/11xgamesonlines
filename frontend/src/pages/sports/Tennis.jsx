@@ -7,21 +7,37 @@ import b from '../../assets/icon/b.png';
 import f from '../../assets/icon/f.png';
 import s from '../../assets/icon/s.png';
 import y from '../../assets/icon/youtube.png';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from "react-redux";
 import { fetchTennisData, fetchTennisInplayData } from '../../features/sports/tennisSlice';
+
+import MatchRow from '../../components/sports/MatchRow';
 
 function Tennis({ activeTab }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data, inplayData, loading, tennisError } = useSelector((state) => state.tennis);
   const [openIndexes, setOpenIndexes] = useState([0]);
+
+  const selectedLeague = location.state?.selectedLeague;
 
   const sourceMatches = (activeTab === "InPlay" ? inplayData : data) ?? [];
 
   // Filter matches based on activeTab (support both iplay and inplay from API)
   const filteredMatches = (Array.isArray(sourceMatches) ? sourceMatches : []).filter(match => {
+    const isMatch = match.match.toLowerCase().includes(' v ') || 
+                    match.match.toLowerCase().includes(' vs ') || 
+                    match.match.includes(' - ');
+    
+    if (!isMatch) return false;
+
+    // Filter by league if one is selected in sidebar
+    if (selectedLeague && match.title !== selectedLeague) {
+        return false;
+    }
+
     const matchDate = new Date(match.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -61,6 +77,12 @@ function Tennis({ activeTab }) {
   };
 
   useEffect(() => {
+    if (groupedArray.length > 0) {
+      setOpenIndexes(groupedArray.map((_, i) => i));
+    }
+  }, [groupedArray.length]);
+
+  useEffect(() => {
     dispatch(fetchTennisData());
   }, [dispatch]);
 
@@ -70,65 +92,39 @@ function Tennis({ activeTab }) {
     }
   }, [activeTab, dispatch]);
 
-  const handleClick = (match) => {
-    navigate(`/sports/tennis/${match.match}/${match.id}`);
-  };
   return (
-    <div className="bg-[#eef6fb] min-h-screen py-4 px-2 md:py-4 md:px-4">
+    <div className="min-h-screen">
+      {/* Header Row (Static) */}
+      <div className="grid grid-cols-12 bg-[#0b0e11] py-2 border-b border-[#2a313a] items-center sticky top-0 z-9">
+        <div className="col-span-7 px-4">
+          <span className="text-white font-bold text-sm">Tennis</span>
+        </div>
+        <div className="col-span-5 grid grid-cols-3 text-center pr-2">
+          <span className="text-white text-[10px] font-bold">1</span>
+          <span className="text-white text-[10px] font-bold">X</span>
+          <span className="text-white text-[10px] font-bold">2</span>
+        </div>
+      </div>
+
       {groupedArray.map((comp, idx) => (
-        <div key={idx} className="mb-4">
-          {/* Competition Header */}
-          <div
-            className="flex items-center justify-between px-4 py-2 md:px-4 md:py-3 rounded-t-xl font-bold text-xl cursor-pointer bg-black text-white"
+        <div key={idx} className="mb-0">
+          {/* <div
+            className="flex items-center justify-between px-4 py-1 bg-[#1b1f23] border-b border-[#2a313a] cursor-pointer"
             onClick={() => handleToggle(idx)}
           >
-            <div className="flex items-center gap-2 text-sm md:text-lg md:font-semibold">
-              <span className="bg-green-700 text-white rounded-full px-3 flex items-center justify-center text-xs md:text-sm font-semibold">
-                {comp.matches.length}
-              </span>
-              {comp.title}
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-300">
+               {comp.title}
             </div>
-            <span className="text-2xl">{openIndexes.includes(idx) ? <IoIosArrowDown /> : <IoIosArrowUp />}</span>
-          </div>
+            <span className="text-gray-400 text-xs">{openIndexes.includes(idx) ? <IoIosArrowDown /> : <IoIosArrowUp />}</span>
+          </div> */}
 
-          {/* Matches Dropdown */}
           <div
-            className={`transition-all duration-300 overflow-hidden bg-gradient-to-b from-[#d4e0e5] to-[#eef6fb] rounded-b-xl ${
-              openIndexes.includes(idx) ? 'max-h-[1000px]' : 'max-h-0'
+            className={`overflow-hidden transition-all duration-300 ${
+              openIndexes.includes(idx) ? 'max-h-full' : 'max-h-0'
             }`}
           >
-            {openIndexes.includes(idx) && comp.matches.map((match, i) => (
-              <div
-                key={i}
-                onClick={() => handleClick(match)}
-                className="flex items-center justify-between  px-2 py-1 md:px-4 md:py-3 border-b last:border-b-0 bg-gradient-to-b from-[#d4e0e5] to-[#eef6fb]"
-              >
-                <div className='flex justify-center items-center gap-4'>
-                  <GrStarOutline />
-                  <div className="flex flex-col gap-1">
-                    <div className='flex gap-2'>
-                      <div className='flex items-center'>
-                        <img src={y} alt="YouTube" className="w-2 h-2 inline-block" />
-                        <img src={b} alt="B" className="w-2 h-2 inline-block" />
-                        <img src={f} alt="F" className="w-2 h-2 inline-block " />
-                        <img src={s} alt="S" className="w-2 h-2 inline-block" />
-                      </div>
-                      <span className="bg-yellow-200 text-black rounded font-bold px-1 text-xs">{match.date}</span>
-                      {(match.inplay || match.iplay) && (
-                        <span className="bg-[#52bf05] text-white rounded font-bold px-1 h-fit text-xs">
-                          Inplay
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium md:text-[16px] md:font-semibold">{match.match}</span>
-                  </div>
-                </div>
-                <div className='flex justify-center items-center gap-4'>
-                  <span className="text-yellow-600 font-bold  md:text-2xl">0-0</span>
-                  <GoGraph />
-                  <MdArrowForwardIos className='text-xl font-bold' />
-                </div>
-              </div>
+            {comp.matches.map((match, i) => (
+              <MatchRow key={i} match={match} sportType="tennis" />
             ))}
           </div>
         </div>

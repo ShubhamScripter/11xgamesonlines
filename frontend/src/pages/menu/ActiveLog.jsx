@@ -117,7 +117,7 @@ function ActiveLog() {
 
   return (
     <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
-      <div className="bg-[#000] h-10 flex items-center">
+      <div className="h-10 flex items-center">
         <div onClick={() => window.history.back()}>
           <MdArrowBackIos className="text-white text-md font-semibold" />
         </div>
@@ -133,9 +133,8 @@ function ActiveLog() {
         )}
 
         {!loading && !error && logs.length === 0 && (
-          <div className="bg-white p-4 rounded-lg shadow-md mt-4">
-            <h2 className="text-xl font-semibold mb-4">Active Log</h2>
-            <p className="text-gray-600">No active logs available at the moment.</p>
+          <div className="rounded-lg shadow-md mt-4">
+            <p className="text-gray-600 text-center">No active logs available at the moment.</p>
           </div>
         )}
 

@@ -267,26 +267,21 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="bg-[#17934e] h-10 p-2 pl-4 flex items-center gap-2">
-        <GrStarOutline className="text-white" />
-      </div>
-
       {/* No / Yes Labels */}
-      <div className="flex justify-end items-center gap-10 pr-6 bg-white">
+      <div className="flex justify-end items-center gap-10 text-white py-2 pr-6">
         <span className="text-sm">No</span>
         <span className="text-sm">Yes</span>
       </div>
 
       {/* Market List */}
-      <div className="bg-white">
+      <div className="">
         {fancyMarkets.map((market, idx) => {
           const isSuspended = market.statusLabel === "Ball Running";
 
           return (
             <React.Fragment key={idx}>
-              <div className="bg-[#eef6fb] flex justify-between items-center pl-2 mb-[2px] rounded-r-2xl">
-                <div className="flex-1 text-lg font-bold">{market.title}
+              <div className="bg-[#222424] text-white flex justify-between items-center pl-2 mb-[2px] rounded-r-2xl">
+                <div className="flex-1 text-[14px] font-bold">{market.title}
                 <p className="text-red-500">
                   {
                     pendingBet
@@ -348,7 +343,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
                           });
                         }
                       }}
-                      className={`flex flex-col justify-center items-center rounded-lg w-[60px] py-1 transition
+                      className={`flex flex-col justify-center items-center rounded-lg w-[60px] text-black py-1 transition
                         ${i === 0 ? "bg-[#72BBEF]" : "bg-[#FAA9BA]"}
                         ${isSuspended
                           ? "opacity-40 pointer-events-none"

@@ -20,8 +20,8 @@ const BetCard = ({ data }) => {
   };
 
   const Row = ({ label, children, valueClassName = "" }) => (
-    <tr className="border-b border-gray-100">
-      <td className="p-2 text-gray-600 md:text-base w-[40%] align-top">{label}</td>
+    <tr className="border-b border-gray-600">
+      <td className="p-2 text-gray-400 md:text-base w-[40%] ">{label}</td>
       <td className={`p-2 font-medium md:text-base ${valueClassName}`}>{children}</td>
     </tr>
   );
@@ -44,8 +44,8 @@ const BetCard = ({ data }) => {
             key={bet.id}
             className="shadow-md overflow-hidden w-full rounded-2xl mx-auto"
           >
-            <table className="table-auto w-full text-sm bg-white">
-              <thead className="bg-[#d4e0e5] text-gray-800">
+            <table className="table-auto w-full text-sm">
+              <thead className="bg-[#262c32] text-gray-200">
                 <tr>
                   <th colSpan={2} className="p-3 text-left">
                     <span className="md:text-lg font-semibold">
@@ -93,8 +93,8 @@ const BetCard = ({ data }) => {
                     <Row label="Stake">{formatMoney(bet.stake)}</Row>
                     {(bet.possibleProfit !== undefined ||
                       bet.possibleLoss !== undefined) ? (
-                      <tr className="border-b border-gray-100">
-                        <td className="p-2 text-gray-600 md:text-base w-[40%] align-top">
+                      <tr className="border-b border-gray-600">
+                        <td className="p-2 text-gray-500 md:text-base w-[40%] align-top">
                           Expected Profit / Loss
                         </td>
                         <td className="p-2 font-medium md:text-base">

@@ -232,22 +232,32 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
-import { createBet, createfancyBet, getPendingBetAmo, messageClear } from '../../features/sports/betReducer';
+import { createBet, createfancyBet, getPendingBet, getPendingBetAmo, messageClear } from '../../features/sports/betReducer';
 import { getUser } from '../../features/auth/authSlice';
+import { BsArrowRepeat } from 'react-icons/bs';
 
-function BetCard({ odds, onClose, onBetDataChange }) {
+function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   const dispatch = useDispatch();
-  const { loading, successMessage, errorMessage } = useSelector((state) => state.bet);
+  const { loading, successMessage, errorMessage, eventName: pendingBets } = useSelector((state) => state.bet);
 
-  // For fancy bets, `xValue` should drive the odds field.
-  // Fallback to `odds` for non-fancy slips.
-  const [betOdds, setBetOdds] = useState(
-    odds?.xValue ?? odds?.odds ?? 1.01
-  );
+  const [betOdds, setBetOdds] = useState(1.01);
   const [stake, setStake] = useState('');
   const quickAmounts = [10, 100, 200, 500];
 
-  if (!odds) return null;
+  useEffect(() => {
+    if (odds?.odds || odds?.xValue) {
+      setBetOdds(odds.xValue ?? odds.odds ?? 1.01);
+    }
+  }, [odds]);
+
+  useEffect(() => {
+    const targetGameId = matchId || odds?.gameId;
+    if (targetGameId) {
+      dispatch(getPendingBet(targetGameId));
+    }
+  }, [dispatch, odds?.gameId, matchId]);
+
+  const isSlipEmpty = !odds || !odds.selection;
 
   // Handlers
   const handleOddsChange = (val) => {
@@ -319,14 +329,14 @@ function BetCard({ odds, onClose, onBetDataChange }) {
       toast.error('Enter a valid stake');
       return;
     }
-    // if (numericStake < min) {
-    //   toast.error(`Stake must be at least ${min}`);
-    //   return;
-    // }
-    // if (numericStake > max) {
-    //   toast.error(`Stake cannot exceed ${max}`);
-    //   return;
-    // }
+    if (min > 0 && numericStake < min) {
+      toast.error(`Min bet is ${min}`);
+      return;
+    }
+    if (max > 0 && numericStake > max) {
+      toast.error(`Max bet is ${max}`);
+      return;
+    }
 
     console.log("my odds sid is:", odds?.sid);
 
@@ -356,6 +366,7 @@ function BetCard({ odds, onClose, onBetDataChange }) {
       await dispatch(getUser());
       if (odds?.gameId) {
         dispatch(getPendingBetAmo(odds.gameId));
+        dispatch(getPendingBet(odds.gameId));
       }
       setStake('');
     } catch (e) {
@@ -380,88 +391,204 @@ function BetCard({ odds, onClose, onBetDataChange }) {
   }, [successMessage, errorMessage, dispatch, onClose]);
 
   return (
-    <div className="bg-white p-4 w-full rounded-t-2xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <span className={`px-3 py-1 rounded-full font-semibold capitalize text-sm
-        ${['back', 'No', 'odd'].includes(odds.type) ? 'bg-[#72BBEF] text-blue-900' : 'bg-pink-200 text-pink-700'}`}>
-        {odds.type}</span>
-        <span className="text-lg font-bold">{odds.selection}</span>
-        <button onClick={onClose} className="text-2xl font-bold px-2">&times;</button>
-      </div>
-      {/* Odds and Stake Controls */}
-      <div className="flex gap-2 mb-2">
-        {/* Odds */}
-        <div className="flex-1 bg-[#eaf4fb] rounded-lg flex flex-col items-center py-2">
-          <span className="text-gray-500 text-sm mb-1">Odds</span>
-          <div className="flex items-center gap-1">
-            <button className="bg-[#17934e] text-white w-8 h-8 rounded flex items-center justify-center text-xl" onClick={() => handleOddsChange(-0.01)}>-</button>
-            <input
-              type="number"
-              step="0.01"
-              min="1.01"
-              value={betOdds}
-              onChange={e => setBetOdds(e.target.value)}
-              className="w-16 text-center border border-gray-300 rounded mx-1 text-lg font-semibold"
-            />
-            <button className="bg-[#17934e] text-white w-8 h-8 rounded flex items-center justify-center text-xl" onClick={() => handleOddsChange(0.01)}>+</button>
+    <div className="w-full shadow-2xl rounded-xl border border-gray-700 overflow-hidden flex flex-col">
+      {/* Unified Header */}
+      
+
+      <div className="flex flex-col">
+
+        {!isSlipEmpty && (
+          <>
+          <div className="bg-[#222424] text-white py-3 pl-3 flex items-center justify-between shadow-sm">
+            <h3 className="font-bold text-[16px] tracking-wide">Bet Slip</h3>
+            <button onClick={onClose} className="hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-all text-[20px] leading-1 font-bold text-white">
+              &times;
+            </button>
+          </div>
+          <div className='p-2'>
+            {/* Event & Market Info */}
+            {/* <div className="mb-3">
+              {odds.eventName && (
+                <div className="text-[10px] text-gray-400 font-bold uppercase truncate mb-0.5">
+                  {odds.eventName}
+                </div>
+              )}
+              <div className="text-[11px] text-[#17934e] font-bold truncate">
+                {odds.marketName || 'Match Odds'}
+              </div>
+            </div> */}
+
+            {/* Selection Identification */}
+            <div className={`flex items-center gap-2 mb-4 bg-gray-800 p-2 rounded-md border border-gray-400`}>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+              ${['back', 'No', 'odd'].includes(odds.type) ? 'bg-[#a5d9fe] text-blue-700' : 'bg-[#f8d0d8] text-red-700'}`}>
+              {odds.type}</span>
+              <span className="text-xs font-bold text-white truncate flex-1">{odds.selection}</span>
+              <span className='text-white text-[12px] font-semibold uppercase'>{odds.marketName}</span>
+            </div>
+
+            {/* Odds and Stake Controls */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {/* Odds */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Odds</label>
+                </div>
+                <div className="flex items-center h-10 border border-gray-600 rounded-lg overflow-hidden focus-within:border-[#17934e] transition-colors">
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(-0.01)}>-</button>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1.01"
+                    value={betOdds}
+                    onChange={e => setBetOdds(e.target.value)}
+                    className="w-full text-center text-sm font-bold focus:outline-none text-white"
+                  />
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(0.01)}>+</button>
+                </div>
+              </div>
+              {/* Stake */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Stake</label>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">Min: {min} Max: {max}</span>
+                </div>
+                <div className="flex items-center h-10 border border-gray-600 rounded-lg overflow-hidden focus-within:border-[#17934e] transition-colors">
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleStakeChange(-1)}>-</button>
+                  <input
+                    type="text"
+                    placeholder="0"
+                    value={stake}
+                    onChange={e => setStake(e.target.value.replace(/[^0-9.]/g, ''))}
+                    className="w-full text-center text-sm font-bold focus:outline-none text-white"
+                  />
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleStakeChange(1)}>+</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Amounts */}
+            <div className="grid grid-cols-4 gap-1.5 mb-4">
+              {quickAmounts.map((amt) => (
+                <button
+                  key={amt}
+                  className="bg-gray-900 hover:bg-gray-800 hover:text-white text-gray-200 py-1.5 rounded font-bold text-[10px] transition-all border border-gray-400"
+                  onClick={() => handleQuickAmount(amt)}
+                >
+                  +{amt}
+                </button>
+              ))}
+
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase mb-4 px-1">
+              <span>Max Bet: {max}</span>
+              {stake && parseFloat(stake) > 0 && (
+                <span className="text-[#17934e]">Potential Win: {((parseFloat(stake) * (parseFloat(betOdds) - (odds.marketName === 'Bookmaker' ? 0 : 1))) || 0).toFixed(2)}</span>
+              )}
+            </div>
+
+            {/* Keypad */}
+            <div className="grid grid-cols-4 gap-1 mb-5">
+              {[1,2,3,4,5,6,7,8,9,0,'00','.','del'].map((key, idx) => (
+                <button
+                  key={idx}
+                  className={`py-1.5 rounded font-bold text-xs transition-all shadow-sm border
+                    ${key === 'del' ? 'bg-red-50 text-red-500 border-red-100 hover:bg-red-100' : 'bg-gray-900 text-gray-200 border-gray-400 hover:bg-gray-800'}
+                  `}
+                  onClick={() => key === 'del' ? handleKeypad('del') : handleKeypad(key.toString())}
+                >
+                  {key === 'del' ? <span>&#9003;</span> : key}
+                </button>
+              ))}
+            </div>
+
+            {/* Place Bet Button */}
+            <button
+              className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-md transition-all transform active:scale-[0.98]
+                ${loading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#17934e] text-white hover:bg-[#147a41]'}
+              `}
+              onClick={handlePlaceBet}
+              disabled={loading}
+            >
+              {loading ? 'Placing...' : 'Place Bet'}
+            </button>
+          </div>
+          </>
+        )}
+       
+        <div className="hidden md:block">
+          <div className="bg-[#222424] text-white py-3 flex items-center justify-between shadow-sm flex w-full">
+            <span className="font-bold text-gray-200 text-[16px] flex items-center gap-2 pl-3">
+              Open Bets
+            </span>
+            <button 
+              onClick={() => odds?.gameId && dispatch(getPendingBet(odds.gameId))}
+              className="text-gray-400 hover:text-[#17934e] transition-all p-1 rounded-full hover:bg-white"
+            >
+              <BsArrowRepeat className="text-lg" />
+            </button>
+          </div>
+          
+          <div className="space-y-1 py-2 px-1">
+            {pendingBets && pendingBets.length > 0 ? (
+              pendingBets.map((bet) => (
+                <div 
+                  key={bet._id} 
+                  className={`rounded-md border-l-[3px] ${bet.otype === 'back' ? 'bg-[#cfeffe] border-blue-600' : 'bg-[#fedddd] border-red-600'} shadow-sm hover:shadow transition-shadow relative overflow-hidden`}>
+                  <div className="p-2">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-bold text-[14px] text-gray-800 leading-tight pr-1 truncate max-w-[65%]">
+                        {bet.teamName} - { bet.marketName}
+                      </h4>
+                      <span className="text-[16px] font-bold text-gray-800">
+                        {(bet.xValue || 0).toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[12px] font-bold px-3 py-0.5 rounded-[3px] uppercase tracking-tighter
+                          ${bet.otype === 'back' ? 'text-blue-50 bg-blue-600' : 'text-red-50 bg-red-600'}`}>
+                          {bet.otype === 'back' ? 'Back' : 'Lay'}
+                        </span>
+                        <div className="flex items-baseline gap-0.5">
+                          <span className="text-[12px] text-gray-500">Amt:</span>
+                          <span className="font-bold text-[12px] text-gray-900">{bet.betAmount || bet.price}</span>
+                        </div>
+                      </div>
+                      
+                      {bet.fancyScore && (
+                        <div className="flex items-center gap-0.5">
+                          <span className="text-[12px] text-gray-600">Scr:</span>
+                          <span className="font-bold text-[12px] text-gray-900">{bet.fancyScore}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4 px-2 text-center">
+                <p className="text-gray-400 text-[9px] font-medium italic">No active bets</p>
+              </div>
+            )}
           </div>
         </div>
-        {/* Stake */}
-        <div className="flex-1 bg-[#eaf4fb] rounded-lg flex flex-col items-center py-2">
-          <span className="text-gray-500 text-sm mb-1">Stake</span>
-          <div className="flex items-center gap-1">
-            <button className="bg-[#17934e] text-white w-8 h-8 rounded flex items-center justify-center text-xl" onClick={() => handleStakeChange(-1)}>-</button>
-            <input
-              type="text"
-              value={stake}
-              onChange={e => setStake(e.target.value.replace(/[^0-9.]/g, ''))}
-              className="w-16 text-center border border-gray-300 rounded mx-1 text-lg font-semibold"
-            />
-            <button className="bg-[#17934e] text-white w-8 h-8 rounded flex items-center justify-center text-xl" onClick={() => handleStakeChange(1)}>+</button>
-          </div>
-        </div>
       </div>
-      {/* Quick Amounts */}
-      <div className="flex gap-2 mb-2">
-        {quickAmounts.map((amt) => (
-          <button
-            key={amt}
-            className="flex-1 bg-[#17934e] text-white py-2 rounded font-semibold"
-            onClick={() => handleQuickAmount(amt)}
-          >
-            + {amt}
-          </button>
-        ))}
-        <button className="bg-[#17934e] text-white py-2 px-2 rounded flex items-center justify-center">
-          <svg width="20" height="20" fill="none"><circle cx="10" cy="10" r="9" stroke="#fff" strokeWidth="2"/><path d="M10 6v4l2 2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-      </div>
-      {/* Keypad */}
-      <div className="grid grid-cols-4 gap-1 mb-3">
-        {[1,2,3,4,5,6,7,8,9,0,'00','.','del'].map((key, idx) => (
-          <button
-            key={idx}
-            className="bg-[#eaf4fb] text-gray-800 py-2 rounded font-semibold text-sm"
-            onClick={() => key === 'del' ? handleKeypad('del') : handleKeypad(key.toString())}
-          >
-            {key === 'del' ? <span>&#9003;</span> : key}
-          </button>
-        ))}
-      </div>
-      {/* Min/Max */}
-      <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
-        <svg width="16" height="16" fill="none"><circle cx="8" cy="8" r="7" stroke="#888" strokeWidth="2"/><text x="8" y="12" textAnchor="middle" fontSize="10" fill="#888">i</text></svg>
-        <span>min/max &nbsp; {min}/{max}</span>
-      </div>
-      {/* Place Bet Button */}
-      <button
-        className={`w-full mt-1 mb-1 ${loading ? 'bg-gray-200 text-gray-500' : 'bg-[#17934e] text-white'} py-2 rounded font-semibold text-sm`}
-        onClick={handlePlaceBet}
-        disabled={loading}
-      >
-        {loading ? 'Placing…' : 'Place Bet'}
-      </button>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   );
 }

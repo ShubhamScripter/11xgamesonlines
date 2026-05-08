@@ -20,7 +20,7 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
         { label: "Menu", icon: homeIcon },
         { label: "Casino", icon: casinoIcon, path: "/casino/casino/all" },
         { label: "Slot", icon: slotIcon, path: "/casino/slot/all" },
-        { label: "Deposit", icon: depositIcon, path: "/user/manual-deposit" },
+        { label: "My Bets", icon: depositIcon, path: "/mybets" },
         ...(user ? [{ label: "Profile", icon: profileIcon }] : [])
     ];
 

@@ -37,7 +37,7 @@ function Fullmarket() {
   }
   return (
     <div>
-      <HeaderLoginBack/>
+      {/* <HeaderLoginBack/> */}
       <div className='bg-white h-10 p-2 flex justify-around items-center'>
         <span className='font-semibold'>Zimbabwe</span>
         <span className='text-2xl'>-</span>

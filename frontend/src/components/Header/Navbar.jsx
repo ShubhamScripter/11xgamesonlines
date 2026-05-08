@@ -10,6 +10,11 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, reset } from '../../features/auth/authSlice';
 import { getCurrentBetCount } from '../../features/sports/betReducer';
+import { fetchCricketData } from '../../features/sports/cricketSlice';
+import { fetchSoccerData } from '../../features/sports/soccerSlice';
+import { fetchTennisData } from '../../features/sports/tennisSlice';
+import { BiSolidCricketBall, BiSolidTennisBall } from 'react-icons/bi';
+import { GiSoccerBall } from 'react-icons/gi';
 
 import { casinoData } from '../casinocomp/data/CasinoData';
 
@@ -21,21 +26,28 @@ import crashColor from '../../assets/icon/icon-crashColor.png'
 import arcadeColor from '../../assets/icon/icon-arcadeColor.png'
 import casinoColor from '../../assets/icon/icon-casinoColor.png'
 import tableColor from '../../assets/icon/icon-tableColor.png'
+import cricketColor from '../../assets/icon/cricketball-CqVRg2R3.png'
+import tennisColor from '../../assets/icon/tennisball-CRn_0kNy.png'
+import footballColor from '../../assets/icon/football-CcbDrciO.png'
 
 
-function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
+function Navbar({ onClose = () => { }, sidebarOpen, setSidebarOpen }) {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { currentBetCount } = useSelector((state) => state.bet);
+  const { matches: cricketMatches } = useSelector((state) => state.cricket);
+  const { soccerData: soccerMatches } = useSelector((state) => state.soccer);
+  const { data: tennisMatches } = useSelector((state) => state.tennis);
+
   const [openDropdown, setOpenDropdown] = useState(null);
 
-  // Fetch current bet count when component mounts
-  // useEffect(() => {
-  //   dispatch(getCurrentBetCount());
-  // }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchCricketData());
+    dispatch(fetchSoccerData());
+    dispatch(fetchTennisData());
+  }, [dispatch]);
 
-  // Close any open dropdown when the sidebar is collapsed
   useEffect(() => {
     if (!sidebarOpen) {
       setOpenDropdown(null);
@@ -53,14 +65,29 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
     return ["all", ...providers];
   };
 
+  const getLeagues = (matches) => {
+    if (!matches || !Array.isArray(matches)) return [];
+    const leagues = [...new Set(matches.map(m => m.title || m.cname || "Unknown League"))];
+    return ["All", ...leagues];
+  };
+
+  const cricketLeagues = getLeagues(cricketMatches);
+  const soccerLeagues = getLeagues(soccerMatches);
+  const tennisLeagues = getLeagues(tennisMatches);
+
+  const cricketInplayCount = Array.isArray(cricketMatches) ? cricketMatches.filter(m => m.inplay).length : 0;
+  const soccerInplayCount = Array.isArray(soccerMatches) ? soccerMatches.filter(m => m.inplay).length : 0;
+  const tennisInplayCount = Array.isArray(tennisMatches) ? tennisMatches.filter(m => m.inplay).length : 0;
+
   const data = [
-    // { label: "Payment Transfer log", icon: <RiExchangeDollarFill />, path: "/user/payment-transfer-log" },
-    // { label: "Upline Whatsapp Number", icon: <RiWhatsappFill />, path: "/user/upline-whatsapp" },
+    { label: "Cricket", icon: cricketColor, sportType: "Cricket", sportPath: "/cricket", subItems: cricketLeagues, badge: cricketInplayCount > 0 ? cricketInplayCount : undefined },
+    { label: "Football", icon: footballColor, sportType: "Soccer", sportPath: "/football", subItems: soccerLeagues, badge: soccerInplayCount > 0 ? soccerInplayCount : undefined },
+    { label: "Tennis", icon: tennisColor, sportType: "Tennis", sportPath: "/tennis", subItems: tennisLeagues, badge: tennisInplayCount > 0 ? tennisInplayCount : undefined },
     { label: "Casino", icon: casinoColor, gameType: "casino", subItems: getProviders("casino") },
     { label: "Crash", icon: crashColor, gameType: "crash", subItems: getProviders("crash") },
     { label: "Slot", icon: slotColor, gameType: "slot", subItems: getProviders("slot") },
     { label: "Table", icon: tableColor, gameType: "table", subItems: getProviders("table") },
-    { label: "Fishing", icon: fishColor, gameType: "fishing", subItems: getProviders("fishing") },
+    { label: "Fishing", icon: fishColor, gameType: "fishing", subItems: getProviders("fish") },
     { label: "Arcade", icon: arcadeColor, gameType: "arcade", subItems: getProviders("arcade") },
     { label: "Balance Overview", icon: <RiWallet3Fill />, path: "/user/balance-overview" },
     { label: "Account Statement", icon: <RiFileList3Fill />, path: "/user/account-statement" },
@@ -69,9 +96,6 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
     { label: "Active Log", icon: <RiEyeLine />, path: "/user/active-log" },
     { label: "My Profile", icon: <RiUser3Fill />, path: "/user/profile" },
     { label: "Self Deposit / Withdraw", icon: <RiBankCardFill />, path: "/user/manual-deposit" },
-    // { label: "P2P Transfer", icon: <RiTeamFill />, path: "/user/p2p-transfer" },
-    // { label: "P2P Transfer log", icon: <RiListCheck3 />, path: "/user/p2p-transfer-log", },
-    // { label: "Setting", icon: <RiSettings3Fill />, path: "/user/setting" },
     { label: "Logout", icon: <RiLogoutBoxRFill />, action: "logout" }
   ];
 
@@ -80,8 +104,15 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
       return;
     }
     if (subItem) {
-      // provider clicked
-      navigate(`/casino/${item.gameType}/${subItem}`);
+      if (item.gameType) {
+        navigate(`/casino/${item.gameType}/${subItem}`);
+      } else if (item.sportType) {
+        if (subItem === "All") {
+          navigate(item.sportPath);
+        } else {
+          navigate(item.sportPath, { state: { selectedLeague: subItem } });
+        }
+      }
       onClose();
       return;
     }
@@ -93,8 +124,10 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
       return;
     }
     if (item.subItems) {
-      // toggle dropdown
       setOpenDropdown(openDropdown === index ? null : index);
+      if (item.sportPath) {
+        navigate(item.sportPath);
+      }
       return;
     }
     if (item.path) {
@@ -105,19 +138,18 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
 
   return (
     <div
-      className='bg-[#141515] border-r border-gray-700  z-50 h-[calc(100vh-65px)] overflow-y-auto no-scrollbar'>
-      {/* Menu List */}
-      <ul className={`${sidebarOpen ? 'p-3':'px-5 py-3'} space-y-2`}>
+      className='bg-[#141515] border-r border-gray-700  z-50 h-[calc(100vh-65px)] overflow-y-auto no-scrollbar max-w-[250px]'>
+      <ul className={`${sidebarOpen ? 'p-3' : 'px-5 py-3'} space-y-2`}>
         {data.map((item, i) => (
           <React.Fragment key={i}>
             <li
               className='flex items-center gap-2 py-3'
-               onClick={() => {
-                  if (!sidebarOpen) {
-                    setSidebarOpen(true);
-                  }
-                  handleItemClick(item, i);
-                }}
+              onClick={() => {
+                if (!sidebarOpen) {
+                  setSidebarOpen(true);
+                }
+                handleItemClick(item, i);
+              }}
             >
               {typeof item.icon === "string" ? (
                 <img src={item.icon} className="h-5 w-5" />
@@ -131,16 +163,16 @@ function Navbar({ onClose = () => {}, sidebarOpen, setSidebarOpen }) {
                     <span className='text-sm font-medium text-gray-500'>
                       {item.label}
                     </span>
-                    {item.badge !== undefined && (
+                    {/* {item.badge !== undefined && (
                       <span className="bg-green-600 text-white w-5 h-5 text-[12px] flex justify-center items-center rounded-full font-semibold">
                         {item.badge}
                       </span>
-                    )}
+                    )} */}
                   </div>
-                  <HiOutlineChevronRight className={`text-lg text-gray-400 transition-all ${openDropdown === i && item.subItems ? "rotate-90":"-rotate-90"}`} />
+                  <HiOutlineChevronRight className={`text-lg text-gray-400 transition-all ${openDropdown === i && item.subItems ? "-rotate-90" : "rotate-90"}`} />
                 </div>
               )}
-              
+
 
             </li>
             {openDropdown === i && item.subItems && (

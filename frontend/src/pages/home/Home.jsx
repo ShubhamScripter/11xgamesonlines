@@ -15,6 +15,7 @@ import Table from '../../components/casinocomp/gameType/Table';
 import Casino from "../../components/casinocomp/gameType/Casino";
 import Crash from "../../components/casinocomp/gameType/Crash";
 import Arcade from "../../components/casinocomp/gameType/Arcade";
+import Sports from "../../components/sports/Sports";
 
 
 function Home() {
@@ -45,6 +46,7 @@ function Home() {
       <Slider/>
       <Category active={selected} setActive={setSelected}/>
       {content}
+      <Sports />
     </div>
   );
 }
