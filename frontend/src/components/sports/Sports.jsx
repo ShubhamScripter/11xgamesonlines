@@ -189,11 +189,11 @@ return [...cricket, ...soccer, ...tennis].sort(sortMatches);
   if (topMatches.length === 0) return null;
 
   return (
-    <div className="sports-section bg-[#222424] mx-4 my-4">
+    <div className="sports-section bg-[#222424] mx-4 mt-4 mb-30">
       <div className="flex text-[20px] font-bold h-[50px] items-center gap-1 uppercase mb-2"><img src={sportIcon} className="h-full py-2"/> Sports</div>
       <div className="matches-scroll-container flex">
         {topMatches.map((match) => (
-          <div key={match.id} className="min-w-[30%] bg-black rounded-[15px] overflow-hidden" onClick={() => handleMatchClick(match)}>
+          <div key={match.id} className="min-w-[90%] md:min-w-[30%] bg-black rounded-[15px] overflow-hidden" onClick={() => handleMatchClick(match)}>
             <div className="card-header flex">
               <div className="bg-blue-800 text-[12px] px-2 py-1 flex-1 rounded-br-2xl truncate">
                 <span className="border-r border-white pr-2">{match.sport}</span>
