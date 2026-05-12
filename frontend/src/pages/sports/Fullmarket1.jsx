@@ -341,7 +341,7 @@ function Fullmarket1() {
   const dispatch = useDispatch();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
-  const key = "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
+  const key = "gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2";
   const mediaUrls = getSportsMediaUrls({
     sport: SPORTS_MEDIA_TYPE.FOOTBALL,
     gameid,

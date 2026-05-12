@@ -7,8 +7,16 @@ export const fetchSoccerData = async (req, res) => {
   try {
     const data = await fetchMatchList(1);
 
-    const t1Data = data.data.t1 || [];
-    const t2Data = data.data.t2 || [];
+    if (!data || !data.success) {
+      console.error('Soccer API error:', data);
+      return res.status(data?.status || 500).json({ 
+        success: false, 
+        message: data?.message || 'Failed to fetch soccer data from provider' 
+      });
+    }
+
+    const t1Data = data.data?.t1 || [];
+    const t2Data = data.data?.t2 || [];
 
     const combinedData = [...t1Data, ...t2Data].map((match) => ({
       id: match.gmid,
@@ -17,9 +25,9 @@ export const fetchSoccerData = async (req, res) => {
       cname:match.cname,
       iplay: match.iplay,
       channels: match.f ? ['F'] : [],
-      odds: match.section.reduce((acc, section, index) => {
-        const homeOdds = section.odds[0]?.odds || '0';
-        const awayOdds = section.odds[1]?.odds || '0';
+      odds: (match.section || []).reduce((acc, section, index) => {
+        const homeOdds = section.odds?.[0]?.odds || '0';
+        const awayOdds = section.odds?.[1]?.odds || '0';
 
         acc.push({ home: homeOdds, away: awayOdds });
 
@@ -33,10 +41,10 @@ export const fetchSoccerData = async (req, res) => {
 
     res.status(200).json({ success: true, data: combinedData });
   } catch (error) {
-    console.error('Error fetching soccer data:', error.message);
+    console.error('Error fetching soccer data:', error.message, error.stack);
     res
       .status(500)
-      .json({ success: false, message: 'Failed to fetch soccer data' });
+      .json({ success: false, message: 'Internal Server Error: ' + error.message });
   }
 };
 

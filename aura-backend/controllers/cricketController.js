@@ -70,8 +70,8 @@ export const getCricketData = async (req, res) => {
         .json({ success: false, message: 'Failed to fetch matches' });
     }
   } catch (err) {
-    console.error('Error fetching matches:', err.message);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching matches:', err.message, err.stack);
+    return res.status(500).json({ success: false, message: 'Internal Server Error: ' + err.message });
   }
 };
 
