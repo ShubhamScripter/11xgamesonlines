@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux';
 import { MdArrowBackIos } from "react-icons/md";
-import HeaderLogin from '../../components/Header/HeaderLogin'
 import MainBalanceCard from '../../components/menucomp/MainBalanceCard';
 import AccountStatementCard from '../../components/menucomp/AccountStatementCard';
 import api from '../../utils/axiosConfig';
@@ -97,20 +96,19 @@ function AccountStatement() {
     fetchAccountTransactions();
   }, [user]);
   return (
-    <div>
-      <HeaderLogin/>
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
-        <div
-        onClick={() => window.history.back()} 
-        >
-          <MdArrowBackIos className='text-white text-2xl font-semibold' />
-        </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">Account Statement</span>
-      </div>
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+          <div className="bg-[#000] h-10 flex items-center">
+            <div onClick={() => window.history.back()}>
+              <MdArrowBackIos className="text-white text-md font-semibold" />
+            </div>
+            <span className="text-[18px] font-bold">
+              Account Statement
+            </span>
+          </div>
 
-      <div className='bg-[#f1f7ff] min-h-[80vh] flex flex-col pb-5 '>
+      <div className='flex flex-col pb-5 '>
         <MainBalanceCard balance={balance} currency={currency}/>
-        <div className='px-2 mx-2'>
+        <div>
           {loading ? (
             <div className="text-center py-8 text-gray-600">
               Loading...

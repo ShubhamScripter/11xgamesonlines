@@ -1,47 +1,48 @@
 import React from "react";
 import { MdArrowBackIos } from "react-icons/md";
-import HeaderLogin from "../../components/Header/HeaderLogin";
+import { IoClose } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-function MyProfile() {
+function MyProfile({ setProfileOpen }) {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   return (
-    <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
-        <div onClick={() => window.history.back()}>
-          <MdArrowBackIos className="text-white text-2xl font-semibold" />
-        </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
-          My Profile
-        </span>
+    <div className="md:mt-12">
+      <div className="flex items-center justify-between text-[18px] font-bold gap-2 h-[66px] px-4 bg-[#1a1a1a]">
+        <span className="text-white">Profile</span>
+        <button
+          onClick={() => setProfileOpen(false)}
+          className="text-2xl text-gray-400 hover:text-white transition-colors block md:hidden"
+          aria-label="Close profile"
+        >
+          <IoClose />
+        </button>
       </div>
-      <div className="bg-[#f1f7ff] min-h-[80vh] flex flex-col items-center ">
-        <table className=" w-[90%] bg-white shadow-md rounded-lg m-2 mt-4">
+      <div className="flex flex-col items-center ">
+        <table className="shadow-md rounded-lg md:mt-4 w-full">
           <tbody>
-            <tr className="border-b ">
+            <tr className="border-b border-gray-700">
               <td colSpan={1} className="p-2">
-                <span className="text-gray-600 text-lg">Username</span>
+                <span className="text-gray-300 text-md">Username</span>
               </td>
               <td colSpan={2} className="p-2">
-                <span className="text-gray-600 text-lg">{user?.username}</span>
+                <span className="text-gray-300 text-md">{user?.username}</span>
               </td>
             </tr>
-            <tr className="border-b ">
+            <tr className="border-b border-gray-700">
               <td colSpan={1} className="p-2">
-                <span className="text-gray-600 text-lg">Email</span>
+                <span className="text-gray-300 text-md">Email</span>
               </td>
               <td colSpan={2} className="p-2">
-                <span className="text-gray-600 text-lg">{user?.email}</span>
+                <span className="text-gray-300 text-md">{user?.email}</span>
               </td>
             </tr>
             <tr>
               <td colSpan={1} className="p-2">
-                <span className="text-gray-600 text-lg">Password</span>
+                <span className="text-gray-300 text-md">Password</span>
               </td>
               <td colSpan={1} className="p-2">
-                <span className="text-gray-600 text-lg">********</span>
+                <span className="text-gray-300 text-md">********</span>
               </td>
               <td colSpan={1} className="p-2">
                 <button

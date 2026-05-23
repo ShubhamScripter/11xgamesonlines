@@ -13,16 +13,24 @@ import fishing from '../../assets/casino/icon-fishing.svg'
 import fishing1 from '../../assets/casino/hover-fishing.svg'
 import egame from '../../assets/casino/egame.svg'
 import egame1 from '../../assets/casino/hover-egame.svg'
-
 import Egame from '../../components/casinocomp/egame/Egame'
-import Fishing from '../../components/casinocomp/fishing/Fishing'
 import Live from '../../components/casinocomp/live/Live'
 import Popular from '../../components/casinocomp/popular/Popular'
-import Slot from '../../components/casinocomp/slot/Slot'
-import Table from '../../components/casinocomp/table/Table'
+
+
+import Slot from '../../components/casinocomp/gameType/Slot'
+import Fishing from '../../components/casinocomp/gameType/Fishing'
+import Table from '../../components/casinocomp/gameType/Table'
+
+
+
+
+
+import { useNavigate } from 'react-router-dom'
 
 function Casino() {
   const [selected, setSelected] = useState('Popular');
+  const navigate = useNavigate();
   let content;
   if (selected === 'Popular') {
     content = <Popular />;
@@ -70,7 +78,7 @@ function Casino() {
         </div>
         <div
           className='flex flex-col justify-center items-center cursor-pointer'
-          onClick={() => setSelected('Slot')}
+          onClick={() => navigate('/casino/slot')}
         >
           <span className='text-lg font-bold text-[#946f3b]'>Slot</span>
           <img src={selected === 'Slot' ? slot1 : slot} alt="" className='min-w-[50px] transition-all duration-300 ease-in-out' />

@@ -341,7 +341,7 @@ function Fullmarket1() {
   const dispatch = useDispatch();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
-  const key = "gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f";
+  const key = "gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2";
   const mediaUrls = getSportsMediaUrls({
     sport: SPORTS_MEDIA_TYPE.FOOTBALL,
     gameid,
@@ -534,7 +534,6 @@ function Fullmarket1() {
         const iframeUrl = json?.iframe?.url;
         if (json?.success && iframeUrl) {
           setScorecardUrl(iframeUrl);
-          // Keep compatibility with existing iframe-writer effect
           setScorecardHtml(
             `<!doctype html><html><head><meta charset="utf-8" /></head><body style="margin:0;padding:0;"><iframe src="${iframeUrl}" style="border:0;width:100%;height:50vh;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen></iframe></body></html>`
           );
@@ -966,60 +965,56 @@ const oddevenData =
           <Spinner />
         </div>
       )}
-      <div>
-        {user ? <HeaderLoginBack /> : <Header />}
-        <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
-          <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
-          onClick={() => setIsLive(true)}
-          >Live</div>
-          <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
-          onClick={() => setIsLive(false)}
-          >ScoreBoard</div>
-        </div>
-        <div className='bg-white h-10 p-2 flex justify-around items-center'>
-          <span className='font-semibold'>{team1}</span>
-          <span className='text-2xl'>-</span>
-          <span className='font-semibold'>{team2}</span>
-        </div>
+        {/* {user ? <HeaderLoginBack /> : <Header />} */}
+        
+        <div className="flex flex-col md:flex-row gap-4 mb-20 md:mx-4 md:mt-4 md:mb-4">
+          <div className="w-full md:w-[60%]">
+            <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
+              <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
+              onClick={() => setIsLive(true)}
+              >Live</div>
+              <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
+              onClick={() => setIsLive(false)}
+              >ScoreBoard</div>
+            </div>
+
         <div className='w-full'>
           {isLive ? (
             isLoadingStream ? (
-              <div className='flex h-[50vh] w-full items-center justify-center bg-gray-200'>
+              <div className='flex w-full items-center justify-center'>
                 <span>Loading stream...</span>
               </div>
             ) : (
+              <div className='aspect-video w-full'>
               <iframe
-                src={
-                 
-                  liveStreamUrl || mediaUrls.liveStreamUrl
-                }
+                src={liveStreamUrl || mediaUrls.liveStreamUrl}
                 title='Watch Live'
-                className='w-full'
-                style={{ height: '50vh' }}
+                className='h-full w-full'
                 allowFullScreen
+                scrolling="no"
                 loading='lazy'
                 allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
               />
+              </div>
             )
           ) : scorecardLoading ? (
-            <div className='flex h-[50vh] w-full items-center justify-center bg-gray-200'>
+            <div className='flex w-full items-center justify-center bg-gray-200'>
               <span>Loading score...</span>
             </div>
           ) : (
+            <div className="aspect-video w-full">
             <iframe
               src={scorecardUrl || undefined}
-              title='Live Score'
-              className='w-full'
-              style={{ height: '50vh' }}
-              loading='lazy'
-              allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
+              title="Live Score"
+              className="w-full h-full"
+              scrolling="no"
+              loading="lazy"
+              allow="autoplay;"
             />
+          </div>
           )}
         </div>
-        <div className='bg-[#1e1e1e] h-10 p-2 pl-4 pr-4 flex justify-between items-center'>
-          <span className='text-white'>Exchange</span>
-          <span className='text-[#17934e]'>Matched INR &nbsp;{matchOddsList[0]?.matched}</span>
-        </div>
+
         <div>
           {/* Match Odds Section */}
           {!loader && dataSource.length === 0 && (
@@ -1029,10 +1024,7 @@ const oddevenData =
           )}
           {matchOddsList.length > 0 && (
             <>
-            <div className="bg-[#17934e] h-10 p-2 pl-4 flex items-center gap-2">
-            <GrStarOutline className="text-white" />
-            <span className="text-white">Match Odds</span>
-          </div>
+
             <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
             </>
           )}
@@ -1048,7 +1040,7 @@ const oddevenData =
           {soccerOver25List.length > 0 && (
             <SoccerOver25 openBetSlip={openBetSlip} matchOddsList={soccerOver25List} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
           )}
-          <div className='bg-[#eef6fb] pb-5'>
+          <div>
             {/* Bookmaker Section */}
             {BookmakerList.length > 0 && (
               <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
@@ -1080,25 +1072,41 @@ const oddevenData =
               </div>
             )}
           </div>
+          </div>
+          </div>
+          {/* Desktop Sidebar (Right Side) */}
+          <div className="hidden md:block md:w-[40%] pr-4">
+                      <div className="sticky top-[16px]">
+              <BetCard 
+                odds={betSlipOpen ? betSlipData : null} 
+                matchId={gameid}
+                onClose={closeBetSlip} 
+                onBetDataChange={handleBetDataChange} 
+              />
+            </div>
+          </div>
         </div>
-        {/* Bet Slip Modal */}
-        {betSlipOpen && (
-                  <div className="fixed inset-0 z-[9999] flex w-full items-end justify-center bg-opacity-40">
-                    <div className="w-full max-w-[480px] mx-auto bg-white rounded-t-2xl shadow-lg animate-slide-up">
-                      <BetCard odds={betSlipData} onClose={closeBetSlip} onBetDataChange={handleBetDataChange} />
-                    </div>
-                  </div>
-                )}
-                <style>{`
-                  .animate-slide-up {
-                    animation: slideUp 0.3s ease-out;
-                  }
-                  @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                  }
-                `}</style>
-      </div>
+
+        {/* Mobile Bet Slip Modal */}
+        <div className="md:hidden">
+          {betSlipOpen && (
+            <div className="fixed inset-0 z-[9999] flex w-full items-end justify-center ">
+              <div className="w-[96%] mx-auto rounded-t-2xl shadow-lg animate-slide-up bg-[#141515]">
+                <BetCard odds={betSlipData} onClose={closeBetSlip} onBetDataChange={handleBetDataChange} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <style>{`
+          .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+          }
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+        `}</style>
     </div>
   )
 }

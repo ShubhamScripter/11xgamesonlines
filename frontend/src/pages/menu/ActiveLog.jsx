@@ -60,7 +60,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { MdArrowBackIos } from "react-icons/md";
-import HeaderLogin from "../../components/Header/HeaderLogin";
 import ActivelogCard from "../../components/menucomp/ActivelogCard";
 import api from "../../utils/axiosConfig";
 import { getUser } from "../../features/auth/authSlice";
@@ -117,27 +116,25 @@ function ActiveLog() {
   }, [user?._id]);
 
   return (
-    <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+      <div className="h-10 flex items-center">
         <div onClick={() => window.history.back()}>
-          <MdArrowBackIos className="text-white text-2xl font-semibold" />
+          <MdArrowBackIos className="text-white text-md font-semibold" />
         </div>
-        <span className="text-white text-sm md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
+        <span className="text-[18px] font-bold">
           Active Log
         </span>
       </div>
 
-      <div className="bg-[#f1f7ff] min-h-[80vh] p-2">
+      <div className="py-2">
         {loading && <p className="text-center mt-5">Loading...</p>}
         {error && !loading && (
           <p className="text-center text-red-600 mt-5">{error}</p>
         )}
 
         {!loading && !error && logs.length === 0 && (
-          <div className="bg-white p-4 rounded-lg shadow-md mt-4">
-            <h2 className="text-xl font-semibold mb-4">Active Log</h2>
-            <p className="text-gray-600">No active logs available at the moment.</p>
+          <div className="rounded-lg shadow-md mt-4">
+            <p className="text-gray-600 text-center">No active logs available at the moment.</p>
           </div>
         )}
 

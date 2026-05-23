@@ -16,33 +16,48 @@ export const getCricketData = async (req, res) => {
 
       const transformed = allMatches
         .map((match) => {
+          const marketStatus = match.status != null ? String(match.status) : '';
+
           const team1Odds =
             match.section && match.section.length >= 1
               ? {
                   home: match.section[0].odds[0]?.odds?.toString() || '0',
                   away: match.section[0].odds[1]?.odds?.toString() || '0',
+                  gstatus:
+                    match.section[0].gstatus != null
+                      ? String(match.section[0].gstatus)
+                      : marketStatus,
                 }
-              : { home: '0', away: '0' };
+              : { home: '0', away: '0', gstatus: marketStatus };
 
           const team2Odds =
             match.section && match.section.length >= 2
               ? {
                   home: match.section[1].odds[0]?.odds?.toString() || '0',
                   away: match.section[1].odds[1]?.odds?.toString() || '0',
+                  gstatus:
+                    match.section[1].gstatus != null
+                      ? String(match.section[1].gstatus)
+                      : marketStatus,
                 }
-              : { home: '0', away: '0' };
+              : { home: '0', away: '0', gstatus: marketStatus };
 
-          const oddsArr = [team1Odds, { home: '0', away: '0' }, team2Odds];
+          const oddsArr = [
+            team1Odds,
+            { home: '0', away: '0', gstatus: marketStatus },
+            team2Odds,
+          ];
 
           return {
             id: match.beventId || match.oldgmid || match.gmid,
             beventId: match.beventId || null,
             match: match.ename,
             date: match.stime,
-            cname:match.cname,
+            cname: match.cname,
             channels: [],
             odds: oddsArr,
             inplay: match.iplay,
+            status: marketStatus,
           };
         })
         .filter((m) => {
@@ -70,8 +85,8 @@ export const getCricketData = async (req, res) => {
         .json({ success: false, message: 'Failed to fetch matches' });
     }
   } catch (err) {
-    console.error('Error fetching matches:', err.message);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching matches:', err.message, err.stack);
+    return res.status(500).json({ success: false, message: 'Internal Server Error: ' + err.message });
   }
 };
 
@@ -83,6 +98,7 @@ export const fetchCrirketBettingData = async (req, res) => {
   }
 
   try {
+    console.log("my game id is:",gameid);
     const json = await fetchMatchData(gameid, 4);
 
     if (json.success) {

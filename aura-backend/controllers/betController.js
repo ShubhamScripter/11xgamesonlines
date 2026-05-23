@@ -1326,6 +1326,19 @@ export const placeFancyBet = async (req, res) => {
       }
 
       try {
+        let payload={
+          sport_id: sid,
+          sportName: (gameName || '').replace(/\s*game\s*$/i, ''),
+          event_id: fancyMeta.gmid || gameId,
+          beventId,
+          event_name: eventName,
+          fancyId: fancyMeta.fancyId ? String(fancyMeta.fancyId) : null,
+          market_name: toApiMarketName(marketName),
+          fancyType: gameType,
+          market_id
+        };
+        console.log("my payload is:",payload);
+
         await apiSendBetIncoming({
           sport_id: sid,
           sportName: (gameName || '').replace(/\s*game\s*$/i, ''),
@@ -1337,7 +1350,7 @@ export const placeFancyBet = async (req, res) => {
           fancyType: gameType,
         });
       } catch (err) {
-        console.error('Error fetching market_id:', err);
+        console.error('Error fetching market_id:', err.message);
         return res.status(502).json({
           message: 'Could not fetch external market_id',
           error: err.message,

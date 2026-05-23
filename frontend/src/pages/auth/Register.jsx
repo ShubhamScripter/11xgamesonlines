@@ -1,37 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { IoIosArrowBack } from "react-icons/io";
-import { FaUser, FaLock } from "react-icons/fa";
-import { MdEmail } from "react-icons/md";
-import logo from '../../assets/logo.png';
-import { useNavigate } from 'react-router-dom';
+import { IoIosCloseCircleOutline, IoMdCloseCircle } from "react-icons/io";
+import { FaRegEyeSlash, FaRegEye } from "react-icons/fa";
+import { useNavigate ,Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, reset } from '../../features/auth/authSlice';
 import toast, { Toaster } from 'react-hot-toast';
+import logo from '../../assets/bajiLogo.png';
+import logoMp4 from '../../assets/bajiVideo.mp4'
+import moblogoMp4 from '../../assets/welcome-bn.mp4';
+import { HiOutlineHome } from 'react-icons/hi';
 
 function Register() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [usernameFocus, setUsernameFocus] = useState(false);
-  const [passwordFocus, setPasswordFocus] = useState(false);
-  const [confirmPasswordFocus, setConfirmPasswordFocus] = useState(false);
-  const [nameFocus, setNameFocus] = useState(false);
-  const [emailFocus, setEmailFocus] = useState(false);
-
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [hasTypedUser, setHasTypedUser] = useState(false);
+  const [hasTypedEmail, setHasTypedEmail] = useState(false);
+  const [hasTypedPass, setHasTypedPass] = useState(false);
+  const [hasTypedPassConfirm, setHasTypedPassConfirm] = useState(false);
+  const [hasTypedName, setHasTypedName] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { user, isLoading, isError, isSuccess, message } = useSelector(
     (state) => state.auth
   );
-
-  const isUsernameActive = usernameFocus || username;
-  const isPasswordActive = passwordFocus || password;
-  const isConfirmPasswordActive = confirmPasswordFocus || confirmPassword;
-  const isNameActive = nameFocus || name;
-  const isEmailActive = emailFocus || email;
 
   useEffect(() => {
     if (isError) toast.error(message);
@@ -46,17 +43,14 @@ function Register() {
       toast.error('Username is required');
       return;
     }
-
     if (!email.trim()) {
       toast.error('Email is required');
       return;
     }
-
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters');
       return;
     }
-
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9]{8,}$/;
     if (!passwordRegex.test(password)) {
       toast.error(
@@ -64,7 +58,6 @@ function Register() {
       );
       return;
     }
-
     if (password !== confirmPassword) {
       toast.error('Password and Confirm Password do not match');
       return;
@@ -81,148 +74,166 @@ function Register() {
   };
 
   return (
-    <div className='min-h-screen bg-[url(/loginbg.jpg)] bg-cover bg-center bg-no-repeat flex flex-col'>
-      <Toaster position="top-center" reverseOrder={false} />
+      <div className="relative w-full bg-[#191a1a]">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute top-0 left-0 w-full h-full object-cover hidden md:block"
+        >
+          <source src={logoMp4} />
+        </video>
 
-      {/* Back Button */}
-      <div
-        className='bg-white w-8 h-8 rounded-full flex justify-center items-center ml-2 mt-2 cursor-pointer'
-        onClick={() => navigate('/login')}
-        role="button"
-        aria-label="Back to login"
-      >
-        <IoIosArrowBack className='text-gray-600 w-6 h-6' />
-      </div>
+        <div className="fixed z-50 top-0 left-0 h-[65px] bg-[#191a1a] w-full flex justify-between items-center px-5 border-b border-gray-700">
+          <img src={logo} alt="logo" className="h-full" />
+          <Link to="/"><HiOutlineHome className="text-white" size={25} /></Link>
+        </div>
 
-      {/* Logo */}
-      <div className='flex flex-col items-center justify-center mt-4'>
-        <img src={logo} alt="Logo" width={200} height={200} />
-      </div>
+        <div className="h-screen pt-[65px] overflow-y-auto">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-[200px] object-cover md:hidden"
+          >
+            <source src={moblogoMp4} />
+          </video>
 
-      {/* Register Form */}
-      <div className='bg-white rounded-t-2xl shadow-lg p-4 mt-4 flex-1 flex flex-col justify-center'>
-        <h2 className='text-3xl font-sans text-center py-4'>Register User</h2>
+          <div className="flex justify-center px-1 md:px-6 pb-6 md:relative">
+            <div className="hidden md:flex w-1/2 items-center justify-center"></div>
+            <div className="w-full md:w-1/2 flex items-center justify-center px-6">
+              <div className="w-full max-w-md text-white">
+                <div className="flex my-6">
+                  <Link to="/login" className="w-1/2 text-gray-400 pb-2 text-center"><button>Log in</button></Link>
+                  <button className="w-1/2 border-b-4 border-[#14805e] pb-2">Sign up</button>
+                </div>
+                <form className='flex flex-col' onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Username</label>
+                    <div className='relative'>
+                      <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        placeholder="Enter your username"
+                        onChange={(e) => {
+                          setUsername(e.target.value);
+                          if (e.target.value.length > 0) {
+                            setHasTypedUser(true);
+                          }
+                        }}
+                        className={`w-full px-4 py-3 bg-[#222424] text-white rounded-[2px] focus:outline-2 ${(hasTypedUser && username === "") ? 'outline-2 outline-red-400' : 'focus:outline-[#14805e]'} placeholder:font-light`}
+                      />
 
-        <form className='flex flex-col px-2' onSubmit={handleSubmit}>
 
-          {/* Username */}
-          <div className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${isUsernameActive ? 'border-[#19A044]' : 'border-gray-400'}`}>
-            <FaUser className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${isUsernameActive ? 'text-[#19A044]' : 'text-gray-600'}`} />
-            <label
-              htmlFor="username"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${isUsernameActive ? 'text-xs -top-2 text-[#19A044]' : 'top-1/2 transform -translate-y-1/2 text-gray-400'}`}
-            >
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onFocus={() => setUsernameFocus(true)}
-              onBlur={() => setUsernameFocus(false)}
-              onChange={(e) => setUsername(e.target.value)}
-              className='pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800'
-            />
+                      {username && (
+                        <span onClick={() => setUsername("")} className='absolute right-3 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
+                      )}
+                      {hasTypedUser && username === "" && (
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Email</label>
+                    <div className='relative'>
+                      <input
+                        type="text"
+                        id="email"
+                        value={email}
+                        placeholder="Enter your email"
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (e.target.value.length > 0) {
+                            setHasTypedEmail(true);
+                          }
+                        }}
+                        className={`w-full px-4 py-3 bg-[#222424] text-white rounded-[2px] focus:outline-2 ${(hasTypedEmail && email === "") ? 'outline-2 outline-red-400' : 'focus:outline-[#14805e]'} placeholder:font-light`}
+                      />
+                      {email && (
+                        <span onClick={() => setEmail("")} className='absolute right-3 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
+                      )}
+                      {hasTypedEmail && email === "" && (
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Password</label>
+                    <div className='relative'>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      value={password}
+                      placeholder="Enter your password"
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (e.target.value.length > 0) {
+                          setHasTypedPass(true);
+                          }
+                      }}
+                      className={`w-full px-4 py-3 bg-[#222424] text-white rounded focus:outline-2 ${(hasTypedPass && password === "") ? 'outline-2 outline-red-400' : 'focus:outline-[#14805e]'}  placeholder:font-light`}
+                    />
+                    {password && (
+                      <>
+                      <span onClick={() => setPassword("")} className='absolute right-9 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
+                      <span className='absolute right-3 top-1/2 transform -translate-y-1/2' onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <FaRegEyeSlash className='text-gray-500' /> : <FaRegEye className='text-gray-500' />}
+                      </span>
+                      </>
+                    )}
+                    {hasTypedPass && password === "" && (
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                    )}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Confirm Password</label>
+                    <div className='relative'>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      value={confirmPassword}
+                      placeholder="Enter your password"
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (e.target.value.length > 0) {
+                          setHasTypedPassConfirm(true);
+                          }
+                      }}
+                      className={`w-full px-4 py-3 bg-[#222424] text-white rounded focus:outline-2 ${(hasTypedPassConfirm && confirmPassword === "") ? 'outline-2 outline-red-400' : 'focus:outline-[#14805e]'}  placeholder:font-light`}
+                    />
+
+                    {confirmPassword && (
+                      <>
+                      <span onClick={() => setConfirmPassword("")} className='absolute right-9 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
+                      <span className='absolute right-3 top-1/2 transform -translate-y-1/2' onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                        {showConfirmPassword ? <FaRegEyeSlash className='text-gray-500' /> : <FaRegEye className='text-gray-500' />}
+                      </span>
+                      </>
+                    )}
+                    {hasTypedPassConfirm && confirmPassword === "" && (
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                    )}
+                    </div>
+                  </div>
+                  
+                  <button className="w-full bg-[#14805e] py-3 rounded font-semibold" disabled={isLoading}>
+                  {isLoading ? 'Creating account...' : 'Sign Up'}
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* Name */}
-          <div className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${isNameActive ? 'border-[#19A044]' : 'border-gray-400'}`}>
-            <FaUser className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${isNameActive ? 'text-[#19A044]' : 'text-gray-600'}`} />
-            <label
-              htmlFor="name"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${isNameActive ? 'text-xs -top-2 text-[#19A044]' : 'top-1/2 transform -translate-y-1/2 text-gray-400'}`}
-            >
-              Name (optional)
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onFocus={() => setNameFocus(true)}
-              onBlur={() => setNameFocus(false)}
-              onChange={(e) => setName(e.target.value)}
-              className='pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800'
-            />
-          </div>
-
-          {/* Email (required) */}
-          <div className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${isEmailActive ? 'border-[#19A044]' : 'border-gray-400'}`}>
-            <MdEmail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${isEmailActive ? 'text-[#19A044]' : 'text-gray-600'}`} />
-            <label
-              htmlFor="email"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${isEmailActive ? 'text-xs -top-2 text-[#19A044]' : 'top-1/2 transform -translate-y-1/2 text-gray-400'}`}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onFocus={() => setEmailFocus(true)}
-              onBlur={() => setEmailFocus(false)}
-              onChange={(e) => setEmail(e.target.value)}
-              className='pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800'
-            />
-          </div>
-
-          {/* Password */}
-          <div className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${isPasswordActive ? 'border-[#19A044]' : 'border-gray-400'}`}>
-            <FaLock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${isPasswordActive ? 'text-[#19A044]' : 'text-gray-600'}`} />
-            <label
-              htmlFor="password"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${isPasswordActive ? 'text-xs -top-2 text-[#19A044]' : 'top-1/2 transform -translate-y-1/2 text-gray-400'}`}
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onFocus={() => setPasswordFocus(true)}
-              onBlur={() => setPasswordFocus(false)}
-              onChange={(e) => setPassword(e.target.value)}
-              className='pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800'
-            />
-          </div>
-
-          {/* Confirm Password */}
-          <div className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${isConfirmPasswordActive ? 'border-[#19A044]' : 'border-gray-400'}`}>
-            <FaLock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${isConfirmPasswordActive ? 'text-[#19A044]' : 'text-gray-600'}`} />
-            <label
-              htmlFor="confirmPassword"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${isConfirmPasswordActive ? 'text-xs -top-2 text-[#19A044]' : 'top-1/2 transform -translate-y-1/2 text-gray-400'}`}
-            >
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onFocus={() => setConfirmPasswordFocus(true)}
-              onBlur={() => setConfirmPasswordFocus(false)}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className='pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800'
-            />
-          </div>
-
-          <button type="submit" disabled={isLoading} className='bg-[#19A044] text-white py-2 rounded disabled:opacity-70'>
-            {isLoading ? 'Creating account...' : 'Sign Up'}
-          </button>
-
-          <p className='text-center text-sm text-gray-600 mt-4'>
-            Already registered?{' '}
-            <span onClick={() => navigate('/login')} className='text-[#19A044] font-semibold cursor-pointer hover:underline'>
-              Login
-            </span>
-          </p>
-        </form>
-      </div>
     </div>
+    
   );
 }
 

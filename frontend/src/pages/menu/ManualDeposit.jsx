@@ -59,6 +59,7 @@ function ManualDeposit() {
   const [paymentImagePreview, setPaymentImagePreview] = useState('');
   const [withdrawDetails, setWithdrawDetails] = useState(INITIAL_WITHDRAW_DETAILS);
   const [supportWaDigits, setSupportWaDigits] = useState('');
+  const [showMethods, setShowMethods] = useState(true);
 
   const selectedAccount = useMemo(
     () => accounts.find((a) => a._id === selectedAccountId),
@@ -288,63 +289,37 @@ function ManualDeposit() {
   };
 
   return (
-    <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
-        <div onClick={() => window.history.back()}>
-          <MdArrowBackIos className="text-white text-2xl font-semibold" />
-        </div>
-        <span className="text-white text-sm md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
-          Self Deposit / Withdraw
-        </span>
+    <div className='bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 fixed top-0 left-0 w-full md:static z-20 h-screen'>
+      {/* <HeaderLogin /> */}
+      <div className="flex items-center text-[18px] font-bold gap-2 h-[66px]">
+          <MdArrowBackIos className="text-white text-md font-semibold" onClick={() => showMethods ? window.history.back() : setShowMethods(true)} />
+          {requestType === 'withdraw' ? "Withdraw" :'Deposit'}
       </div>
 
-      <div className="bg-[#f1f7ff] min-h-[80vh] p-3 space-y-3">
-        <div className="bg-white rounded-xl p-3 shadow-sm">
-          <div className="text-sm font-semibold mb-2">Select Request Type</div>
-          <div className="grid grid-cols-2 gap-2">
-            {REQUEST_TYPES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setRequestType(item.id)}
-                className={`px-3 py-2 rounded-lg border text-sm font-semibold transition ${
-                  requestType === item.id
-                    ? 'bg-[#243a48] text-white border-[#243a48] shadow'
-                    : 'bg-white text-[#1f2937] border-gray-300 hover:border-[#243a48]'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-3 shadow-sm">
-          <div className="text-sm font-semibold mb-2">
-            Select {requestType === 'withdraw' ? 'Payout Method' : 'Method'}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="">
+          {showMethods && (
+          <div className="rounded-md flex flex-col gap-2">
             {METHOD_OPTIONS.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setMethod(item.id)}
-                className={`px-3 py-2 rounded-lg border text-sm font-semibold transition ${
-                  method === item.id
-                    ? 'bg-[#19A044] text-white border-[#19A044] shadow'
-                    : 'bg-white text-[#1f2937] border-gray-300 hover:border-[#19A044]'
-                }`}
+                onClick={() => {
+                  setMethod(item.id);
+                  setShowMethods(false);
+                }}
+                className="text-left px-3 h-[60px] border text-sm font-semibold transition bg-[#222424] text-white border-[#222424]"
               >
                 {item.label}
               </button>
             ))}
           </div>
-        </div>
+          )}
 
+        {!showMethods && (
+        <>
         {requestType === 'deposit' ? (
           method === 'whatsapp' && !supportWaDigits ? null : (
-          <div className="bg-white rounded-xl p-3 shadow-sm">
+          <div className="rounded-xl py-3 shadow-sm">
             {method === 'whatsapp' ? (
               (() => {
                 const waMsg = `Hello, I want to deposit via WhatsApp.\nUsername: ${user?.userName || '—'}\nPlease assist.`;
@@ -377,7 +352,7 @@ function ManualDeposit() {
                 ) : (
                   <>
                     <select
-                      className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 mb-3 text-sm outline-none"
                       value={selectedAccountId}
                       onChange={(e) => setSelectedAccountId(e.target.value)}
                     >
@@ -388,7 +363,7 @@ function ManualDeposit() {
                       ))}
                     </select>
                     {selectedAccount && (
-                      <div className="text-xs bg-[#f6f8fa] p-3 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="text-xs rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {Object.entries(selectedAccount.details || {}).map(([key, value]) => {
                           if (value == null || String(value).trim() === '') return null;
                           const isImageField =
@@ -397,17 +372,17 @@ function ManualDeposit() {
                           return (
                             <div
                               key={key}
-                              className={`bg-white rounded p-2 border border-[#e5e7eb] ${
+                              className={`rounded p-2 bg-[#222424] ${
                                 isImageField ? 'sm:col-span-2' : ''
                               }`}
                             >
-                              <div className="text-[10px] uppercase tracking-wide text-gray-500">{key}</div>
+                              <div className="text-[10px] uppercase tracking-wide text-white">{key}</div>
                               {isImageField ? (
                                 <div className="mt-2 flex justify-center">
                                   <img
                                     src={resolveImageUrl(value)}
                                     alt={key}
-                                    className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl border object-contain bg-white p-2"
+                                    className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl border object-contain bg-[#222424] p-2"
                                     onError={(e) => {
                                       try {
                                         const raw = String(value || '');
@@ -425,13 +400,13 @@ function ManualDeposit() {
                                 </div>
                               ) : (
                                 <div className="flex items-start justify-between gap-2 mt-1">
-                                  <div className="text-[12px] font-semibold text-gray-900 break-all flex-1 min-w-0">
+                                  <div className="text-[20px] font-semibold text-white break-all flex-1 min-w-0">
                                     {String(value)}
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => copyToClipboard(value)}
-                                    className="shrink-0 inline-flex items-center justify-center p-1.5 rounded-md border border-[#e5e7eb] bg-[#f8fafc] text-[#475569] hover:bg-[#eef2f7] active:scale-95"
+                                    className="shrink-0 inline-flex items-center justify-center p-1.5 rounded-md border text-[#475569] hover:bg-[#eef2f7] active:scale-95"
                                     title="Copy"
                                     aria-label={`Copy ${key}`}
                                   >
@@ -453,7 +428,7 @@ function ManualDeposit() {
         ) : null}
 
         {!(requestType === 'deposit' && method === 'whatsapp') ? (
-        <form onSubmit={submitRequest} className="bg-white rounded-xl p-3 shadow-sm">
+        <form onSubmit={submitRequest} className="rounded-xl shadow-sm">
           <div className="text-sm font-semibold mb-2">
             Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request
           </div>
@@ -464,7 +439,7 @@ function ManualDeposit() {
               min="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
               placeholder="Enter Amount (INR)"
               required
             />
@@ -481,7 +456,7 @@ function ManualDeposit() {
                   setReferenceId(e.target.value);
                 }
               }}
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
               placeholder={
                 requestType === 'withdraw'
                   ? 'Enter UPI ID / Mobile / Request Ref'
@@ -502,7 +477,7 @@ function ManualDeposit() {
                           accountHolderName: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Account Holder Name"
                       required
                     />
@@ -515,7 +490,7 @@ function ManualDeposit() {
                           accountNumber: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Account Number"
                       required
                     />
@@ -528,7 +503,7 @@ function ManualDeposit() {
                           confirmAccountNumber: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Confirm Account Number"
                       required
                     />
@@ -541,7 +516,7 @@ function ManualDeposit() {
                           bankName: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Bank Name"
                       required
                     />
@@ -554,7 +529,7 @@ function ManualDeposit() {
                           branchName: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Branch Name"
                     />
                     <input
@@ -566,7 +541,7 @@ function ManualDeposit() {
                           ifscCode: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="IFSC Code"
                       required
                     />
@@ -582,7 +557,7 @@ function ManualDeposit() {
                         upiId: e.target.value,
                       }))
                     }
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                     placeholder="UPI ID"
                     required
                   />
@@ -598,7 +573,7 @@ function ManualDeposit() {
                           walletAddress: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Wallet Address"
                       required
                     />
@@ -611,7 +586,7 @@ function ManualDeposit() {
                           network: e.target.value,
                         }))
                       }
-                      className="w-full border rounded-lg px-3 py-2"
+                      className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                       placeholder="Network (e.g. TRC20, ERC20)"
                       required
                     />
@@ -627,7 +602,7 @@ function ManualDeposit() {
                         phoneNumber: e.target.value,
                       }))
                     }
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                     placeholder="WhatsApp Number"
                     required
                   />
@@ -648,11 +623,11 @@ function ManualDeposit() {
                       setPaymentImagePreview('');
                     }
                   }}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
                   required
                 />
                 {paymentImage ? (
-                  <div className="sm:col-span-2 border rounded-lg p-2 bg-[#f8fafc]">
+                  <div className="sm:col-span-2 border rounded-lg p-2 bg-[#222424]">
                     <div className="text-xs font-semibold text-gray-700 mb-1">
                       Selected file: {paymentImage.name}
                     </div>
@@ -660,14 +635,14 @@ function ManualDeposit() {
                       <img
                         src={paymentImagePreview}
                         alt="Payment screenshot preview"
-                        className="w-40 h-40 rounded border object-contain bg-white"
+                        className="w-40 h-40 rounded bg-[#222424] object-contain "
                       />
                     ) : null}
                   </div>
                 ) : null}
               </>
             ) : (
-              <div className="sm:col-span-2 text-xs text-[#4b5563] bg-[#f8fafc] border rounded-lg p-2">
+              <div className="sm:col-span-2 text-xs text-[#4b5563] bg-[#222424] border rounded-lg p-2">
                 Screenshot upload is not required for withdraw request.
               </div>
             )}
@@ -675,7 +650,7 @@ function ManualDeposit() {
           <textarea
             value={paymentNote}
             onChange={(e) => setPaymentNote(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 mt-2"
+            className="w-full bg-[#222424] rounded-lg px-3 py-2 mt-2 outline-none"
             rows={3}
             placeholder="Payment note"
           />
@@ -692,8 +667,10 @@ function ManualDeposit() {
           </button>
         </form>
         ) : null}
+        </>
+        )}
 
-        <div className="bg-white rounded-xl p-3 shadow-sm">
+        <div className="bg-[#141515] rounded-xl py-3 shadow-sm mt-5">
           <div className="text-sm font-semibold mb-2">My Requests</div>
           <div className="overflow-auto">
             <table className="w-full text-xs min-w-[620px]">
@@ -723,7 +700,6 @@ function ManualDeposit() {
                       <td>{r.method}</td>
                       <td>{Number(r.amount || 0).toFixed(2)}</td>
                       <td>{r.status}</td>
-                      {/* <td>{`https://11xgames.online${r.paymentImageUrl}`}</td> */}
                        <td>
                         {r.paymentImageUrl ? (
                           <a

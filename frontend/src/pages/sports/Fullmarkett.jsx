@@ -742,7 +742,7 @@ function Fullmarkett() {
   const { match } = useParams() || {};
   const key =
     import.meta.env.VITE_BULKAPI_KEY ||
-    "gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f";
+    "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
   const mediaUrls = getSportsMediaUrls({
     sport: SPORTS_MEDIA_TYPE.CRICKET,
     gameid,
@@ -1079,8 +1079,9 @@ console.log("data source",dataSource)
         odds: sec.odds,
         max: sec.max,
         min: sec.min,
-        mname: fancy1List[0].mname, // ✅ Access from first item
-        status: sec.gstatus, // ✅ Access from first item
+        mname: fancy1List[0].mname,
+        gstatus: sec.gstatus,
+        marketStatus: fancy1List[0].status,
       }))
       : [];
     // console.log("fancy1 data",fancy1Data) oddeven
@@ -1417,197 +1418,126 @@ const fetchScorecard = async (isInitial = false) => {
           <Spinner />
         </div>
       )}
-      <div>
-        {user ? <HeaderLoginBack /> : <Header />}
-        <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
-          <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
-          onClick={() => setIsLive(true)}
-          >Live</div>
-          <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
-          onClick={() => setIsLive(false)}
-          >ScoreBoard</div>
-        </div>
-        <div className='bg-white h-10 p-2 flex justify-around items-center'>
-          {/* <span className='font-semibold'>{Array.isArray(bettingData) && bettingData[0]?.section?.[0]?.nat ? bettingData[0].section[0].nat : ""}</span>
-          <span className='text-2xl'>-</span>
-          <span className='font-semibold'>{Array.isArray(bettingData) && bettingData[0]?.section?.[1]?.nat ? bettingData[0].section[1].nat : ""}</span> */}
-          <span className='font-semibold'>{team1}</span>
-          <span className='text-2xl'>-</span>
-          <span className='font-semibold'>{team2}</span>
-        </div>
-        {/* <div style={{ margin: 0, padding: 0, lineHeight: 0 }}>
-          {isLive ? (
-            <iframe
-              src={`https://81habibi.com/api/v1/live-stream?gmid=${gameid}&key=gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f`}
-              title="Watch Live"
-              className="w-full rounded-lg"
-              style={{ height: "50vh" }}
-              allowFullScreen
-              loading="lazy"
-              allow="
-                autoplay;
-                encrypted-media;
-                fullscreen;
-                picture-in-picture;
-                accelerometer;
-                gyroscope
-              "
-            />
-          ) : (
-            <iframe
-              src={`https://81habibi.com/api/v1/live-score?gmid=${gameid}&key=gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f`}
-              allowFullScreen
-              className="w-full rounded-lg"
-              title="Live Score"
-              loading="lazy"
-              allow="
-                autoplay;
-                encrypted-media;
-                fullscreen;
-                picture-in-picture;
-                accelerometer;
-                gyroscope
-              "
-            />
-          )}
-        </div> */}
-         <div className='w-full'>
-          {isLive ? (
-            isLoadingStream ? (
-              <div className='flex h-[50vh] w-full items-center justify-center bg-gray-200'>
-                <span>Loading stream...</span>
-              </div>
-            ) : (
-              <iframe
-                src={
-          
-                  liveStreamUrl || mediaUrls.liveStreamUrl
-                }
-                title='Watch Live'
-                className='w-full'
-                style={{ height: '50vh' }}
-                allowFullScreen
-                loading='lazy'
-                allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
-              />
-            )
-          ) : scorecardLoading ? (
-            <div className='flex h-[50vh] w-full items-center justify-center bg-gray-200'>
-              <span>Loading score...</span>
+        <div className="flex flex-col md:flex-row gap-4 mb-20 md:mx-4 md:mt-4 md:mb-4">
+          <div className="w-full md:w-[60%]">
+            <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
+              <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
+              onClick={() => setIsLive(true)}
+              >Live</div>
+              <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
+              onClick={() => setIsLive(false)}
+              >ScoreBoard</div>
             </div>
-          ) : (
-            <iframe
-              src={scorecardUrl || undefined}
-              title='Live Score'
-              className='w-full'
-              style={{ height: '50vh' }}
-              loading='lazy'
-              allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
-            />
-          )}
-        </div>
-        <div className='bg-[#1e1e1e] h-10 p-2 pl-4 pr-4 flex justify-between items-center'>
-          <span className='text-white'>Exchange</span>
-          {/* <span className='text-[#17934e]'>Matched INR &nbsp;{matchOddsList[0]?.matched}</span> */}
-          <span className="text-[#17934e]">
-            Matched INR&nbsp;
-            {TiedOddSelected === "tied"
-              ? tiedMatchList?.[0]?.matched ?? 0
-              : matchOddsList?.[0]?.matched ?? 0}
-          </span>
-        </div>
-        <div>
-        <div className="bg-[#17934e] h-10 p-2 pl-4 flex items-center gap-4">
-          {
-            matchOddsList.length > 0 && (
-              <div
-                className={`relative flex items-center gap-2 cursor-pointer`}
-                onClick={() => setTiedOddSelected("odds")}
-              >
-                <GrStarOutline className="text-white" />
-                <span className="text-white">Match Odds</span>
-
-                {TiedOddSelected === "odds" && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-white rounded-full" />
-                )}
-              </div>
-            )
-          }
-          {
-            tiedMatchList.length > 0 && (
-              <div
-                className={`relative flex items-center gap-2 cursor-pointer`}
-                onClick={() => setTiedOddSelected("tied")}
-              >
-                <GrStarOutline className="text-white" />
-                <span className="text-white">Tied Match</span>
-
-                {TiedOddSelected === "tied" && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-[3px] bg-white rounded-full" />
-                )}
-              </div>
-            )
-          }
-        </div>
-          {/* Match Odds Section */}
-          {matchOddsList.length > 0 && TiedOddSelected === "odds" && (
-            <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-          )}
-          {tiedMatchList.length > 0 && TiedOddSelected === "tied" && (
-            <TiedMatch openBetSlip={openBetSlip} matchOddsList={tiedMatchList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-          )}
-          <div className='bg-[#eef6fb] pb-5'>
-            {/* Bookmaker Section */}
-            {BookmakerList.length > 0 && (
-              <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-            )}
-            {/* Fancybet & sportsbook Section */}
-            
-            {(fancy1Data.length > 0 || sportsbookData.length > 0) && (
-              <div className='px-4 pt-4'>
-                <div className='bg-black h-12  pl-4 flex  items-center rounded-t-2xl'>
-                  {fancy1Data.length > 0 && (
-                    <div className={`rounded-t-xl p-2 mt-4 text-white ${isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
-                      onClick={() => {
-                        setSelected("Fancybet");
-                        setIsFancyActive(true);
-                      }}
-                    >Fancybet</div>
-                  )}
-                  {sportsbookData.length > 0 && (
-                    <div className={`rounded-t-xl p-2 mt-4 text-white ${!isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
-                      onClick={() => {
-                        setSelected("Sportbook");
-                        setIsFancyActive(false);
-                      }}
-                    >Sportbook</div>
-                  )}
+            <div className='w-full'>
+              {isLive ? (
+                isLoadingStream ? (
+                  <div className='flex w-full items-center justify-center'>
+                    <span>Loading stream...</span>
+                  </div>
+                ) : (
+                  <div className='aspect-video w-full'>
+                  <iframe
+                    src={liveStreamUrl || mediaUrls.liveStreamUrl}
+                    title='Watch Live'
+                    className='h-full w-full'
+                    allowFullScreen
+                    scrolling="no"
+                    loading='lazy'
+                    allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
+                  />
+                  </div>
+                )
+              ) : scorecardLoading ? (
+                <div className='flex w-full items-center justify-center bg-gray-200'>
+                  <span>Loading score...</span>
                 </div>
-                {content}
-
-                
+              ) : (
+               <div className="w-full h-fit">
+                <iframe
+                  src={scorecardUrl || undefined}
+                  title="Live Score"
+                  className="w-full h-[26vh]"
+                  scrolling="no"
+                  loading="lazy"
+                  allow="autoplay;"
+                />
               </div>
+              )}
+            </div>
+        <div>
+          {/* Match Odds Section */}
+            {matchOddsList.length > 0 && (
+              <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
             )}
+            {tiedMatchList.length > 0 && (
+              <TiedMatch openBetSlip={openBetSlip} matchOddsList={tiedMatchList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
+            )}
+            <div className='pb-5'>
+              {/* Bookmaker Section */}
+              {BookmakerList.length > 0 && (
+                <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
+              )}
+              {/* Fancybet & sportsbook Section */}
+              
+              {(fancy1Data.length > 0 || sportsbookData.length > 0) && (
+                <>
+                  <div className='bg-[#222424] p-2 flex  items-center'>
+                    {fancy1Data.length > 0 && (
+                      <div className={`rounded-sm p-1 text-white ${isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
+                        onClick={() => {
+                          setSelected("Fancybet");
+                          setIsFancyActive(true);
+                        }}
+                      >Fancybet</div>
+                    )}
+                    {sportsbookData.length > 0 && (
+                      <div className={`rounded-sm text-white ${!isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
+                        onClick={() => {
+                          setSelected("Sportbook");
+                          setIsFancyActive(false);
+                        }}
+                      >Sportbook</div>
+                    )}
+                  </div>
+                  {content}
+                </>
+              )}
+            </div>
+          </div>
+          </div>
+          {/* Desktop Sidebar (Right Side) */}
+          <div className="hidden md:block md:w-[40%] pr-4">
+            <div className="sticky top-[16px]">
+              <BetCard 
+                odds={betSlipOpen ? betSlipData : null} 
+                matchId={gameid}
+                onClose={closeBetSlip} 
+                onBetDataChange={handleBetDataChange} 
+              />
+            </div>
           </div>
         </div>
-        {/* Bet Slip Modal */}
-        {betSlipOpen && (
-                  <div className="fixed inset-0 z-[9999] flex w-full items-end justify-center bg-opacity-40">
-                    <div className="w-full max-w-[480px] mx-auto bg-white rounded-t-2xl shadow-lg animate-slide-up">
-                      <BetCard odds={betSlipData} onClose={closeBetSlip} onBetDataChange={handleBetDataChange} />
-                    </div>
-                  </div>
-                )}
-                <style>{`
-                  .animate-slide-up {
-                    animation: slideUp 0.3s ease-out;
-                  }
-                  @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                  }
-                `}</style>
-      </div>
+
+        {/* Mobile Bet Slip Modal */}
+        <div className="md:hidden">
+          {betSlipOpen && (
+            <div className="fixed inset-0 z-[9999] flex w-full items-end justify-center ">
+              <div className="w-[96%] mx-auto rounded-t-2xl shadow-lg animate-slide-up bg-[#141515]">
+                <BetCard odds={betSlipData} onClose={closeBetSlip} onBetDataChange={handleBetDataChange} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <style>{`
+          .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+          }
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+        `}</style>
     </div>
   )
 }

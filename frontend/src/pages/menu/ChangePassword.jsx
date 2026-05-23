@@ -250,51 +250,25 @@ function ChangePassword() {
   };
 
   return (
-    <div className="min-h-screen bg-[url(/loginbg.jpg)] bg-cover bg-center bg-no-repeat flex flex-col">
+    <div className="bg-[#141515] text-white space-y-3 w-[90%] md:w-[50%] mx-auto md:mt-12 fixed md:static top-0 left-0 w-full z-40">
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* Back Button */}
-      <div className="bg-white w-8 h-8 rounded-full flex justify-center items-center ml-2 mt-2">
+      <div className="flex items-center text-[18px] font-bold gap-2 h-[66px]">
         <IoIosArrowBack
-          className="text-gray-600 w-6 h-6"
+          className="text-white w-6 h-6"
           onClick={() => window.history.back()}
         />
-      </div>
-
-      {/* Logo */}
-      <div className="flex flex-col items-center justify-center mt-4">
-        <img src={logo} alt="Logo" width={200} height={200} />
+        ChangePassword
       </div>
 
       {/* Form Section */}
-      <div className="bg-white rounded-t-2xl shadow-lg p-4 mt-4 flex-1 flex flex-col justify-center">
-        <h2 className="text-3xl font-sans text-center py-4">Change Password</h2>
+      <div className="rounded-t-2xl shadow-lg py-4 mt-4 flex-1 flex flex-col justify-center">
 
-        {/* <form className="flex flex-col px-2" onSubmit={handleSubmit}> */}
-        <form className="flex flex-col px-2">
+        <form className="flex flex-col px-2" onSubmit={handleSubmit}>
           {/* Old Password */}
-          <div
-            className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${
-              isOldPasswordActive ? "border-[#19A044]" : "border-gray-400"
-            }`}
-          >
-            <FaLock
-              className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${
-                isOldPasswordActive ? "text-[#19A044]" : "text-gray-600"
-              }`}
-            />
-            <label
-              htmlFor="oldPassword"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${
-                isOldPasswordActive
-                  ? "text-xs -top-2 text-[#19A044]"
-                  : "top-1/2 transform -translate-y-1/2 text-gray-400"
-              }
-            `}
-            >
-              Old Password
-            </label>
+          <div>
+            <label className="text-gray-500 my-2 block">Old Password</label>
             <input
               type="password"
               id="oldPassword"
@@ -302,33 +276,14 @@ function ChangePassword() {
               onFocus={() => setOldPasswordFocus(true)}
               onBlur={() => setOldPasswordFocus(false)}
               onChange={(e) => setOldPassword(e.target.value)}
-              className="pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800"
+              className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
+              placeholder="Enter your password"
             />
           </div>
 
           {/* New Password */}
-          <div
-            className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${
-              isPasswordActive ? "border-[#19A044]" : "border-gray-400"
-            }`}
-          >
-            <FaLock
-              className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${
-                isPasswordActive ? "text-[#19A044]" : "text-gray-600"
-              }`}
-            />
-            <label
-              htmlFor="password"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-                ${
-                  isPasswordActive
-                    ? "text-xs -top-2 text-[#19A044]"
-                    : "top-1/2 transform -translate-y-1/2 text-gray-400"
-                }
-              `}
-            >
-              New Password
-            </label>
+          <div className="mt-2"> 
+            <label className="text-gray-500 my-2 block">New Password</label>
             <input
               type="password"
               id="password"
@@ -336,33 +291,14 @@ function ChangePassword() {
               onFocus={() => setPasswordFocus(true)}
               onBlur={() => setPasswordFocus(false)}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800"
+              className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
+              placeholder="Enter your password"
             />
           </div>
 
           {/* Confirm Password */}
-          <div
-            className={`relative border rounded-lg px-2 py-3 mb-6 transition-all duration-200 ${
-              isConfirmPasswordActive ? "border-[#19A044]" : "border-gray-400"
-            }`}
-          >
-            <FaLock
-              className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-all duration-200 ${
-                isConfirmPasswordActive ? "text-[#19A044]" : "text-gray-600"
-              }`}
-            />
-            <label
-              htmlFor="confirmPassword"
-              className={`absolute left-10 transition-all duration-200 pointer-events-none bg-white px-1
-              ${
-                isConfirmPasswordActive
-                  ? "text-xs -top-2 text-[#19A044]"
-                  : "top-1/2 transform -translate-y-1/2 text-gray-400"
-              }
-            `}
-            >
-              Confirm Password
-            </label>
+          <div className="mt-2">
+            <label className="text-gray-500 my-2 block"> Confirm Password</label>
             <input
               type="password"
               id="confirmPassword"
@@ -370,14 +306,15 @@ function ChangePassword() {
               onFocus={() => setConfirmPasswordFocus(true)}
               onBlur={() => setConfirmPasswordFocus(false)}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-10 pt-1 pb-1 w-full outline-none bg-transparent text-gray-800"
+              className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
+              placeholder="Enter your password"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-[#19A044] text-white py-2 rounded hover:bg-green-700 transition duration-200 disabled:opacity-50"
+            className="bg-[#14805e] text-white py-2 rounded hover:bg-green-700 transition duration-200 disabled:opacity-50 mt-4"
           >
             {isLoading ? "Changing..." : "Change"}
           </button>

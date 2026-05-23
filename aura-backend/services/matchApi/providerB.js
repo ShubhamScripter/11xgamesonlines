@@ -25,6 +25,7 @@ export function createProviderB() {
           `${API_URL}/${sportPath}?key=${API_KEY}`
         );
         const raw = response.data;
+        console.log(`[ProviderB] fetchMatchList for ${sportPath}:`, { success: !!raw, hasT1: !!raw?.t1, hasT2: !!raw?.t2 });
         if (raw && !raw.success) {
           if (raw.t1 || raw.t2) {
             return {

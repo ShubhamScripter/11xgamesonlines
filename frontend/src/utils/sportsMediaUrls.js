@@ -7,7 +7,7 @@ export const SPORTS_MEDIA_TYPE = {
 const BASE_URL =
   import.meta.env.VITE_PROVIDER_B_API_URL ||
   import.meta.env.PROVIDER_B_API_URL ||
-  "https://test.bulkapi.co.in/api/v1";
+  "https://81habibi.com/api/v1";
 
 export function getSportsMediaUrls({ sport, gameid, key }) {
   const encodedGameId = encodeURIComponent(gameid ?? "");

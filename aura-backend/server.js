@@ -43,6 +43,7 @@ app.use(
       'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:5176',
+      'http://172.30.208.1:5173',
       'https://diamond-admin-tau.vercel.app/',
       'https://diamondbook-client.vercel.app/',
       'https://aura444.org/',

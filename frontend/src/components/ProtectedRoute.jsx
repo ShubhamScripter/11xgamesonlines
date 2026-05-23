@@ -26,7 +26,6 @@ const ProtectedRoute = () => {
   const { user, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // If no token, force logout (clear localStorage and Redux)
     if (!token) {
       dispatch(logout());
     }

@@ -13,28 +13,33 @@ import { useDispatch } from "react-redux";
 import { fetchSoccerInplayData } from "../../features/sports/soccerSlice";
 import { fetchCricketInplayData } from "../../features/sports/cricketSlice";
 import { fetchTennisInplayData } from "../../features/sports/tennisSlice";
-function Sports() {
+function Sports({ sport }) {
   const location = useLocation();
   const dispatch = useDispatch();
-  const [parlay, setParlay] = useState(false);
-  const [Filter,setFilter] = useState("All")
+  const [Filter, setFilter] = useState(sport || "All")
   const [selected, setSelected] = useState(null);
-  const [Active, setActive] = useState("InPlay")
+  const [Active, setActive] = useState("All")
 
   useEffect(() => {
-    if (location.state && location.state.filter) {
+    if (sport) {
+      setFilter(sport);
+    } else if (location.state && location.state.filter) {
       setFilter(location.state.filter);
-      setActive(location.state.active);
     }
-  }, [location.state]);
+    setActive("All");
+  }, [location.state, sport]);
 
   useEffect(() => {
-    if (Active === "InPlay") {
-      dispatch(fetchCricketInplayData());
-      dispatch(fetchSoccerInplayData());
-      dispatch(fetchTennisInplayData());
-    }
-  }, [Active, dispatch]);
+    // Fetch all data to ensure we have matches for the listing
+    dispatch(fetchCricketData());
+    dispatch(fetchSoccerData());
+    dispatch(fetchTennisData());
+    
+    // Also fetch inplay specifically if needed by components
+    dispatch(fetchCricketInplayData());
+    dispatch(fetchSoccerInplayData());
+    dispatch(fetchTennisInplayData());
+  }, [dispatch]);
 
   let content;
     if (Filter === "All") {
@@ -49,41 +54,10 @@ function Sports() {
      else {
         content = <div className="p-4">No component for {Filter}</div>;
     }
+
   return (
     <div>
         <HeaderLogin/>
-        <div className='bg-black md:h-15 flex gap-5 pr-2'>
-          <div className='flex justify-between items-center bg-[#1b1f23] p-2  md:h-15 w-fit'>
-            <label className="flex items-center cursor-pointer">
-            <div className="relative">
-            <input
-              type="checkbox"
-              checked={parlay}
-              onChange={() => setParlay(!parlay)}
-              className="sr-only"
-            />
-            <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${parlay ? 'bg-[#17934e]' : 'bg-[#374151]'}`}></div>
-            <div className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${parlay ? 'translate-x-6' : ''}`}></div>
-            </div>
-            <span className={`ml-3 text-lg font-semibold ${parlay ? 'text-[#17934e]' : 'text-gray-400'}`}>Parlay</span>
-            </label>
-          </div>
-          <div className='flex gap-3 md:gap-10 justify-center items-center'>
-            <div className='flex gap-3 justify-center items-center '>
-              <span className={`text-gray-400 text-sm md:text-xl font-semibold cursor-pointer ${Active==="InPlay" ? 'border-b-2 text-white' :" "}`}
-              onClick={()=>setActive("InPlay")}
-              >InPlay</span>
-              <span className={`text-gray-400 text-sm md:text-xl font-semibold cursor-pointer ${Active==="Today" ? 'border-b-2 text-white' :" "}`}
-              onClick={()=>setActive("Today")}
-              >Today</span>
-              <span className={`text-gray-400 text-sm md:text-xl font-semibold cursor-pointer ${Active==="Tomorrow" ? 'border-b-2 text-white' :" "}`}
-              onClick={()=>setActive("Tomorrow")}
-              >Tomorrow</span>
-            </div>
-            <IoIosSearch className='text-white text-3xl mt-3'/>
-          </div>
-        </div>
-        <Header1 Filter={Filter} setFilter={setFilter}/>
         {content}
     </div>
   )

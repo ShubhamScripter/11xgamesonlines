@@ -164,21 +164,11 @@ function Bets() {
 
   return (
     <div>
-      <HeaderLogin />
-      <div className="bg-[#000] h-10 flex items-center px-5 relative">
-        <div onClick={() => window.history.back()}>
-          <MdArrowBackIos className="text-white text-2xl font-semibold" />
-        </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
-          My Bets
-        </span>
-      </div>
-
-      <div className="bg-white px-3 py-2 border-b border-gray-200">
+      <div className="px-3 py-2 border-b border-gray-600">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSettlementFilter("unsettle")}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
+            className={`px-3 py-1 rounded-md text-sm font-medium uppercase ${
               settlementFilter === "unsettle"
                 ? "bg-[#17934e] text-white"
                 : "bg-gray-200 text-gray-700"
@@ -188,7 +178,7 @@ function Bets() {
           </button>
           <button
             onClick={() => setSettlementFilter("settel")}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
+            className={`px-3 py-1 rounded-md text-sm font-medium uppercase ${
               settlementFilter === "settel"
                 ? "bg-[#17934e] text-white"
                 : "bg-gray-200 text-gray-700"
@@ -200,7 +190,7 @@ function Bets() {
       </div>
 
       {/* Bets List */}
-      <div className="bg-[#f1f7ff] min-h-[70vh]">
+      <div className="px-2 text-white pb-30 pt-5">
         {betsContent}
       </div>
     </div>

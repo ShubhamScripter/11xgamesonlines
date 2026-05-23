@@ -1,0 +1,207 @@
+.sports-section {
+  padding: 15px 10px;
+  color: white;
+  width: 100%;
+}
+
+.sports-header {
+  margin-bottom: 15px;
+  padding-left: 5px;
+}
+
+.sports-title {
+  font-style: italic;
+  font-weight: 900;
+  font-size: 1.4rem;
+  margin: 0;
+  letter-spacing: 1px;
+  color: white;
+  text-transform: uppercase;
+}
+
+.sports-underline {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #00c5ff, #19A044);
+  margin-top: 5px;
+  border-radius: 2px;
+}
+
+.matches-scroll-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 15px;
+  padding: 5px 5px 15px 5px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.matches-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.match-card {
+  min-width: 290px;
+  max-width: 290px;
+  background: #222424;
+  border-radius: 12px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.match-card:hover {
+  transform: translateY(-4px);
+  background: #232c37;
+  border-color: rgba(0, 197, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sport-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  background: blue;
+  color: white;
+}
+
+.sport-icon {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.badge-container {
+  display: flex;
+  gap: 5px;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 900;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.badge-mo { background-color: #314455; }
+.badge-bm { background-color: #2b5055; }
+.badge-f { background-color: #205c5c; }
+
+.league-name {
+  font-size: 0.8rem;
+  color: #00c5ff;
+  font-weight: 600;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+
+.teams-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #ffffff;
+}
+
+.time-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.match-time-text {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 500;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.live-tag {
+  background: #ff0000;
+  color: white;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+}
+
+.odds-container {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.odds-group {
+  display: flex;
+  flex: 1;
+
+}
+
+.odds-box {
+  flex: 1;
+  padding: 5px 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.odds-box:hover {
+  opacity: 0.9;
+}
+
+.odds-box.back {
+  background-color: #a5d7f5;
+}
+
+.odds-box.lay {
+  background-color: #f6b6d2;
+}
+
+.odds-box.lock {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 1rem;
+}
+
+.odds-val {
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+.odds-vol {
+  font-size: 0.65rem;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.odds-placeholder {
+  display: flex;
+  width: 100%;
+  gap: 6px;
+}
