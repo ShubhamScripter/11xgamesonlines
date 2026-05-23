@@ -122,6 +122,11 @@ import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
 import { createBet, getPendingBetAmo, messageClear } from "../../features/sports/betReducer";
 
+import {
+  blockingStatusLabel,
+  isSelectionBetBlocked,
+} from "../../utils/bettingGstatus";
+
 function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData, gameName }) {
   const dispatch = useDispatch();
  
@@ -254,10 +259,13 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
           const lay1 = sec.odds?.find((o) => o.oname === "lay1");
           const lay2 = sec.odds?.find((o) => o.oname === "lay2");
           const lay3 = sec.odds?.find((o) => o.oname === "lay3");
+          const marketStatus = BookmakerList[0]?.status;
 
           return {
             team: sec.nat || "-",
             sid: sec.sid,
+            gstatus: sec.gstatus,
+            marketStatus,
             values: [
               { value: back3?.odds ?? "-", odds: back3?.size ?? "-", type: 'back' },
               { value: back2?.odds ?? "-", odds: back2?.size ?? "-", type: 'back' },
@@ -268,7 +276,6 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
             ],
             max: BookmakerList[0]?.max ?? 0, // market-level max
             min: BookmakerList[0]?.min ?? 0, // market-level min
-            status: sec.gstatus, // per-team status
           };
         })
       : [];
@@ -324,7 +331,13 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
       {/* Odds table */}
       <div className="py-1 rounded-b-2xl">
         {bookmakerData.map((market, idx) => {
-          const isSuspended = market.status === "SUSPENDED";
+          // Check if all odds are either "-" or 0
+          const isDataZero = market.values.every(
+            (v) => v.value === "-" || Number(v.value) === 0
+          );
+
+          const rowBlocked = isDataZero;
+          let blockLabel = isDataZero ? "SUSPENDED" : "";
 
           return (
             <div
@@ -333,20 +346,28 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
             >
               <div className="col-span-6 md:col-span-4 pl-1">
                 <div className="text-sm font-bold text-white leading-tight truncate">{market.team}</div>
+                {blockLabel ? (
+                  <span className="text-[10px] text-amber-400 font-medium block mt-0.5 leading-snug">
+                    {blockLabel}
+                  </span>
+                ) : null}
                 <MyComponent 
                   team={market.team} 
                   pendingBet={pendingBet} 
                   index={idx} 
                 />
               </div>
-              <div className="col-span-6 md:col-span-8 grid grid-cols-2 md:grid-cols-6 gap-1">
+              <div className="col-span-6 md:col-span-8 grid grid-cols-2 md:grid-cols-6 gap-1 relative">
+                {rowBlocked && (
+                  <div className="absolute inset-0 z-[1] bg-black/25 rounded-sm pointer-events-none" aria-hidden />
+                )}
                 {market.values.map((item, i) => {
                   const isDesktopOnly = [0, 1, 4, 5].includes(i);
                   return (
                     <div
                       key={i}
                       onClick={() => {
-                        if (!isSuspended) {
+                        if (!rowBlocked) {
                           openBetSlip({
                             type: item.type,
                             selection: market.team,
@@ -365,26 +386,20 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
                         }
                       }}
                       className={`flex flex-col justify-center items-center rounded-sm min-h-[36px] transition-all
-                      ${isSuspended
-                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      ${rowBlocked
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed opacity-70"
                         : item.type === 'back'
                         ? "bg-[#a5d9fe] cursor-pointer hover:brightness-95"
                         : "bg-[#f8d0d8] cursor-pointer hover:brightness-95"
                       }
                       ${isDesktopOnly ? 'hidden md:flex' : 'flex'}`}
                     >
-                      {isSuspended && !isDesktopOnly ? (
-                        <span className="text-[10px] font-bold uppercase">Susp</span>
-                      ) : (
-                        <>
-                          <span className="text-[12px] font-bold leading-none text-gray-900">
-                            {item.value !== "-" ? formatToTwoDecimals(item.value) : "-"}
-                          </span>
-                          <span className="text-[9px] text-gray-600 font-medium">
-                            {item.odds !== "-" ? formatToK(item.odds) : "-"}
-                          </span>
-                        </>
-                      )}
+                      <span className="text-[12px] font-bold leading-none text-gray-900">
+                        {item.value !== "-" ? formatToTwoDecimals(item.value) : "-"}
+                      </span>
+                      <span className="text-[9px] text-gray-600 font-medium">
+                        {item.odds !== "-" ? formatToK(item.odds) : "-"}
+                      </span>
                     </div>
                   );
                 })}

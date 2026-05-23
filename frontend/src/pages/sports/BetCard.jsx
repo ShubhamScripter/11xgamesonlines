@@ -506,10 +506,10 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
             {/* Place Bet Button */}
             <button
               className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-md transition-all transform active:scale-[0.98]
-                ${loading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#17934e] text-white hover:bg-[#147a41]'}
+                ${loading || (stake !== '' && (parseFloat(stake) < min || parseFloat(stake) > max)) || !stake || parseFloat(stake) <= 0 ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-[#17934e] text-white hover:bg-[#147a41]'}
               `}
               onClick={handlePlaceBet}
-              disabled={loading}
+              disabled={loading || (stake !== '' && (parseFloat(stake) < min || parseFloat(stake) > max)) || !stake || parseFloat(stake) <= 0}
             >
               {loading ? 'Placing...' : 'Place Bet'}
             </button>

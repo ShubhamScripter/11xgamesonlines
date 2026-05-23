@@ -99,6 +99,10 @@ import { toast } from 'react-hot-toast';
 import { getUser } from "../../features/auth/authSlice";
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
+import {
+  blockingStatusLabel,
+  isSelectionBetBlocked,
+} from "../../utils/bettingGstatus";
 
 function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, gameName }) {
   const dispatch = useDispatch();
@@ -180,10 +184,13 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
       const lay1 = sec?.odds?.find((o) => o.oname === "lay1");
       const lay2 = sec?.odds?.find((o) => o.oname === "lay2");
       const lay3 = sec?.odds?.find((o) => o.oname === "lay3");
+      const marketStatus = matchOddsList[0]?.status;
 
       return {
         team: sec?.team ?? sec?.nat ?? "-",
         sid: sec?.sid ?? "",
+        gstatus: sec?.gstatus,
+        marketStatus,
         values: [
           { value: back3?.odds ?? "-", odds: back3?.size ?? "-", type: 'back' },
           { value: back2?.odds ?? "-", odds: back2?.size ?? "-", type: 'back' },
@@ -194,7 +201,7 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
         ],
         max: matchOddsList?.[0]?.max,
         min: matchOddsList?.[0]?.min,
-        status: matchOddsList[0]?.status,
+        status: marketStatus,
       };
     }) || [];
 
@@ -365,26 +372,42 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
 
       {/* Odds List */}
       <div className="py-1 rounded-b-2xl">
-        {oddsData?.map((team, idx) => (
+        {oddsData?.map((team, idx) => {
+          const isDataZero = team.values.every(
+            (v) => v.value === "-" || Number(v.value) === 0
+          );
+
+          const rowBlocked = isDataZero;
+          let blockLabel = isDataZero ? "SUSPENDED" : "";
+          return (
           <div
             key={idx}
             className="grid grid-cols-12 gap-1 items-center border-b border-gray-600 py-1"
           >
             <div className="col-span-6 md:col-span-4 pl-1">
               <div className="text-sm font-bold text-white leading-tight truncate">{team.team}</div>
+              {blockLabel ? (
+                <span className="text-[10px] text-amber-400 font-medium block mt-0.5 leading-snug">
+                  {blockLabel}
+                </span>
+              ) : null}
               <MyComponent 
                 team={team.team} 
                 pendingBet={pendingBet} 
                 index={idx} 
               />
             </div>
-            <div className="col-span-6 md:col-span-8 grid grid-cols-2 md:grid-cols-6 gap-1">
+            <div className="col-span-6 md:col-span-8 grid grid-cols-2 md:grid-cols-6 gap-1 relative">
+              {rowBlocked && (
+                <div className="absolute inset-0 z-[1] bg-black/25 rounded-sm pointer-events-none" aria-hidden />
+              )}
               {team.values.map((item, i) => {
                 const isDesktopOnly = [0, 1, 4, 5].includes(i);
                 return (
                   <div
                     key={i}
-                    onClick={() =>
+                    onClick={() => {
+                      if (rowBlocked) return;
                       openBetSlip?.({
                         type: item.type,
                         selection: team.team,
@@ -399,9 +422,10 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
                         max: oddsData?.[0]?.max ?? 0,
                         sid: oddsData,
                         marketId: matchOddsList?.[0]?.id,
-                      })
-                    }
-                    className={`flex flex-col justify-center items-center rounded-sm cursor-pointer py-1 min-h-[36px] transition-all hover:brightness-95
+                      });
+                    }}
+                    className={`flex flex-col justify-center items-center rounded-sm py-1 min-h-[36px] transition-all
+                    ${rowBlocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:brightness-95"}
                     ${item.type === 'back' ? 'bg-[#a5d9fe]' : 'bg-[#f8d0d8]'}
                     ${isDesktopOnly ? 'hidden md:flex' : 'flex'}`}
                   >
@@ -416,7 +440,8 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
 
       </div>
     </div>

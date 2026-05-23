@@ -232,6 +232,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
 import { getPendingBetAmo } from "../../features/sports/betReducer";
+import {
+  blockingStatusLabel,
+  isSelectionBetBlocked,
+} from "../../utils/bettingGstatus";
 function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
   const { pendingBet } = useSelector((state) => state.bet);
   
@@ -253,7 +257,8 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
         ],
         min: item.min ?? 0,
         max: item.max ?? 0,
-        status: item.status,
+        gstatus: item.gstatus != null ? item.gstatus : item.status,
+        marketStatus: item.marketStatus != null ? item.marketStatus : item.status,
         statusLabel: item.statusLabel,
       };
     })
@@ -276,7 +281,14 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
       {/* Market List */}
       <div className="">
         {fancyMarkets.map((market, idx) => {
-          const isSuspended = market.statusLabel === "Ball Running";
+          const ballRunning = market.statusLabel === "Ball Running";
+          const rowBlocked =
+            ballRunning ||
+            isSelectionBetBlocked({ gstatus: market.gstatus }, market.marketStatus);
+          const overlayText = ballRunning
+            ? "Ball Running"
+            : blockingStatusLabel({ gstatus: market.gstatus }, market.marketStatus) ||
+              "Suspended";
 
           return (
             <React.Fragment key={idx}>
@@ -303,15 +315,15 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
                 {/* BUTTON AREA */}
                 <div className="relative flex gap-1">
 
-                  {/* OVERLAY WHEN SUSPENDED */}
-                  {isSuspended && (
+                  {/* OVERLAY WHEN NOT BETTABLE */}
+                  {rowBlocked && (
                     <div
                       className="absolute inset-0 flex items-center justify-center 
                                  bg-gray-500/60 bg-opacity-40 backdrop-blur-sm 
-                                 rounded-lg z-10"
+                                 rounded-lg z-10 px-1"
                     >
-                      <span className="text-white font-semibold text-sm">
-                        Ball Running
+                      <span className="text-white font-semibold text-[11px] text-center leading-tight">
+                        {overlayText}
                       </span>
                     </div>
                   )}
@@ -322,7 +334,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
                     <div
                       key={i}
                       onClick={() => {
-                        if (!isSuspended) {
+                        if (!rowBlocked) {
                           openBetSlip({
                             type: i === 0 ? "No" : "Yes",
                             selection: market.title,
@@ -345,7 +357,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
                       }}
                       className={`flex flex-col justify-center items-center rounded-lg w-[60px] text-black py-1 transition
                         ${i === 0 ? "bg-[#72BBEF]" : "bg-[#FAA9BA]"}
-                        ${isSuspended
+                        ${rowBlocked
                           ? "opacity-40 pointer-events-none"
                           : "cursor-pointer hover:opacity-90"
                         }

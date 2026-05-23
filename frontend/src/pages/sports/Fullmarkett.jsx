@@ -1079,8 +1079,9 @@ console.log("data source",dataSource)
         odds: sec.odds,
         max: sec.max,
         min: sec.min,
-        mname: fancy1List[0].mname, // ✅ Access from first item
-        status: sec.gstatus, // ✅ Access from first item
+        mname: fancy1List[0].mname,
+        gstatus: sec.gstatus,
+        marketStatus: fancy1List[0].status,
       }))
       : [];
     // console.log("fancy1 data",fancy1Data) oddeven

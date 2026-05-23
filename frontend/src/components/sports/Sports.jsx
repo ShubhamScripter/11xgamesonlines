@@ -37,6 +37,16 @@ const formatMatchTime = (dateString, todayLabel = "today", tomorrowLabel = "tomo
 
 const t = (key) => key; // Mock translation function
 
+/** Show suspended / empty odds as "-" instead of "0". */
+const formatOddsPrice = (v) => {
+  if (v === null || v === undefined) return "-";
+  const s = String(v).trim();
+  if (s === "" || s === "0" || s === "0.0" || s === "0.00") return "-";
+  const n = Number(s);
+  if (!Number.isNaN(n) && n === 0) return "-";
+  return s;
+};
+
 const Sports = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -84,8 +94,8 @@ const Sports = () => {
           time: formatMatchTime(m.date, t("today"), t("tomorrow")),
           badges: [m.inplay && "MO", m.bm && "BM", m.f && "F"].filter(Boolean),
           odds: (m.odds || []).slice(0, 3).map((o) => ({
-            back: { price: o?.home ?? "—", volume: o?.backVolume || "—" },
-            lay: { price: o?.away ?? "—", volume: o?.layVolume || "—" },
+            back: { price: formatOddsPrice(o?.home), volume: o?.backVolume || "—" },
+            lay: { price: formatOddsPrice(o?.away), volume: o?.layVolume || "—" },
           })),
           raw: m,
         };
@@ -112,8 +122,8 @@ const Sports = () => {
           time: formatMatchTime(m.date, t("today"), t("tomorrow")),
           badges: [m.inplay && "MO", ...(m.channels || [])].filter(Boolean),
           odds: (m.odds || []).slice(0, 3).map((o) => ({
-            back: { price: o?.home ?? "—", volume: o?.backVolume || "—" },
-            lay: { price: o?.away ?? "—", volume: o?.layVolume || "—" },
+            back: { price: formatOddsPrice(o?.home), volume: o?.backVolume || "—" },
+            lay: { price: formatOddsPrice(o?.away), volume: o?.layVolume || "—" },
           })),
           raw: m,
         };
@@ -140,8 +150,8 @@ const Sports = () => {
           time: formatMatchTime(m.date, t("today"), t("tomorrow")),
           badges: [m.inplay && "MO", ...(m.channels || [])].filter(Boolean),
           odds: (m.odds || []).slice(0, 3).map((o) => ({
-            back: { price: o?.home ?? "—", volume: o?.backVolume || "—" },
-            lay: { price: o?.away ?? "—", volume: o?.layVolume || "—" },
+            back: { price: formatOddsPrice(o?.home), volume: o?.backVolume || "—" },
+            lay: { price: formatOddsPrice(o?.away), volume: o?.layVolume || "—" },
           })),
           raw: m,
         };

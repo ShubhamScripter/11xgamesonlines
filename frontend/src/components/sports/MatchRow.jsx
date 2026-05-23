@@ -1,6 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const formatOddsPrice = (v) => {
+  if (v === null || v === undefined) return '-';
+  const s = String(v).trim();
+  if (s === '' || s === '0' || s === '0.0' || s === '0.00') return '-';
+  const n = Number(s);
+  if (!Number.isNaN(n) && n === 0) return '-';
+  return s;
+};
+
 const MatchRow = ({ match, sportType }) => {
   const navigate = useNavigate();
 
@@ -41,11 +50,11 @@ const MatchRow = ({ match, sportType }) => {
         {/* Column 1 */}
         <div className="flex gap-0.5">
           <div className="flex-1 bg-[#4fa5d8] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[0]?.home || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[0]?.home)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
           <div className="flex-1 bg-[#f4adca] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[0]?.away || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[0]?.away)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
         </div>
@@ -53,11 +62,11 @@ const MatchRow = ({ match, sportType }) => {
         {/* Column X */}
         <div className="flex gap-0.5">
           <div className="flex-1 bg-[#4fa5d8] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[1]?.home || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[1]?.home)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
           <div className="flex-1 bg-[#f4adca] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[1]?.away || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[1]?.away)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
         </div>
@@ -65,11 +74,11 @@ const MatchRow = ({ match, sportType }) => {
         {/* Column 2 */}
         <div className="flex gap-0.5">
           <div className="flex-1 bg-[#4fa5d8] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[2]?.home || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[2]?.home)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
           <div className="flex-1 bg-[#f4adca] rounded-sm flex flex-col items-center justify-center py-1 min-h-[36px]">
-            <span className="text-black font-bold text-xs">{odds[2]?.away || '0'}</span>
+            <span className="text-black font-bold text-xs">{formatOddsPrice(odds[2]?.away)}</span>
             <span className="text-[8px] text-black opacity-70">-</span>
           </div>
         </div>
