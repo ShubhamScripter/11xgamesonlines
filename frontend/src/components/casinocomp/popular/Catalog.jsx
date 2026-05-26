@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import {GameShows , Baccarat, Roulette,Dice, NewLiveGames} from '../../../components/Homelive/Pics'
-import { startCasinoGame } from '../../../services/casinoService'
-import { GAME_NAMES } from '../../../components/Homelive/gameMappings'
+import { startCasinoGame, getCasinoWalletAmount } from '../../../services/casinoService';import { GAME_NAMES } from '../../../components/Homelive/gameMappings'
 import Spinner from '../../Spinner'
 function Catalog() {
   const { user } = useSelector((state) => state.auth);
@@ -12,11 +11,6 @@ function Catalog() {
   const handleGameClick = async (gameData, gameName) => {
     if (!user) {
       toast.error('Please login to play casino games');
-      return;
-    }
-
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error('Insufficient balance to play casino games');
       return;
     }
 

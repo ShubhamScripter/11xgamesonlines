@@ -44,6 +44,13 @@ export const registerSelf = async (req, res) => {
       return res.status(400).json({ message: 'Username is required.' });
     }
 
+    const MAX_USERNAME_LENGTH = 10;
+    if (normalizedUserName.length > MAX_USERNAME_LENGTH) {
+      return res.status(400).json({
+        message: `Username must be at most ${MAX_USERNAME_LENGTH} characters.`,
+      });
+    }
+
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
@@ -166,8 +173,22 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
       req.connection?.socket?.remoteAddress ||
       'IP not found';
 
-    const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-    const { city, region, country_name: country, org: isp } = response.data;
+    let city = null;
+    let region = null;
+    let country = null;
+    let isp = null;
+
+    try {
+      const response = await axios.get(`https://ipapi.co/${ip}/json/`, {
+        timeout: 4000,
+      });
+      city = response.data?.city ?? null;
+      region = response.data?.region ?? null;
+      country = response.data?.country_name ?? null;
+      isp = response.data?.org ?? null;
+    } catch {
+      // Still save login row when geo lookup fails (localhost, rate limit, etc.)
+    }
 
     const now = new Date();
     const formattedDateTime = now
@@ -182,11 +203,18 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
       })
       .replace(',', '');
 
+    const normalizedStatus =
+      status === 'Success'
+        ? 'Login Successful'
+        : typeof status === 'string' && status.toLowerCase().includes('success')
+          ? 'Login Successful'
+          : 'Login Failed';
+
     await LoginHistory.create({
       userName,
-      userId: id,
+      userId: String(id),
       role,
-      status: status === 'Success' ? 'Login Successful' : 'Login Failed',
+      status: normalizedStatus,
       dateTime: formattedDateTime,
       ip,
       isp,
@@ -459,7 +487,9 @@ export const getLoginHistory = async (req, res) => {
       });
     }
 
-    const data = await LoginHistory.find({ userId: selfId })
+    const data = await LoginHistory.find({
+      $or: [{ userId: selfId }, { userId: userId }],
+    })
       .sort({ createdAt: -1 })
       .lean();
 

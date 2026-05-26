@@ -26,7 +26,7 @@ function MyProfile({ setProfileOpen }) {
                 <span className="text-gray-300 text-md">Username</span>
               </td>
               <td colSpan={2} className="p-2">
-                <span className="text-gray-300 text-md">{user?.username}</span>
+                <span className="text-gray-300 text-md">{user?.userName || '—'}</span>
               </td>
             </tr>
             <tr className="border-b border-gray-700">

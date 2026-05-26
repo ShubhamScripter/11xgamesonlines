@@ -7,7 +7,7 @@ function MainBalanceCard() {
   const { user, isLoading } = useSelector((state) => state.auth);
   // console.log("user from balance overview", user);
   const [balance, setBalance] = useState(106.70)
-  const [currency, setcurrency] = useState('INR')
+  const [currency, setcurrency] = useState('BDT')
 
   useEffect(() => {
     dispatch(getUser());

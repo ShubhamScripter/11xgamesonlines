@@ -3,8 +3,7 @@ import { useSelector } from 'react-redux'
 import { toast } from 'react-hot-toast'
 // import jiliGames from '../../../components/jili.json'
 import jiliGames from '../../../components/api_json/playtech.json'
-import { startCasinoGame } from '../../../services/casinoService'
-import { getTableImage } from '../../../components/TablePics'
+import { startCasinoGame, getCasinoWalletAmount } from '../../../services/casinoService';import { getTableImage } from '../../../components/TablePics'
 import Spinner from '../../Spinner'
 function PlayTech() {
   const { user } = useSelector((state) => state.auth);
@@ -19,20 +18,12 @@ function PlayTech() {
       return;
     }
 
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error('Insufficient balance to play casino games');
-      return;
-    }
-
     setLoading(true);
     try {
       console.log(`🎮 Launching ${game.game_name} with UID: ${game.game_uid}`);
       
-      const response = await startCasinoGame(
-        user.userName,
-        game.game_uid,
-        user.avbalance
-      );
+      const response = await startCasinoGame(user.userName,
+        game.game_uid, getCasinoWalletAmount(user));
 
       if (response.success) {
         toast.success(`${game.game_name} launching...`);

@@ -3,8 +3,9 @@ import { Link, useParams ,useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import Spinner from "../Spinner";
-import { startCasinoGame } from "../../services/casinoService";
-import { casinoData } from "./data/CasinoData";
+import { casinoData, isSportsCasinoGame } from "./data/CasinoData";
+import SportsBookCardArt from "../sports/SportsBookCardArt";
+import { launchCasinoGameForUser } from "../../services/casinoService";
 import { motion } from "framer-motion";
 import { IoIosArrowDown } from "react-icons/io";
 
@@ -39,6 +40,7 @@ function CasinoProvider() {
     fishing: "Fishing",
     arcade: "Arcade",
     crash: "Crash",
+    sports: "Sports",
   };
 
 const categoryIcons = {
@@ -74,6 +76,7 @@ const categoryIconsColor = {
         if (category === "fishing") return type?.includes("fish");
         if (category === "arcade") return type?.includes("arcade");
         if (category === "crash") return type?.includes("crash");
+        if (category === "sports") return isSportsCasinoGame(game);
         return true;
     });
 
@@ -83,26 +86,13 @@ const categoryIconsColor = {
       return;
     }
 
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error("Insufficient balance");
-      return;
-    }
-
     setLoading(true);
     try {
-      const res = await startCasinoGame(
-        user.userName,
-        game.game_uid,
-        user.avbalance
-      );
-
-      if (res.success) {
-        window.location.href = res.gameUrl;
-      } else {
-        toast.error(res.message);
-      }
+      const res = await launchCasinoGameForUser(user, game.game_uid);
+      toast.success(`${game.game_name} launching…`);
+      window.location.assign(res.gameUrl);
     } catch (err) {
-      toast.error("Game launch failed");
+      toast.error(err.message || "Game launch failed");
     } finally {
       setLoading(false);
     }
@@ -166,11 +156,20 @@ const categoryIconsColor = {
             onClick={() => handleGameClick(game)}
             className="cursor-pointer"
           >
-            <img
-              src={game.icon}
-              alt={game.game_name}
-              className="rounded w-full h-[180px] object-cover"
-            />
+            {category === "sports" || isSportsCasinoGame(game) ? (
+              <div className="rounded overflow-hidden bg-[#222424]">
+                <SportsBookCardArt providerKey={game.provider_key} />
+                <p className="px-2 py-2 text-[11px] font-semibold text-white truncate">
+                  {game.game_name}
+                </p>
+              </div>
+            ) : (
+              <img
+                src={game.icon}
+                alt={game.game_name}
+                className="rounded w-full h-[180px] object-cover"
+              />
+            )}
           </div>
         ))}
       </div>

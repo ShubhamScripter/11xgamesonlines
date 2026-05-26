@@ -73,10 +73,8 @@ function ActiveLog() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user?._id) {
-      dispatch(getUser());
-    }
-  }, [dispatch, user?._id]);
+    dispatch(getUser());
+  }, [dispatch]);
 
   useEffect(() => {
     const uid = user?._id;

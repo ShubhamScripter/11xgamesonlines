@@ -74,7 +74,7 @@ function BetHistory() {
           const userId = user?._id || user?.id;
           if (!userId) return;
           const response = await api.get(
-            `/casino/all-bet-history?id=${userId}&page=1&limit=500`,
+            `/casino/bet-history/${userId}?page=1&limit=500`,
             { withCredentials: true }
           );
           setCasinoBets(response?.data?.data || []);

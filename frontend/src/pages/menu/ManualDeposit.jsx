@@ -7,6 +7,8 @@ import { toast } from 'react-hot-toast';
 
 import HeaderLogin from '../../components/Header/HeaderLogin';
 import api from '../../utils/axiosConfig';
+import { resolveUploadUrl } from '../../utils/uploadUrl';
+import ImagePreviewLink from '../../components/common/ImagePreviewLink';
 
 function buildWhatsAppChatUrl(digits, message) {
   const d = String(digits || '').replace(/\D/g, '');
@@ -65,9 +67,6 @@ function ManualDeposit() {
     () => accounts.find((a) => a._id === selectedAccountId),
     [accounts, selectedAccountId]
   );
-  /** Static files host — API returns paths starting with `/uploads/...` only. */
-  const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
-  const MY_REQUEST_IMAGE_BASE_URL = 'https://11xgames.online';
   const copyToClipboard = async (text) => {
     const t = String(text ?? '').trim();
     if (!t) return;
@@ -77,27 +76,6 @@ function ManualDeposit() {
     } catch {
       toast.error('Could not copy');
     }
-  };
-
-  const resolveImageUrl = (value) => {
-    let src = String(value || '').trim();
-    if (
-      (src.startsWith('"') && src.endsWith('"')) ||
-      (src.startsWith("'") && src.endsWith("'"))
-    ) {
-      src = src.slice(1, -1).trim();
-    }
-    if (!src) return '';
-    if (/^https?:\/\//i.test(src)) {
-      try {
-        src = new URL(src).pathname || '';
-      } catch {
-        return src;
-      }
-    }
-    if (!src) return '';
-    const path = src.startsWith('/') ? src : `/${src}`;
-    return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
   };
 
   const loadAccounts = async (selectedMethod, { silent } = {}) => {
@@ -275,6 +253,9 @@ function ManualDeposit() {
       setAmount('');
       setReferenceId('');
       setPaymentNote('');
+      if (paymentImagePreview) {
+        URL.revokeObjectURL(paymentImagePreview);
+      }
       setPaymentImage(null);
       setPaymentImagePreview('');
       if (requestType === 'withdraw') {
@@ -288,15 +269,30 @@ function ManualDeposit() {
     }
   };
 
+  const clearPaymentImage = () => {
+    if (paymentImagePreview) {
+      URL.revokeObjectURL(paymentImagePreview);
+    }
+    setPaymentImage(null);
+    setPaymentImagePreview('');
+  };
+
   return (
-    <div className='bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 fixed top-0 left-0 w-full md:static z-20 h-screen'>
-      {/* <HeaderLogin /> */}
-      <div className="flex items-center text-[18px] font-bold gap-2 h-[66px]">
-          <MdArrowBackIos className="text-white text-md font-semibold" onClick={() => showMethods ? window.history.back() : setShowMethods(true)} />
-          {requestType === 'withdraw' ? "Withdraw" :'Deposit'}
+    <div className="bg-[#141515] text-white min-h-screen w-full md:w-[50%] mx-auto md:mt-12 flex flex-col">
+      <div className="flex shrink-0 items-center text-[18px] font-bold gap-2 h-[66px] px-4 border-b border-gray-800">
+        <MdArrowBackIos
+          className="text-white text-md font-semibold cursor-pointer"
+          onClick={() => (showMethods ? window.history.back() : setShowMethods(true))}
+        />
+        {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'}
+        {!showMethods && (
+          <span className="ml-auto text-xs font-normal text-gray-400 uppercase">
+            {method}
+          </span>
+        )}
       </div>
 
-      <div className="">
+      <div className="flex-1 overflow-y-auto px-4 pb-10 space-y-5">
           {showMethods && (
           <div className="rounded-md flex flex-col gap-2">
             {METHOD_OPTIONS.map((item) => (
@@ -378,16 +374,16 @@ function ManualDeposit() {
                             >
                               <div className="text-[10px] uppercase tracking-wide text-white">{key}</div>
                               {isImageField ? (
-                                <div className="mt-2 flex justify-center">
+                                <div className="mt-2 flex justify-center max-h-[220px] overflow-hidden">
                                   <img
-                                    src={resolveImageUrl(value)}
+                                    src={resolveUploadUrl(value)}
                                     alt={key}
-                                    className="w-56 h-56 sm:w-64 sm:h-64 rounded-xl border object-contain bg-[#222424] p-2"
+                                    className="max-w-full max-h-[200px] w-auto rounded-xl border object-contain bg-[#222424] p-2"
                                     onError={(e) => {
                                       try {
                                         const raw = String(value || '');
                                         // Always resolve to the static uploads host.
-                                        const resolved = resolveImageUrl(raw);
+                                        const resolved = resolveUploadUrl(raw);
                                         if (!e.currentTarget.dataset.fallback) {
                                           e.currentTarget.dataset.fallback = '1';
                                           if (resolved) e.currentTarget.src = resolved;
@@ -428,11 +424,11 @@ function ManualDeposit() {
         ) : null}
 
         {!(requestType === 'deposit' && method === 'whatsapp') ? (
-        <form onSubmit={submitRequest} className="rounded-xl shadow-sm">
-          <div className="text-sm font-semibold mb-2">
-            Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request
+        <form onSubmit={submitRequest} className="rounded-xl space-y-4">
+          <div className="text-sm font-semibold">
+            Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request (BDT)
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="number"
               step="0.01"
@@ -440,7 +436,7 @@ function ManualDeposit() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-              placeholder="Enter Amount (INR)"
+              placeholder="Enter Amount (BDT)"
               required
             />
             <input
@@ -609,55 +605,69 @@ function ManualDeposit() {
                 ) : null}
               </>
             ) : null}
-            {requestType === 'deposit' ? (
-              <>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPaymentImage(file);
-                    if (file) {
-                      setPaymentImagePreview(URL.createObjectURL(file));
-                    } else {
-                      setPaymentImagePreview('');
-                    }
-                  }}
-                  className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-                  required
-                />
-                {paymentImage ? (
-                  <div className="sm:col-span-2 border rounded-lg p-2 bg-[#222424]">
-                    <div className="text-xs font-semibold text-gray-700 mb-1">
-                      Selected file: {paymentImage.name}
-                    </div>
-                    {paymentImagePreview ? (
-                      <img
-                        src={paymentImagePreview}
-                        alt="Payment screenshot preview"
-                        className="w-40 h-40 rounded bg-[#222424] object-contain "
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <div className="sm:col-span-2 text-xs text-[#4b5563] bg-[#222424] border rounded-lg p-2">
+            {requestType === 'withdraw' ? (
+              <div className="sm:col-span-2 text-xs text-gray-400 bg-[#222424] border border-gray-700 rounded-lg p-3">
                 Screenshot upload is not required for withdraw request.
               </div>
-            )}
+            ) : null}
           </div>
+
+          {requestType === 'deposit' ? (
+            <div className="space-y-3 rounded-lg border border-gray-700 bg-[#222424] p-3">
+              <label className="block text-sm font-semibold text-white">
+                Payment screenshot <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  if (paymentImagePreview) {
+                    URL.revokeObjectURL(paymentImagePreview);
+                  }
+                  setPaymentImage(file);
+                  setPaymentImagePreview(file ? URL.createObjectURL(file) : '');
+                }}
+                className="w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#14805e] file:px-3 file:py-2 file:text-white file:font-medium"
+                required={!paymentImage}
+              />
+              {paymentImage && paymentImagePreview ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400 truncate">{paymentImage.name}</p>
+                  <div className="flex justify-center rounded-lg bg-[#1a1a1a] p-2">
+                    <img
+                      src={paymentImagePreview}
+                      alt="Payment screenshot preview"
+                      className="max-h-[200px] max-w-full w-auto object-contain rounded"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearPaymentImage}
+                    className="text-xs text-red-400 underline"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Upload a clear screenshot of your payment (JPG/PNG).
+                </p>
+              )}
+            </div>
+          ) : null}
+
           <textarea
             value={paymentNote}
             onChange={(e) => setPaymentNote(e.target.value)}
-            className="w-full bg-[#222424] rounded-lg px-3 py-2 mt-2 outline-none"
+            className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none border border-gray-700"
             rows={3}
             placeholder="Payment note"
           />
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2 rounded-lg bg-[#19A044] text-white font-semibold disabled:opacity-60 mt-2"
+            className="w-full py-3 rounded-lg bg-[#19A044] text-white font-semibold disabled:opacity-60"
           >
             {submitting
               ? 'Submitting...'
@@ -670,9 +680,9 @@ function ManualDeposit() {
         </>
         )}
 
-        <div className="bg-[#141515] rounded-xl py-3 shadow-sm mt-5">
-          <div className="text-sm font-semibold mb-2">My Requests</div>
-          <div className="overflow-auto">
+        <div className="rounded-xl py-3 border-t border-gray-800 mt-2">
+          <div className="text-sm font-semibold mb-3">My Requests</div>
+          <div className="overflow-x-auto -mx-1 px-1">
             <table className="w-full text-xs min-w-[620px]">
               <thead>
                 <tr className="text-left border-b">
@@ -702,14 +712,10 @@ function ManualDeposit() {
                       <td>{r.status}</td>
                        <td>
                         {r.paymentImageUrl ? (
-                          <a
-                            href={`${MY_REQUEST_IMAGE_BASE_URL}${r.paymentImageUrl}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 underline"
-                          > 
-                            View
-                          </a>
+                          <ImagePreviewLink
+                            href={resolveUploadUrl(r.paymentImageUrl)}
+                            label="View"
+                          />
                         ) : (
                           '-'
                         )} 

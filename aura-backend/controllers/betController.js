@@ -854,21 +854,40 @@ const placeBet = async (req, res) => {
 
       const meta = marketCheck.marketMeta || {};
 
+      console.log("meta of placing data is:",meta)
+
+      console.log("payload of placing data is:",{
+        event_id: gameId,
+        event_name: eventName,
+        market_id: meta.mid || null,
+        market_name: toApiMarketName(marketName),
+        market_type: gameType,
+        client_ref: null,
+        sport_id: sid,
+        fancyId: meta.gmid || null,
+        fancymid: meta.mid || null,
+        bevent_id: gameId || null,
+        runners: meta.runners || [],
+      })
+
       //Here we are using the external Api
       try {
         await apiSendBetIncoming({
-          event_id: gameId,
+          event_id: meta.gmid || gameId,
           event_name: eventName,
-          market_id: market_id,
+          market_id: meta.mid || null,
           market_name: toApiMarketName(marketName),
           market_type: gameType,
           client_ref: null,
           sport_id: sid,
+          sport_name: (gameName || '').replace(/\s*game\s*$/i, ''),
           fancyId: null,
           fancymid: meta.mid || null,
-          bevent_id: meta.beventId || null,
+          bevent_id: gameId || null,
           runners: meta.runners || [],
         });
+
+      
       } catch (apiErr) {
         console.error(
           `[SPORTS BET] bet-incoming API failed for gameId=${gameId}:`,
@@ -2849,6 +2868,10 @@ export const updateFancyBetResult = async (req, res) => {
             getProviderName() === 'providerb' ||
             getProviderName() === 'provider_b';
 
+            const isProviderC =
+            getProviderName() === 'providerc' ||
+            getProviderName() === 'provider_c';
+
           for (const bet of groupedBets[gameId]) {
             const sid = bet.sid;
 
@@ -2858,7 +2881,7 @@ export const updateFancyBetResult = async (req, res) => {
             if (process.env.DEV_MOCK_API === '1') {
               score = '200';
               console.log(` [MOCK API] Using test score: ${score}`);
-            } else if (isProviderB && bet.fancyId) {
+            } else if ((isProviderB || isProviderC) && bet.fancyId) {
               // Provider B: use /cricket/fancyresult with eventId + fancyId
               try {
                 const fancyResult = await apiFetchCricketFancyResult(
@@ -3894,7 +3917,8 @@ export const getBetHistory = async (req, res) => {
   } = req.query;
 
   try {
-    const query = { userId: id, status: 0 };
+    const userId = String(id);
+    const query = { userId };
 
     // Filter by date if both start and end dates are provided
     if (startDate && endDate) {
@@ -3906,20 +3930,22 @@ export const getBetHistory = async (req, res) => {
       query.gameName = selectedGame;
     }
 
-    // Filter by selectedVoid if provided
+    // Filter by selectedVoid if provided (default: unsettled only)
     if (selectedVoid === 'settel') {
       query.status = { $ne: 0 };
       query.betResult = { $not: { $regex: /^VOID$/i } };
     } else if (selectedVoid === 'void') {
       query.status = 2;
       query.betResult = { $regex: /^VOID$/i };
-    } else if (selectedVoid === 'unsettel') {
+    } else if (selectedVoid === 'unsettel' || selectedVoid === 'unsettle') {
+      query.status = 0;
+    } else {
       query.status = 0;
     }
 
     const bets = await betHistoryModel
       .find(query)
-      .sort({ date: -1 }) // most recent first
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 

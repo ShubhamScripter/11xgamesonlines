@@ -1,0 +1,145 @@
+.exclusive-section {
+  background: #141515;
+  padding: 8px 12px 28px;
+  color: #fff;
+}
+
+.exclusive-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.exclusive-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exclusive-title-bar {
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: #14805e;
+  flex-shrink: 0;
+}
+
+.exclusive-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+.exclusive-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.exclusive-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  background: #222424;
+  color: #d1d5db;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.exclusive-nav-btn:hover:not(:disabled) {
+  background: #2d2f2f;
+  color: #fff;
+}
+
+.exclusive-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.exclusive-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.exclusive-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.exclusive-card {
+  flex-shrink: 0;
+  width: 112px;
+  border: none;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exclusive-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.exclusive-card-image-wrap {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #1a1a1a;
+}
+
+.exclusive-card-badge {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 1;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.exclusive-card-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.exclusive-card-title {
+  margin: 8px 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.exclusive-card-provider {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}

@@ -10,6 +10,8 @@ import logoMp4 from '../../assets/bajiVideo.mp4'
 import moblogoMp4 from '../../assets/welcome-bn.mp4';
 import { HiOutlineHome } from 'react-icons/hi';
 
+const MAX_USERNAME_LENGTH = 10;
+
 function Register() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -39,8 +41,13 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!username.trim()) {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
       toast.error('Username is required');
+      return;
+    }
+    if (trimmedUsername.length > MAX_USERNAME_LENGTH) {
+      toast.error(`Username must be at most ${MAX_USERNAME_LENGTH} characters`);
       return;
     }
     if (!email.trim()) {
@@ -65,9 +72,9 @@ function Register() {
 
     dispatch(
       register({
-        userName: username.trim(),
+        userName: trimmedUsername,
         password,
-        name: name.trim() || username.trim(),
+        name: name.trim() || trimmedUsername,
         email: email.trim(),
       })
     );
@@ -111,12 +118,15 @@ function Register() {
                 </div>
                 <form className='flex flex-col' onSubmit={handleSubmit}>
                   <div className="mb-4">
-                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Username</label>
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">
+                      Username <span className="text-[#8d9aa5]/70 text-sm">(max {MAX_USERNAME_LENGTH} characters)</span>
+                    </label>
                     <div className='relative'>
                       <input
                         type="text"
                         id="username"
                         value={username}
+                        maxLength={MAX_USERNAME_LENGTH}
                         placeholder="Enter your username"
                         onChange={(e) => {
                           setUsername(e.target.value);

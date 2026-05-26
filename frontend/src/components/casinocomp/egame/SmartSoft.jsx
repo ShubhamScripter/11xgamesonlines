@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import spribeGames from '../../../components/api_json/smartsoft.json'
-import { startCasinoGame } from '../../../services/casinoService'
-import { getSpribeImage } from '../../../components/SpribePics'
+import { startCasinoGame, getCasinoWalletAmount } from '../../../services/casinoService';import { getSpribeImage } from '../../../components/SpribePics'
 import Spinner from '../../Spinner'
 function smartSoft() {
   const { user } = useSelector((state) => state.auth);
@@ -18,20 +17,12 @@ function smartSoft() {
       return;
     }
 
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error('Insufficient balance to play casino games');
-      return;
-    }
-
     setLoading(true);
     try {
       console.log(`🎮 Launching ${game.game_name} with UID: ${game.game_uid}`);
       
-      const response = await startCasinoGame(
-        user.userName,
-        game.game_uid,
-        user.avbalance
-      );
+      const response = await startCasinoGame(user.userName,
+        game.game_uid, getCasinoWalletAmount(user));
 
       if (response.success) {
         toast.success(`${game.game_name} launching...`);

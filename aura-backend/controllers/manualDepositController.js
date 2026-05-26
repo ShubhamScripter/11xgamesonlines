@@ -6,6 +6,12 @@ import mongoose from 'mongoose';
 import { sendBalanceUpdates, sendToUser, sendUserRefresh } from '../socket/bettingSocket.js';
 import TransactionHistory from '../models/transtionHistoryModel.js';
 import WithdrawalHistory from '../models/withdrawalHistoryModel.js';
+import { persistUploadedImage } from '../services/cloudinaryService.js';
+import {
+  resolveAdminUploadUrl,
+  resolvePublicUploadUrl,
+  toUploadPathOnly,
+} from '../utils/uploadUrl.js';
 
 const VALID_METHODS = ['bank', 'upi', 'crypto', 'whatsapp'];
 
@@ -66,34 +72,38 @@ const parseDetailsPayload = (details) => {
   return details;
 };
 
-/** Always store in DB as `/uploads/...` only (no host). Strip full URLs on save/read. */
-const toUploadPathOnly = (value) => {
-  if (value == null || value === '') return value;
-  const s = String(value).trim();
-  if (!s) return s;
-  if (/^https?:\/\//i.test(s)) {
-    try {
-      const u = new URL(s);
-      const p = u.pathname || '';
-      return p.startsWith('/') ? p : `/${p}`;
-    } catch {
-      return s;
-    }
-  }
-  return s.startsWith('/') ? s : `/${s}`;
-};
-
-/** API response: path only (`/uploads/...`) so clients can prepend their own static host. */
-const withResolvedAccountImage = (_req, accountDoc) => {
+/** API response: full image URLs so user & admin apps on different hosts still work. */
+const withResolvedAccountImage = (req, accountDoc) => {
   if (!accountDoc) return accountDoc;
   const account = accountDoc.toObject ? accountDoc.toObject() : { ...accountDoc };
   if (account?.details?.qrCodeUrl) {
     account.details = {
       ...account.details,
-      qrCodeUrl: toUploadPathOnly(account.details.qrCodeUrl),
+      qrCodeUrl: resolveAdminUploadUrl(account.details.qrCodeUrl, req),
     };
   }
   return account;
+};
+
+const withResolvedDepositRequest = (req, requestDoc) => {
+  if (!requestDoc) return requestDoc;
+  const row = requestDoc.toObject ? requestDoc.toObject() : { ...requestDoc };
+  if (row.paymentImageUrl) {
+    row.paymentImageUrl = resolvePublicUploadUrl(row.paymentImageUrl, req);
+  }
+  if (row.accountSnapshot?.details?.qrCodeUrl) {
+    row.accountSnapshot = {
+      ...row.accountSnapshot,
+      details: {
+        ...row.accountSnapshot.details,
+        qrCodeUrl: resolveAdminUploadUrl(
+          row.accountSnapshot.details.qrCodeUrl,
+          req
+        ),
+      },
+    };
+  }
+  return row;
 };
 
 const parseIsActive = (value) => {
@@ -121,7 +131,10 @@ export const createManualDepositAccount = async (req, res) => {
     }
 
     if (method === 'upi' && uploadedImage) {
-      details.qrCodeUrl = `/uploads/deposit-accounts/${uploadedImage.filename}`;
+      details.qrCodeUrl = await persistUploadedImage(
+        uploadedImage,
+        'deposit-accounts'
+      );
     } else if (details.qrCodeUrl) {
       details.qrCodeUrl = toUploadPathOnly(details.qrCodeUrl);
     }
@@ -181,7 +194,10 @@ export const updateManualDepositAccount = async (req, res) => {
     if (account.method === 'upi' && uploadedImage) {
       account.details = {
         ...(account.details || {}),
-        qrCodeUrl: `/uploads/deposit-accounts/${uploadedImage.filename}`,
+        qrCodeUrl: await persistUploadedImage(
+          uploadedImage,
+          'deposit-accounts'
+        ),
       };
     }
     if (isActive !== undefined) {
@@ -463,7 +479,7 @@ export const createManualDepositRequest = async (req, res) => {
 
     const paymentImageUrl =
       requestType === 'deposit' && uploadedImage
-        ? `/uploads/deposits/${uploadedImage.filename}`
+        ? await persistUploadedImage(uploadedImage, 'deposits')
         : '';
 
     // If withdraw request: debit wallet immediately (even while request stays pending).
@@ -562,7 +578,7 @@ export const createManualDepositRequest = async (req, res) => {
         requestType === 'withdraw'
           ? 'Withdraw request submitted. Please wait for admin approval.'
           : 'Deposit request submitted. Please wait for admin approval.',
-      data: request,
+      data: withResolvedDepositRequest(req, request),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });
@@ -577,7 +593,7 @@ export const getMyManualDepositRequests = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: requests,
+      data: requests.map((r) => withResolvedDepositRequest(req, r)),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });
@@ -651,7 +667,7 @@ export const getManualDepositRequestsForAdmin = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: merged,
+      data: merged.map((r) => withResolvedDepositRequest(req, r)),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });

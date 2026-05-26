@@ -123,9 +123,14 @@ export const getBetHistory = createAsyncThunk(
   async ({ page = 1, limit, startDate, endDate, selectedGame, selectedVoid }, { rejectWithValue }) => {
     try {
       let query = `?page=${page}&limit=${limit}`;
-
       if (startDate && endDate) {
-        query += `&startDate=${startDate}&endDate=${endDate}&selectedGame=${selectedGame}&selectedVoid=${selectedVoid}`;
+        query += `&startDate=${startDate}&endDate=${endDate}`;
+      }
+      if (selectedGame != null && selectedGame !== '') {
+        query += `&selectedGame=${encodeURIComponent(selectedGame)}`;
+      }
+      if (selectedVoid) {
+        query += `&selectedVoid=${encodeURIComponent(selectedVoid)}`;
       }
 
       const response = await api.get(`/user/bet/history${query}`, {
@@ -150,7 +155,7 @@ export const getCurrentBetCount = createAsyncThunk(
       const startDate = currentDate.toISOString().split('T')[0];
       const endDate = currentDate.toISOString().split('T')[0];
       
-      const query = `?page=1&limit=1000&selectedGame=&selectedVoid=unsettle`;
+      const query = `?page=1&limit=1000&selectedVoid=unsettel`;
       
       const response = await api.get(`/user/bet/history${query}`, {
         withCredentials: true,
@@ -266,7 +271,10 @@ const betSlice = createSlice({
       })
       .addCase(getBetHistory.rejected, (state, { payload }) => {
         state.loading = false;
-        state.errorMessage = payload?.message || "Something went wrong";
+        state.errorMessage =
+          payload?.message ||
+          payload?.error ||
+          (typeof payload === 'string' ? payload : 'Something went wrong');
       })
       .addCase(getTransactionHistory.pending, (state) => {
         state.loading = true;

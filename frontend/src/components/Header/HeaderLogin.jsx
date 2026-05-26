@@ -108,10 +108,6 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
   return (
       <>
         <div className="bg-[#141515] fixed top-0 left-0 w-full shadow-sm h-[65px] z-20 flex justify-between items-center py-3 px-2 border-b border-gray-700">
-                {/* <span className="text-white text-[8px] md:text-sm leading-none"> 
-                  {user?.userName}
-                  </span> */}
-            
             <div className="flex items-center justify-center h-[65px] py-2.5">
               <div className="bg-[#303232] p-3 rounded-[4px] mr-6 hidden md:block" onClick={() => setSidebarOpen(prev => !prev)}>
                 <GiHamburgerMenu className="text-yellow-200 text-[20px]" />
@@ -121,9 +117,12 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
 
             {user ? (
               <div className="flex items-center gap-2 h-full py-1">
+                <span className="text-white text-xs md:text-sm font-medium max-w-[100px] md:max-w-[140px] truncate hidden sm:block">
+                  {user?.userName || '—'}
+                </span>
                 <div className="flex bg-[#303232] pl-3 items-center h-full rounded-sm gap-2">
                   <span className="text-white text-[14px] md:text-[12px] md:text-base font-semibold">
-                    INR{" "}
+                    BDT{" "}
                       <span className="font-normal border-r border-gray-500 pr-1">{Number(user?.avbalance || 0).toFixed(2)}</span>
                     &nbsp; Exp (
                       <span className="text-[#e52219]">

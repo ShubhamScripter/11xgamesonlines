@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { NewLiveGames } from '../../../components/Homelive/Pics'
-import { startCasinoGame } from '../../../services/casinoService'
-import { GAME_NAMES } from '../../../components/Homelive/gameMappings'
+import { startCasinoGame, getCasinoWalletAmount } from '../../../services/casinoService';import { GAME_NAMES } from '../../../components/Homelive/gameMappings'
 import Spinner from '../../Spinner'
 function AtoZ() {
   const { user } = useSelector((state) => state.auth);
@@ -18,20 +17,12 @@ function AtoZ() {
       return;
     }
 
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error('Insufficient balance to play casino games');
-      return;
-    }
-
     setLoading(true);
     try {
       console.log(`🎮 Launching ${gameName} with UID: ${gameData.game_uid}`);
       
-      const response = await startCasinoGame(
-        user.userName,
-        gameData.game_uid,
-        user.avbalance
-      );
+      const response = await startCasinoGame(user.userName,
+        gameData.game_uid, getCasinoWalletAmount(user));
 
       if (response.success) {
         toast.success(`${gameName} launching...`);

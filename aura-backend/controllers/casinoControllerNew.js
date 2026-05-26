@@ -6,56 +6,66 @@ import { sendToUser, sendUserRefresh } from '../socket/bettingSocket.js';
 const API_TOKEN = process.env.CASINO_API_KEY;
 const API_SECRET = process.env.CASINO_API_SECRET;
 const SERVER_URL = process.env.CASINO_API_URL;
+/** Wallet display currency inside casino games (BulkAPI launch + callbacks). */
+const CASINO_CURRENCY = String(process.env.CASINO_CURRENCY || 'BDT')
+  .trim()
+  .toUpperCase();
+
+
 
 // 🎮 1. Start Casino Game
 export const startCasinoGame = async (req, res) => {
   try {
-    const { userName, game_uid, credit_amount } = req.body;
+    console.log("my currenncy is:", CASINO_CURRENCY);
+    const { game_uid, credit_amount, userName: bodyUserName } = req.body;
 
-    // ✅ Validate required fields
-    if (!userName || !game_uid || !credit_amount) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Missing required fields: userName, game_uid, credit_amount" 
+    if (!SERVER_URL || !API_TOKEN || !API_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message:
+          'Casino API is not configured. Set CASINO_API_URL, CASINO_API_KEY, and CASINO_API_SECRET on the server.',
       });
     }
 
-    // ✅ Find the subadmin/user before launching game
-    const subAdmin = await SubAdmin.findOne({ userName });
+    if (!game_uid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: game_uid',
+      });
+    }
+
+    const subAdmin = await SubAdmin.findById(req.id);
     if (!subAdmin) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ Check if user has sufficient balance
-    // if (subAdmin.avbalance < credit_amount) {
-    //   return res.status(400).json({ 
-    //     success: false, 
-    //     message: "Insufficient balance" 
-    //   });
-    // }
-    const roundedBalance = Math.round(subAdmin.avbalance * 100) / 100;
-    const roundedCreditAmount = Math.round(parseFloat(credit_amount) * 100) / 100;
-
-    if (roundedBalance < roundedCreditAmount) {
-      console.log("subadmin balance", subAdmin.avbalance);
-      console.log("credit amount", credit_amount);
-      console.log("rounded balance", roundedBalance);
-      console.log("rounded credit amount", roundedCreditAmount);
-      return res.status(400).json({ 
-        success: false, 
-        message: "Insufficient balance" 
+    const userName = subAdmin.userName;
+    if (
+      bodyUserName &&
+      String(bodyUserName).toLowerCase() !== String(userName).toLowerCase()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot launch game for another user',
       });
     }
+
+    // Use server balance (0 allowed — game still opens for demo / deposit prompt)
+    const walletAmount = Math.max(
+      0,
+      Math.round(Number(subAdmin.avbalance) * 100) / 100
+    );
 
     const timestamp = Math.round(Date.now());
 
-    // 🔧 Create payload exactly like PHP code
     const requestData = {
-      user_id: userName, // Using userName as user_id
-      wallet_amount: parseFloat(credit_amount),
+      user_id: userName,
+      wallet_amount: walletAmount,
       game_uid: game_uid,
       token: API_TOKEN,
-      timestamp: timestamp
+      timestamp: timestamp,
+      currency_code: CASINO_CURRENCY,
+      currency: CASINO_CURRENCY,
     };
 
     console.log("🔹 Request data:", requestData);
@@ -67,12 +77,15 @@ console.log("message is:", message);
     console.log("Encrypted payload is:", encryptedPayload);
 
     // 🔧 Build URL with parameters (like PHP code)
-    const gameUrl = `${SERVER_URL}/launch_game?` + 
+    const gameUrl =
+      `${SERVER_URL}/launch_game?` +
       `user_id=${encodeURIComponent(userName)}` +
-      `&wallet_amount=${encodeURIComponent(credit_amount)}` +
+      `&wallet_amount=${encodeURIComponent(walletAmount)}` +
       `&game_uid=${encodeURIComponent(game_uid)}` +
       `&token=${encodeURIComponent(API_TOKEN)}` +
       `&timestamp=${encodeURIComponent(timestamp)}` +
+      `&currency_code=${encodeURIComponent(CASINO_CURRENCY)}` +
+      `&currency=${encodeURIComponent(CASINO_CURRENCY)}` +
       `&payload=${encodeURIComponent(encryptedPayload)}`;
 
     console.log("🔹 Generated game URL:", gameUrl);
@@ -321,7 +334,7 @@ import CasinoBetHistory from '../models/casinoBetHistory.model.js';
 //         change: Number(change || -bet),
 //         wallet_before: Number(wallet_before),
 //         wallet_after: Number(wallet_after),
-//         currency_code: currency_code || "INR",
+//         currency_code: currency_code || CASINO_CURRENCY,
 //         token,
 //         provider_timestamp: timestamp ? new Date(timestamp) : new Date(),
 //         providerRaw: req.body,
@@ -451,7 +464,7 @@ export const casinoCallback = async (req, res) => {
         change: Number(change || -bet),
         wallet_before: Number(wallet_before || currentUser.avbalance),
         wallet_after: Number(updatedUser.avbalance),
-        currency_code: currency_code || "INR",
+        currency_code: currency_code || CASINO_CURRENCY,
         token,
         provider_timestamp: timestamp ? new Date(timestamp) : new Date(),
         providerRaw: req.body,
@@ -636,8 +649,15 @@ export const getCasinoBetHistory = async (req, res) => {
       });
     }
 
+    if (req.id && String(userId) !== String(req.id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
+
     // Build query
-    const query = { userId: userId };
+    const query = { userId: String(userId) };
 
     // Add date filtering if provided
     if (startDate && endDate) {

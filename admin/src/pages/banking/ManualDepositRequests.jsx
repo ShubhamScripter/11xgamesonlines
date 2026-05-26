@@ -3,23 +3,8 @@ import toast from 'react-hot-toast';
 
 import axiosInstance from '../../utils/axiosInstance';
 import { formatIST } from '../../utils/time';
-
-const DEPOSIT_UPLOADS_BASE = 'https://11xgames.online';
-
-function resolveDepositImageUrl(value) {
-  let src = String(value || '').trim();
-  if (!src) return '';
-  if (/^https?:\/\//i.test(src)) {
-    try {
-      src = new URL(src).pathname || '';
-    } catch {
-      return src;
-    }
-  }
-  if (!src) return '';
-  const path = src.startsWith('/') ? src : `/${src}`;
-  return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
-}
+import { resolveUploadUrl } from '../../utils/uploadUrl';
+import ImagePreviewLink from '../../components/ImagePreviewLink';
 
 const formatKey = (key) =>
   String(key || '')
@@ -189,14 +174,10 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
                   {!isWithdrawPage ? (
                     <td className="p-2">
                       {r.paymentImageUrl ? (
-                        <a
-                          href={resolveDepositImageUrl(r.paymentImageUrl)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 underline"
-                        >
-                          View
-                        </a>
+                        <ImagePreviewLink
+                          href={resolveUploadUrl(r.paymentImageUrl)}
+                          label="View Screenshot"
+                        />
                       ) : (
                         '-'
                       )}

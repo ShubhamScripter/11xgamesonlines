@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 
 import { createProviderA } from './providerA.js';
 import { createProviderB } from './providerB.js';
+import { createProviderC } from './providerC.js';
 
 dotenv.config();
 
@@ -10,6 +11,10 @@ const PROVIDER = (process.env.API_PROVIDER || 'providerA').toLowerCase();
 let activeProvider;
 
 switch (PROVIDER) {
+  case 'providerc':
+  case 'provider_c':
+    activeProvider = createProviderC();
+    break;
   case 'providerb':
   case 'provider_b':
     activeProvider = createProviderB();

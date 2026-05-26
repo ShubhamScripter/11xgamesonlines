@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import { NewLiveGames } from './Pics'
-import { startCasinoGame } from '../../services/casinoService'
-import { GAME_NAMES } from './gameMappings'
+import { startCasinoGame, getCasinoWalletAmount } from '../../services/casinoService';import { GAME_NAMES } from './gameMappings'
 import Spinner from '../Spinner'
 function Latest() {
   const { user } = useSelector((state) => state.auth);
@@ -18,20 +17,12 @@ function Latest() {
       return;
     }
 
-    if (!user.avbalance || user.avbalance <= 0) {
-      toast.error('Insufficient balance to play casino games');
-      return;
-    }
-
     setLoading(true);
     try {
       console.log(`🎮 Launching ${gameName} with UID: ${gameData.game_uid}`);
       
-      const response = await startCasinoGame(
-        user.userName,
-        gameData.game_uid,
-        user.avbalance
-      );
+      const response = await startCasinoGame(user.userName,
+        gameData.game_uid, getCasinoWalletAmount(user));
 
       if (response.success) {
         toast.success(`${gameName} launching...`);

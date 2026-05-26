@@ -1,31 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import axiosInstance from '../../utils/axiosInstance';
-
-/** API stores `/uploads/...` only; prepend admin static host for `<img>` / links. */
-const DEPOSIT_UPLOADS_BASE = 'http://ag.11xgames.online';
-
-function resolveDepositImageUrl(value) {
-  let src = String(value || '').trim();
-  if (
-    (src.startsWith('"') && src.endsWith('"')) ||
-    (src.startsWith("'") && src.endsWith("'"))
-  ) {
-    src = src.slice(1, -1).trim();
-  }
-  if (!src) return '';
-  if (/^https?:\/\//i.test(src)) {
-    try {
-      src = new URL(src).pathname || '';
-    } catch {
-      return src;
-    }
-  }
-  if (!src) return '';
-  const path = src.startsWith('/') ? src : `/${src}`;
-  return `${DEPOSIT_UPLOADS_BASE.replace(/\/$/, '')}${path}`;
-}
 import { FaToggleOff, FaToggleOn } from 'react-icons/fa';
+import axiosInstance from '../../utils/axiosInstance';
+import { resolveUploadUrl } from '../../utils/uploadUrl';
 
 const METHOD_SECTIONS = ['bank', 'upi', 'crypto', 'whatsapp'];
 
@@ -235,7 +212,7 @@ function ManualDepositAccounts() {
 
   const renderDetailsCell = (account) => {
     const details = account.details || {};
-    const qrSrc = resolveDepositImageUrl(details.qrCodeUrl);
+    const qrSrc = resolveUploadUrl(details.qrCodeUrl);
     if (account.method === 'upi') {
       return (
         <div className="space-y-1">
@@ -343,7 +320,7 @@ function ManualDepositAccounts() {
                 Existing image:{' '}
                 <a
                   className="text-blue-600 underline"
-                  href={resolveDepositImageUrl(form.qrCodeUrl)}
+                  href={resolveUploadUrl(form.qrCodeUrl)}
                   target="_blank"
                   rel="noreferrer"
                 >

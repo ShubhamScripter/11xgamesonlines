@@ -1,11 +1,14 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import HeaderLogin from '../components/Header/HeaderLogin';
 import Navbar from '../components/Header/Navbar';
 import MobNavbar from '../components/Header/MobNavbar';
 import Footer from '../components/Footer/Footer';
+import SiteFooter from '../components/Footer/SiteFooter';
+import ScrollToTop from '../components/ScrollToTop';
 import { Outlet } from 'react-router-dom';
+
 function MainLayout() {
+  const mainScrollRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -20,9 +23,14 @@ function MainLayout() {
             setSidebarOpen={setSidebarOpen} 
           />
         </div>
-        <section className="h-[calc(100vh-65px)] overflow-y-auto bg-[#141515] flex-1 no-scrollbar">
+        <section
+          ref={mainScrollRef}
+          className="h-[calc(100vh-65px)] overflow-y-auto bg-[#141515] flex-1 no-scrollbar"
+        >
+          <ScrollToTop scrollContainerRef={mainScrollRef} />
           <div className={`mx-auto ${sidebarOpen ? 'flex-1' : 'md:w-[80%]'}`}>
             <Outlet/>
+            <SiteFooter />
           </div>
         </section>
       </div>

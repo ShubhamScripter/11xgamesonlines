@@ -1,7 +1,7 @@
+import './config/loadEnv.js';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import http from 'http';
 import morgan from 'morgan';
@@ -24,11 +24,18 @@ import tennisRoutes from './routes/tennisRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import cashoutRoute from './routes/cashoutRoute.js';
 import { setupWebSocket } from './socket/bettingSocket.js';
-import casinoRoutesNew from './routes/casinoRoutesNew.js'
+import casinoRoutesNew from './routes/casinoRoutesNew.js';
+import { isCloudinaryEnabled } from './services/cloudinaryService.js';
 
-
-dotenv.config();
 connectDB();
+
+if (isCloudinaryEnabled()) {
+  console.log('[Uploads] Cloudinary enabled — images use public CDN URLs');
+} else {
+  console.warn(
+    '[Uploads] Cloudinary not configured — using local /uploads (set CLOUDINARY_* in .env)'
+  );
+}
 
 const app = express();
 const server = http.createServer(app);

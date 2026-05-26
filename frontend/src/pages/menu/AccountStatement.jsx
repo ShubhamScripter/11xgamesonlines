@@ -8,7 +8,7 @@ import api from '../../utils/axiosConfig';
 function AccountStatement() {
   const { user } = useSelector((state) => state.auth);
   const [balance, setbalance] = useState(106.70)
-  const [currency, setcurrency] = useState('INR')
+  const [currency, setcurrency] = useState('BDT')
   const [accountDataList, setAccountDataList] = useState([]);
   const [loading, setLoading] = useState(true);
 

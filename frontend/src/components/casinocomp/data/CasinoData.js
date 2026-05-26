@@ -17,6 +17,25 @@ import redtiger from "../../api_json/redTiger.json";
 import relax from "../../api_json/relax.json";
 import smartsoft from "../../api_json/smartsoft.json";
 import spribe from "../../api_json/spribe.json";
+import sportsBook from "../../api_json/sportsBook.json";
+
+export const isSportsCasinoGame = (game) => {
+  const type = game.game_type?.toLowerCase() || "";
+  return (
+    type.includes("sport") ||
+    type.includes("esport") ||
+    type.includes("virtualsport")
+  );
+};
+
+const sportsProviders = sportsBook.reduce((acc, game) => {
+  const key = game.provider_key;
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(game);
+  return acc;
+}, {});
+
+export const sportsCasinoGames = sportsBook;
 
 export const casinoData = {
   providers: {
@@ -39,5 +58,6 @@ export const casinoData = {
     relax,
     smartsoft,
     spribe,
-  }
+    ...sportsProviders,
+  },
 };
