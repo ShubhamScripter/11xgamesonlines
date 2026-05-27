@@ -34,7 +34,6 @@ function DownLineList() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const showAddUser = !!canAddUserRole[user?.role];
-  const showAddAdmin = user?.role === "superadmin";
 
   const fetchParams = () => ({
     userId: user.id,
@@ -95,8 +94,8 @@ function DownLineList() {
       </div>
 
       {/* Search and Actions */}
-      <div className="mt-4 flex justify-between items-center">
-        <div className="flex gap-2">
+      <div className="mt-4 flex flex-wrap justify-between items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search Box */}
           <div className="bg-white border border-[#aaa] flex items-center gap-2 px-2 py-1 shadow-[inset_0_2px_0_0_#0000001a]">
             <IoSearchSharp />
@@ -145,8 +144,7 @@ function DownLineList() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 shrink-0 mr-6 pr-2">
           {showAddUser && (
             <div
               className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
@@ -157,17 +155,6 @@ function DownLineList() {
             </div>
           )}
 
-          {showAddAdmin && (
-            <div
-              className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
-              onClick={() => openModal("admin")}
-            >
-              <MdPersonAddAlt1 className="text-xl" />
-              <span className="text-sm font-medium">Add Admin</span>
-            </div>
-          )}
-
-          {/* Refresh Button */}
           <div
             onClick={refetch}
             className="rounded-sm p-1 border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] cursor-pointer"

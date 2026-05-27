@@ -50,7 +50,7 @@ export const POPULAR_GAMES_ROW1 = [
   },
 ];
 
-/** Row 2 — three games above the More button. */
+/** Row 2 — shown when More is clicked (max 8 games). */
 export const POPULAR_GAMES_ROW2 = [
   {
     title: "Fortune Gems",
@@ -70,10 +70,6 @@ export const POPULAR_GAMES_ROW2 = [
     game_uid: "c98bb64436826fe9a2c62955ff70cba9",
     icon: "https://bulkapi.in/Pgsoft/JLNEW_PG_135.png",
   },
-];
-
-/** Shown when More is expanded. */
-export const POPULAR_GAMES_MORE = [
   {
     title: "Plinko",
     provider: "SPRIBE",
@@ -104,25 +100,10 @@ export const POPULAR_GAMES_MORE = [
     game_uid: "981f5f9675002fbeaaf24c4128b938d7",
     icon: "https://bulkapi.in/jili/Boxing-King.png",
   },
-  {
-    title: "Fortune Gems 3",
-    provider: "JILI",
-    game_uid: "63927e939636f45e9d6d0b3717b3b1c1",
-    icon: "https://bulkapi.in/jili/Fortune Gems 3.jpg",
-  },
-  {
-    title: "Balloon",
-    provider: "SPRIBE",
-    game_uid: "de88f202c5a8beeaccabbd944f8acfbf",
-    icon: "https://bulkapi.in/Spribe/balloon.png",
-  },
-  {
-    title: "Garuda Gems",
-    provider: "PG SOFT",
-    game_uid: "aa609892f551de2053e92427dc4ae17f",
-    icon: "https://bulkapi.in/Pgsoft/PGS_122.png",
-  },
 ];
+
+/** @deprecated Use POPULAR_GAMES_ROW2 */
+export const POPULAR_GAMES_MORE = POPULAR_GAMES_ROW2;
 
 /** @deprecated Use POPULAR_GAMES_ROW1 */
 export const POPULAR_GAMES = POPULAR_GAMES_ROW1;

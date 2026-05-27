@@ -7,7 +7,6 @@ import PopularGameCard from "./PopularGameCard";
 import {
   POPULAR_GAMES_ROW1,
   POPULAR_GAMES_ROW2,
-  POPULAR_GAMES_MORE,
 } from "./popularGamesData";
 
 function PopularGamesGrid() {
@@ -56,36 +55,24 @@ function PopularGamesGrid() {
         ))}
       </div>
 
-      {/* Row 2 — 3 games + More (center-right) */}
-      <div className="flex items-center gap-2.5 pb-3">
-        <div className="flex gap-2.5">
-          {POPULAR_GAMES_ROW2.map((game) => (
-            <PopularGameCard
-              key={`r2-${game.game_uid}-${game.title}`}
-              game={game}
-              onClick={handleGameClick}
-              disabled={loading}
-            />
-          ))}
-        </div>
-
-        {!showMore && (
+      {!showMore && (
+        <div className="flex justify-center pb-3">
           <button
             type="button"
             onClick={() => setShowMore(true)}
-            className="ml-auto shrink-0 self-center rounded-md bg-[#14805e] px-6 py-3 text-base font-bold text-white transition-colors hover:bg-[#126b4f] active:scale-[0.99]"
+            className="rounded-md bg-[#14805e] px-8 py-3 text-base font-bold text-white transition-colors hover:bg-[#126b4f] active:scale-[0.99]"
           >
             More
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Expanded listing — button hidden after click */}
+      {/* Row 2 — single horizontal row after More (no wrap / third row) */}
       {showMore && (
-        <div className="flex flex-wrap gap-2.5 pb-1">
-          {POPULAR_GAMES_MORE.map((game) => (
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+          {POPULAR_GAMES_ROW2.map((game) => (
             <PopularGameCard
-              key={`more-${game.game_uid}-${game.title}`}
+              key={`r2-${game.game_uid}-${game.title}`}
               game={game}
               onClick={handleGameClick}
               disabled={loading}
