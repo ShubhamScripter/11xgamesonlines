@@ -181,25 +181,27 @@ function CricketMatchCard({ match, onClick }) {
           ) : null}
         </div>
 
-        <div className="match-odds-label">Match Odds</div>
-        <div className="odds-container odds-container--match">
-          {o0 && o2 ? (
-            <>
-              <OddsPair back={o0.back} lay={o0.lay} />
-              <OddsPair back={o2.back} lay={o2.lay} />
-            </>
-          ) : (
-            <div className="odds-placeholder">
-              <OddsPair
-                back={{ price: "-", volume: "" }}
-                lay={{ price: "-", volume: "" }}
-              />
-              <OddsPair
-                back={{ price: "-", volume: "" }}
-                lay={{ price: "-", volume: "" }}
-              />
-            </div>
-          )}
+        <div className="cricket-match-odds">
+          <div className="match-odds-label">Match Odds</div>
+          <div className="odds-container odds-container--match">
+            {o0 && o2 ? (
+              <>
+                <OddsPair back={o0.back} lay={o0.lay} />
+                <OddsPair back={o2.back} lay={o2.lay} />
+              </>
+            ) : (
+              <div className="odds-placeholder">
+                <OddsPair
+                  back={{ price: "-", volume: "" }}
+                  lay={{ price: "-", volume: "" }}
+                />
+                <OddsPair
+                  back={{ price: "-", volume: "" }}
+                  lay={{ price: "-", volume: "" }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -237,24 +239,28 @@ function MatchCard({ match, onClick }) {
         </span>
       </div>
       <div className="match-card-body">
-        <div className="teams-name">{match.teams}</div>
-        <span className="match-time-text">{match.time}</span>
-        <div className="odds-container">
-          {match.odds.length > 0 ? (
-            match.odds.map((odd, i) => (
-              <OddsPair key={i} back={odd.back} lay={odd.lay} />
-            ))
-          ) : (
-            <div className="odds-placeholder">
-              {[0, 1, 2].map((i) => (
-                <OddsPair
-                  key={i}
-                  back={{ price: "🔒", volume: "" }}
-                  lay={{ price: "🔒", volume: "" }}
-                />
-              ))}
-            </div>
-          )}
+        <div className="match-card-top">
+          <div className="teams-name">{match.teams}</div>
+          <span className="match-time-text">{match.time}</span>
+        </div>
+        <div className="match-card-odds-footer">
+          <div className="odds-container">
+            {match.odds.length > 0 ? (
+              match.odds.map((odd, i) => (
+                <OddsPair key={i} back={odd.back} lay={odd.lay} />
+              ))
+            ) : (
+              <div className="odds-placeholder">
+                {[0, 1, 2].map((i) => (
+                  <OddsPair
+                    key={i}
+                    back={{ price: "🔒", volume: "" }}
+                    lay={{ price: "🔒", volume: "" }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

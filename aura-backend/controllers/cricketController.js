@@ -5,6 +5,18 @@ import { fetchMatchData, fetchMatchList } from '../services/matchApi/index.js';
 
 dotenv.config();
 
+/** Cricket leagues hidden from /api/cricket/matches listing (case-insensitive cname). */
+const BLOCKED_CRICKET_CNAMES = new Set([
+  'dim cricket league (1 over)',
+  't5 xi',
+  't10 xi',
+]);
+
+const isBlockedCricketLeague = (cname) => {
+  const key = (cname || '').toString().trim().toLowerCase();
+  return BLOCKED_CRICKET_CNAMES.has(key);
+};
+
 export const getCricketData = async (req, res) => {
   try {
     const data = await fetchMatchList(4);
@@ -61,6 +73,8 @@ export const getCricketData = async (req, res) => {
           };
         })
         .filter((m) => {
+          if (isBlockedCricketLeague(m.cname)) return false;
+
           const matchName = (m.match || '').toString().trim().toLowerCase();
           const categoryName = (m.cname || '').toString().trim().toLowerCase();
 
