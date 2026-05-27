@@ -125,12 +125,12 @@
 //                     ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
 //                     : []),
 //                 ],
-//                 max: market.maxLiabilityPerBet ?? market.max,
+//                 max: getMarketMaxLimit(market),
 //                 min: market.minLiabilityPerBet ?? market.min,
 //                 status: runner.status,
 //               }))
 //             : [],
-//           max: market.maxLiabilityPerBet ?? market.max,
+//           max: getMarketMaxLimit(market),
 //           min: market.minLiabilityPerBet ?? market.min,
 //           status: market.status,
 //         }))
@@ -154,12 +154,12 @@
 //                     ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
 //                     : []),
 //                 ],
-//                 max: market.maxLiabilityPerBet ?? market.max,
+//                 max: getMarketMaxLimit(market),
 //                 min: market.minLiabilityPerBet ?? market.min,
 //                 gstatus: runner.status,
 //               }))
 //             : [],
-//           max: market.maxLiabilityPerBet ?? market.max,
+//           max: getMarketMaxLimit(market),
 //           min: market.minLiabilityPerBet ?? market.min,
 //           status: market.status,
 //         }))
@@ -319,12 +319,12 @@ import graph from '../../assets/graph.png'
 import Live from '../../assets/icon/live.webp'
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
-import { useState,useEffect,useRef} from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Matchodds from '../../components/leaguescomp/Matchodds';
 import Bookmakers from '../../components/leaguescomp/Bookmakers';
 import Fancybet from '../../components/leaguescomp/Fancybet';
 import Sportbook from '../../components/leaguescomp/Sportbook';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
@@ -334,22 +334,43 @@ import {fetchTannisBatingData} from '../../features/sports/tennisSlice'
 import { getUser } from '../../features/auth/authSlice';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
-import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
+import {
+  getSportsMediaUrls,
+  resolveBeventId,
+  SPORTS_MEDIA_TYPE,
+} from '../../utils/sportsMediaUrls';
+import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 function Fullmarket2() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
+  const { data: tennisMatches = [] } = useSelector((state) => state.tennis);
   const key =
     import.meta.env.VITE_BULKAPI_KEY ||
-    "gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2";
-  const mediaUrls = getSportsMediaUrls({
-    sport: SPORTS_MEDIA_TYPE.TENNIS,
-    gameid,
-    key,
-  });
+    "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
+  const beventId = useMemo(
+    () =>
+      resolveBeventId({
+        locationState: location.state,
+        matches: tennisMatches,
+        gameid,
+      }),
+    [location.state, tennisMatches, gameid]
+  );
+  const mediaUrls = useMemo(
+    () =>
+      getSportsMediaUrls({
+        sport: SPORTS_MEDIA_TYPE.TENNIS,
+        gameid,
+        key,
+        beventId,
+      }),
+    [gameid, key, beventId]
+  );
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(true);
 
   const [betSlipOpen, setBetSlipOpen] = useState(false);
   const [betSlipData, setBetSlipData] = useState(null);
@@ -492,19 +513,20 @@ function Fullmarket2() {
   //   };
   // }, [isLive, gameid]);
 
-  // ...existing code...
   useEffect(() => {
-    let intervalId = null;
-    
     const fetchScorecard = async (isInitial = false) => {
       if (!gameid || isLive) return;
-      
+
       try {
         if (isInitial) setScorecardLoading(true);
 
-        const response = await fetch(
-          mediaUrls.scorecardUrl
-        );
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(mediaUrls.scorecardUrl, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
         const json = await response.json();
 
         const iframeUrl = json?.iframe?.url;
@@ -529,117 +551,17 @@ function Fullmarket2() {
 
     if (!isLive && gameid) {
       fetchScorecard(true);
-      // Don't auto-refresh the iframe; it causes blinking due to reloads.
     } else if (isLive) {
       setScorecardHtml(null);
       setScorecardUrl("");
     }
+  }, [isLive, gameid, mediaUrls.scorecardUrl]);
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isLive, gameid]);
-
-  // Fetch live stream when Live is selected
   useEffect(() => {
-    if (!user) return;
-    const fetchLiveStream = async () => {
-      if (!isLive || !gameid || !match) {
-        setLiveStreamHtml(null);
-        setLiveStreamSrc(null);
-        return;
-      }
-
-      try {
-        setLiveStreamLoading(true);
-        const response = await fetch('https://sporta-api.iomhost.com:4200/spb/match-live-stream', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            match_id: `${gameid}`,
-            sportsName: 'tennis',
-            match_name: match,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log("Live stream API response:", result);
-        
-        if (result.status && result.data) {
-          const streamData = result.data;
-          console.log("Live stream data:", streamData);
-          console.log("Data type:", typeof streamData);
-          
-          let streamUrl = null;
-          
-          // Check if result.data is already a direct URL
-          if (typeof streamData === 'string' && (streamData.startsWith('http://') || streamData.startsWith('https://'))) {
-            // It's already a URL string - use it directly
-            streamUrl = streamData.trim();
-            console.log("✅ Direct URL detected:", streamUrl);
-          } else if (typeof streamData === 'string') {
-            // Try to extract URL from HTML iframe string (fallback)
-            const srcMatch = streamData.match(/src=["']([^"']+)["']/);
-            streamUrl = srcMatch ? srcMatch[1].trim() : null;
-            console.log("Extracted URL from HTML:", streamUrl || "No URL found");
-          }
-          
-          // Validate the URL
-          if (streamUrl && streamUrl.length > 10) {
-            const isFallbackUrl = (
-              streamUrl.includes('not-available') ||
-              streamUrl.includes('unavailable') ||
-              streamUrl.includes('error') ||
-              (streamUrl.endsWith('.html') && !streamUrl.startsWith('http'))
-            );
-            
-            if (!isFallbackUrl) {
-              // Valid streaming URL
-              console.log("✅ Setting live stream URL:", streamUrl);
-              setLiveStreamSrc(streamUrl);
-              setLiveStreamHtml(null); // Clear HTML since we're using direct URL
-            } else {
-              console.log("❌ Invalid or fallback URL detected:", streamUrl);
-              setLiveStreamSrc(null);
-              setLiveStreamHtml(null);
-            }
-          } else {
-            console.log("❌ No valid stream URL found");
-            setLiveStreamSrc(null);
-            setLiveStreamHtml(null);
-          }
-        } else {
-          console.log("❌ API response invalid:", result);
-          setLiveStreamSrc(null);
-          setLiveStreamHtml(null);
-          throw new Error(result.message || 'Failed to fetch live stream');
-        }
-      } catch (error) {
-        console.error('Error fetching live stream:', error);
-        setLiveStreamHtml(null);
-        setLiveStreamSrc(null);
-        toast.error('Failed to load live stream');
-      } finally {
-        setLiveStreamLoading(false);
-      }
-    };
-
-    fetchLiveStream();
+    setLiveStreamHtml(null);
+    setLiveStreamSrc(null);
+    setLiveStreamLoading(false);
   }, [isLive, gameid, match]);
-
-  // Reset live stream when switching away from Live
-  useEffect(() => {
-    if (!isLive || !user) {
-      setLiveStreamHtml(null);
-      setLiveStreamSrc(null);
-    }
-  }, [isLive, user]);
   // Write HTML content to iframe when it changes
   useEffect(() => {
     if (scorecardHtml && scorecardIframeRef.current && !isLive) {
@@ -739,7 +661,7 @@ function Fullmarket2() {
           .map((market) => ({
             ...market,
             section: normalizeRunnersToSection(market),
-            max: market.maxLiabilityPerBet ?? market.max,
+            max: getMarketMaxLimit(market),
             min: market.minLiabilityPerBet ?? market.min,
             status: market.status,
           }))
@@ -749,7 +671,7 @@ function Fullmarket2() {
       matchOddsList = dataSource.map((market) => ({
         ...market,
         section: normalizeRunnersToSection(market),
-        max: market.maxLiabilityPerBet ?? market.max,
+        max: getMarketMaxLimit(market),
         min: market.minLiabilityPerBet ?? market.min,
         status: market.status,
       }));
@@ -774,7 +696,7 @@ function Fullmarket2() {
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
+          max: getMarketMaxLimit(market),
           min: market.minLiabilityPerBet ?? market.min,
           status: market.status,
         }))
@@ -812,8 +734,8 @@ function Fullmarket2() {
           ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
           : []),
       ],
-      min: market.minLiabilityPerBet ?? market.min ?? null,
-      max: market.maxLiabilityPerBet ?? market.max ?? null,
+      min: getMarketMinLimit(market) || null,
+      max: getMarketMaxLimit(market) || null,
       status: market.status ?? runner.status ?? "OPEN",
     }))
   );
@@ -992,16 +914,16 @@ function Fullmarket2() {
               <span>Loading score...</span>
             </div>
           ) : (
-            <div className="aspect-video w-full">
-            <iframe
-              src={scorecardUrl || undefined}
-              title="Live Score"
-              className="w-full h-full"
-              scrolling="no"
-              loading="lazy"
-              allow="autoplay;"
-            />
-          </div>
+            <div className="w-full h-fit">
+              <iframe
+                src={scorecardUrl || undefined}
+                title="Live Score"
+                className="w-full h-[26vh]"
+                scrolling="no"
+                loading="lazy"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+              />
+            </div>
           )}
         </div>
 

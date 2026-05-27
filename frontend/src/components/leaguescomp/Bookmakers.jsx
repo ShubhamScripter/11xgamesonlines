@@ -126,6 +126,7 @@ import {
   blockingStatusLabel,
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
+import { getMarketMaxLimit, getMarketMinLimit } from "../../utils/marketLimits";
 
 function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData, gameName }) {
   const dispatch = useDispatch();
@@ -274,8 +275,8 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
               { value: lay2?.odds ?? "-", odds: lay2?.size ?? "-", type: 'lay' },
               { value: lay3?.odds ?? "-", odds: lay3?.size ?? "-", type: 'lay' },
             ],
-            max: BookmakerList[0]?.max ?? 0, // market-level max
-            min: BookmakerList[0]?.min ?? 0, // market-level min
+            max: getMarketMaxLimit(BookmakerList[0]),
+            min: getMarketMinLimit(BookmakerList[0]),
           };
         })
       : [];
@@ -309,7 +310,7 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
             <span className="text-xs text-gray-400">
               min/max &nbsp;
               {bookmakerData[0].min || 0}/
-              {formatToK(bookmakerData[0].max) || 0}
+              {formatToK(bookmakerData[0].max) ?? 0}
             </span>
           </div>
         )}
@@ -379,7 +380,7 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
                             marketName: "Bookmaker",
                             gameName: gameName || "Cricket Game",
                             min: bookmakerData?.[0]?.min ?? 0,
-                            max: bookmakerData?.[0]?.max ?? 0,
+                            max: getMarketMaxLimit(BookmakerList?.[0]),
                             sid: 4,
                             marketId: BookmakerList?.[0]?.id,
                           });

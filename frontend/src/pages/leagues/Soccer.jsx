@@ -48,7 +48,9 @@ function Soccer({ selected, setSelected }) {
                 key={`${m.id}_${idx}`}
                 className="flex flex-col bg-white p-4 rounded-xl"
                 onClick={() =>
-                  navigate(`/sports/soccer/${encodeURIComponent(m.match)}/${m.id}`)
+                  navigate(`/sports/soccer/${encodeURIComponent(m.match)}/${m.id}`, {
+                    state: { match: m },
+                  })
                 }
               >
                 <span className="text-xs bg-[#e2eaef] w-fit pl-2 pr-2">

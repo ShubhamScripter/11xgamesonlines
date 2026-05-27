@@ -103,6 +103,7 @@ import {
   blockingStatusLabel,
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
+import { getMarketMaxLimit, getMarketMinLimit } from "../../utils/marketLimits";
 
 function TiedMatch({ openBetSlip, matchOddsList, gameid, match, selectedBetData, gameName }) {
   const dispatch = useDispatch();
@@ -199,8 +200,8 @@ function TiedMatch({ openBetSlip, matchOddsList, gameid, match, selectedBetData,
           { value: lay2?.odds ?? "-", odds: lay2?.size ?? "-", type: 'lay' },
           { value: lay3?.odds ?? "-", odds: lay3?.size ?? "-", type: 'lay' },
         ],
-        max: matchOddsList?.[0]?.max,
-        min: matchOddsList?.[0]?.min,
+        max: getMarketMaxLimit(matchOddsList?.[0]),
+        min: getMarketMinLimit(matchOddsList?.[0]),
         status: marketStatus,
       };
     }) || [];
@@ -351,7 +352,7 @@ function TiedMatch({ openBetSlip, matchOddsList, gameid, match, selectedBetData,
           <IoInformationCircle className="text-gray-400" />
           <span className="text-xs text-gray-400">
             min/max &nbsp;
-            {oddsData[0]?.min || 0}/{formatToK(oddsData[0]?.max) || 0}
+            {oddsData[0]?.min ?? 0}/{formatToK(oddsData[0]?.max) ?? 0}
           </span>
         </div>
       </div>
@@ -418,7 +419,7 @@ function TiedMatch({ openBetSlip, matchOddsList, gameid, match, selectedBetData,
                         marketName: "Tied Match",
                         gameName: gameName || "Cricket Game",
                         min: oddsData?.[0]?.min ?? 0,
-                        max: oddsData?.[0]?.max ?? 0,
+                        max: getMarketMaxLimit(matchOddsList?.[0]),
                         sid: 4,
                         marketId: matchOddsList?.[0]?.id,
                       });

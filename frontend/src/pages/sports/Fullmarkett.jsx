@@ -735,6 +735,7 @@ import Spinner from '../../components/Spinner';
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
 import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
+import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 
 // Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
 let lastBetToastKey = null;
@@ -992,8 +993,8 @@ console.log("data source",dataSource)
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
-          min: market.minLiabilityPerBet ?? market.min,
+          max: getMarketMaxLimit(market),
+          min: getMarketMinLimit(market),
           matched: market.matched,
           status: market.status,
         }))
@@ -1017,8 +1018,8 @@ console.log("data source",dataSource)
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
-          min: market.minLiabilityPerBet ?? market.min,
+          max: getMarketMaxLimit(market),
+          min: getMarketMinLimit(market),
           matched: market.matched,
           status: market.status,
         }))
@@ -1036,8 +1037,8 @@ console.log("data source",dataSource)
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
-          min: market.minLiabilityPerBet ?? market.min,
+          max: getMarketMaxLimit(market),
+          min: getMarketMinLimit(market),
           status: market.status,
         }))
     : [];
@@ -1089,8 +1090,8 @@ console.log("data source",dataSource)
         team: sec.nat,
         sid: sec.sid,
         odds: sec.odds,
-        max: sec.max,
-        min: sec.min,
+        max: getMarketMaxLimit({ ...fancy1List[0], ...sec }),
+        min: getMarketMinLimit({ ...fancy1List[0], ...sec }),
         mname: fancy1List[0].mname,
         gstatus: sec.gstatus,
         marketStatus: fancy1List[0].status,
@@ -1149,8 +1150,8 @@ console.log("data source",dataSource)
           team: sec.nat,
           sid: sec.sid,
           odds: sec.odds,
-          max: sec.max,
-          min: sec.min,
+          max: getMarketMaxLimit({ ...oddevenList[0], ...sec }),
+          min: getMarketMinLimit({ ...oddevenList[0], ...sec }),
           mname: oddevenList[0].mname,
           status: oddevenList[0].status,
         }))

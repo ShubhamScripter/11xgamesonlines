@@ -4,13 +4,35 @@ export const SPORTS_MEDIA_TYPE = {
   FOOTBALL: "football",
 };
 
-const BASE_URL =
-  import.meta.env.VITE_PROVIDER_B_API_URL ||
-  import.meta.env.PROVIDER_B_API_URL ||
-  "https://81habibi.com/api/v1";
+const BASE_URL ="https://81club.fun/api/v1";  
+//   import.meta.env.VITE_PROVIDER_B_API_URL ||
+//   import.meta.env.PROVIDER_B_API_URL ||
+//   "https://81habibi.com/api/v1";
 
-export function getSportsMediaUrls({ sport, gameid, key }) {
-  const encodedGameId = encodeURIComponent(gameid ?? "");
+/** Resolve beventId from navigation state or match list (soccer/tennis). */
+export function resolveBeventId({ locationState, matches, gameid }) {
+  const fromState =
+    locationState?.match?.beventId ?? locationState?.match?.bevent_id;
+  if (fromState != null && String(fromState).trim() !== "") {
+    return String(fromState);
+  }
+  const found = (matches || []).find((m) => String(m?.id) === String(gameid));
+  const fromList = found?.beventId ?? found?.bevent_id;
+  return fromList != null && String(fromList).trim() !== ""
+    ? String(fromList)
+    : null;
+}
+
+export function getSportsMediaUrls({ sport, gameid, key, beventId }) {
+  const useBeventForGmid =
+    sport === SPORTS_MEDIA_TYPE.TENNIS ||
+    sport === SPORTS_MEDIA_TYPE.FOOTBALL;
+  const gmid =
+    useBeventForGmid && beventId != null && String(beventId).trim() !== ""
+      ? beventId
+      : gameid;
+
+  const encodedGameId = encodeURIComponent(gmid ?? "");
   const encodedKey = encodeURIComponent(key ?? "");
 
   const liveStreamUrl = `${BASE_URL}/live-stream?gmid=${encodedGameId}&key=${encodedKey}`;

@@ -124,12 +124,12 @@
 //                     ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
 //                     : []),
 //                 ],
-//                 max: market.maxLiabilityPerBet ?? market.max,
+//                 max: getMarketMaxLimit(market),
 //                 min: market.minLiabilityPerBet ?? market.min,
 //                 status: runner.status,
 //               }))
 //             : [],
-//           max: market.maxLiabilityPerBet ?? market.max,
+//           max: getMarketMaxLimit(market),
 //           min: market.minLiabilityPerBet ?? market.min,
 //           status: market.status,
 //         }))
@@ -153,12 +153,12 @@
 //                     ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
 //                     : []),
 //                 ],
-//                 max: market.maxLiabilityPerBet ?? market.max,
+//                 max: getMarketMaxLimit(market),
 //                 min: market.minLiabilityPerBet ?? market.min,
 //                 gstatus: runner.status,
 //               }))
 //             : [],
-//           max: market.maxLiabilityPerBet ?? market.max,
+//           max: getMarketMaxLimit(market),
 //           min: market.minLiabilityPerBet ?? market.min,
 //           status: market.status,
 //         }))
@@ -318,7 +318,7 @@ import graph from '../../assets/graph.png'
 import Live from '../../assets/icon/live.webp'
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
-import { useState,useEffect,useRef} from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Matchodds from '../../components/leaguescomp/Matchodds';
 import Bookmakers from '../../components/leaguescomp/Bookmakers';
 import Fancybet from '../../components/leaguescomp/Fancybet';
@@ -326,7 +326,7 @@ import Sportbook from '../../components/leaguescomp/Sportbook';
 import SoccerOver05 from '../../components/leaguescomp/SoccerOver05';
 import SoccerOver15 from '../../components/leaguescomp/SoccerOver15';
 import SoccerOver25 from '../../components/leaguescomp/SoccerOver25';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
@@ -336,17 +336,38 @@ import { getUser } from '../../features/auth/authSlice';
 import { div } from 'motion/react-client';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
-import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
+import {
+  getSportsMediaUrls,
+  resolveBeventId,
+  SPORTS_MEDIA_TYPE,
+} from '../../utils/sportsMediaUrls';
+import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 function Fullmarket1() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
+  const { soccerData: soccerMatches = [] } = useSelector((state) => state.soccer);
   const key = "gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2";
-  const mediaUrls = getSportsMediaUrls({
-    sport: SPORTS_MEDIA_TYPE.FOOTBALL,
-    gameid,
-    key,
-  });
+  const beventId = useMemo(
+    () =>
+      resolveBeventId({
+        locationState: location.state,
+        matches: soccerMatches,
+        gameid,
+      }),
+    [location.state, soccerMatches, gameid]
+  );
+  const mediaUrls = useMemo(
+    () =>
+      getSportsMediaUrls({
+        sport: SPORTS_MEDIA_TYPE.FOOTBALL,
+        gameid,
+        key,
+        beventId,
+      }),
+    [gameid, key, beventId]
+  );
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
   const [isLive, setIsLive] = useState(false);
@@ -740,8 +761,8 @@ function Fullmarket1() {
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
-          min: market.minLiabilityPerBet ?? market.min,
+          max: getMarketMaxLimit(market),
+          min: getMarketMinLimit(market),
           status: market.status,
         }))
     : [];
@@ -751,7 +772,7 @@ function Fullmarket1() {
     matchOddsList = dataSource.map((market) => ({
       ...market,
       section: normalizeRunnersToSection(market),
-      max: market.maxLiabilityPerBet ?? market.max,
+               max: getMarketMaxLimit(market),
       min: market.minLiabilityPerBet ?? market.min,
       status: market.status,
     }));
@@ -767,8 +788,8 @@ function Fullmarket1() {
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
-          max: market.maxLiabilityPerBet ?? market.max,
-          min: market.minLiabilityPerBet ?? market.min,
+          max: getMarketMaxLimit(market),
+          min: getMarketMinLimit(market),
           matched: market.matched,
           status: market.status,
         }))
@@ -786,7 +807,7 @@ function Fullmarket1() {
       .map((market) => ({
         ...market,
         section: normalizeRunnersToSection(market),
-        max: market.maxLiabilityPerBet ?? market.max,
+        max: getMarketMaxLimit(market),
         min: market.minLiabilityPerBet ?? market.min,
         matched: market.matched,
         status: market.status,
@@ -803,7 +824,7 @@ function Fullmarket1() {
       .map((market) => ({
         ...market,
         section: normalizeRunnersToSection(market),
-        max: market.maxLiabilityPerBet ?? market.max,
+        max: getMarketMaxLimit(market),
         min: market.minLiabilityPerBet ?? market.min,
         matched: market.matched,
         status: market.status,
@@ -842,12 +863,12 @@ function Fullmarket1() {
                    ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
                    : []),
                ],
-               max: market.maxLiabilityPerBet ?? market.max,
+               max: getMarketMaxLimit(market),
                min: market.minLiabilityPerBet ?? market.min,
                gstatus: runner.status,
              }))
            : [],
-         max: market.maxLiabilityPerBet ?? market.max,
+         max: getMarketMaxLimit(market),
          min: market.minLiabilityPerBet ?? market.min,
          status: market.status,
        }))
@@ -885,8 +906,8 @@ function Fullmarket1() {
           ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
           : []),
       ],
-      min: market.minLiabilityPerBet ?? market.min ?? null,
-      max: market.maxLiabilityPerBet ?? market.max ?? null,
+      min: getMarketMinLimit(market) || null,
+      max: getMarketMaxLimit(market) || null,
       status: market.status ?? runner.status ?? "OPEN",
     }))
   );

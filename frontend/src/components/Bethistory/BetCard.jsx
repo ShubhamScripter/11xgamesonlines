@@ -12,27 +12,36 @@ function formatMoney(value) {
   return n.toFixed(2);
 }
 
-const BetCard = ({ data }) => {
+const BetCard = ({ data, compact = false }) => {
   const getSignedColorClass = (value) => {
     const amount = Number(value);
     if (!Number.isFinite(amount) || amount === 0) return "text-gray-700";
     return amount < 0 ? "text-red-600" : "text-green-600";
   };
 
+  const rowLabelCls = compact
+    ? "p-1.5 text-[11px] text-gray-400 w-[38%] align-top"
+    : "p-2 text-gray-400 md:text-base w-[40%]";
+  const rowValueCls = compact
+    ? "p-1.5 text-xs font-medium"
+    : "p-2 font-medium md:text-base";
+
   const Row = ({ label, children, valueClassName = "" }) => (
-    <tr className="border-b border-gray-600">
-      <td className="p-2 text-gray-400 md:text-base w-[40%] ">{label}</td>
-      <td className={`p-2 font-medium md:text-base ${valueClassName}`}>{children}</td>
+    <tr className="border-b border-gray-600 last:border-0">
+      <td className={rowLabelCls}>{label}</td>
+      <td className={`${rowValueCls} ${valueClassName}`}>{children}</td>
     </tr>
   );
 
   return (
-    <div className="flex flex-col gap-4 justify-center">
+    <div className={`flex flex-col justify-center ${compact ? "gap-2" : "gap-4"}`}>
       {data.length === 0 && (
-        <div className="flex flex-col gap-4 pt-4 bg-[#262c32] p-4">
+        <div className={`bg-[#262c32] ${compact ? "p-3 rounded-lg" : "p-4"}`}>
           <div className="rounded-lg shadow-md mx-auto w-full">
-            <h2 className="text-lg font-semibold">Bet Details</h2>
-            <p className="text-gray-400">No bet history available.</p>
+            <h2 className={compact ? "text-sm font-semibold" : "text-lg font-semibold"}>
+              Bet Details
+            </h2>
+            <p className="text-gray-400 text-xs">No current bets.</p>
           </div>
         </div>
       )}
@@ -42,13 +51,15 @@ const BetCard = ({ data }) => {
         return (
           <div
             key={bet.id}
-            className="shadow-md overflow-hidden w-full rounded-2xl mx-auto"
+            className={`shadow-md overflow-hidden w-full mx-auto bg-[#1b1f23] ${
+              compact ? "rounded-lg" : "rounded-2xl"
+            }`}
           >
-            <table className="table-auto w-full text-sm">
+            <table className={`table-auto w-full ${compact ? "text-xs" : "text-sm"}`}>
               <thead className="bg-[#262c32] text-gray-200">
                 <tr>
-                  <th colSpan={2} className="p-3 text-left">
-                    <span className="md:text-lg font-semibold">
+                  <th colSpan={2} className={compact ? "p-2 text-left" : "p-3 text-left"}>
+                    <span className={compact ? "text-sm font-semibold" : "md:text-lg font-semibold"}>
                       {isCasino ? "Casino" : "Sports"}
                     </span>
                   </th>
@@ -93,11 +104,11 @@ const BetCard = ({ data }) => {
                     <Row label="Stake">{formatMoney(bet.stake)}</Row>
                     {(bet.possibleProfit !== undefined ||
                       bet.possibleLoss !== undefined) ? (
-                      <tr className="border-b border-gray-600">
-                        <td className="p-2 text-gray-500 md:text-base w-[40%] align-top">
+                      <tr className="border-b border-gray-600 last:border-0">
+                        <td className={`${rowLabelCls} text-gray-500`}>
                           Expected Profit / Loss
                         </td>
-                        <td className="p-2 font-medium md:text-base">
+                        <td className={rowValueCls}>
                           <span className="text-green-600 font-semibold">
                             +{formatMoney(bet.possibleProfit)}
                           </span>

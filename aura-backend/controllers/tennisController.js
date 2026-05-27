@@ -22,6 +22,7 @@ export const fetchTennisData = async (req, res) => {
     const combinedData = [...t1Data, ...t2Data]
       .map((match) => ({
         id: match.gmid,
+        beventId: match.beventId || match.bevent_id || null,
         match: match.ename,
         date: match.stime,
         cname:match.cname,

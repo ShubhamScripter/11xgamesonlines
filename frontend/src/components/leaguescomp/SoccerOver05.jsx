@@ -99,6 +99,7 @@ import { toast } from 'react-hot-toast';
 import { getUser } from "../../features/auth/authSlice";
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
+import { getMarketMaxLimit, getMarketMinLimit } from "../../utils/marketLimits";
 
 function SoccerOver05({ openBetSlip, matchOddsList, gameid, match, selectedBetData, gameName }) {
   console.log("matchOddsList SoccerOver05", matchOddsList);
@@ -185,8 +186,8 @@ function SoccerOver05({ openBetSlip, matchOddsList, gameid, match, selectedBetDa
           { value: back1?.odds ?? "-", odds: back1?.size ?? "-" },
           { value: lay1?.odds ?? "-", odds: lay1?.size ?? "-" },
         ],
-        max: matchOddsList?.[0]?.max,
-        min: matchOddsList?.[0]?.min,
+        max: getMarketMaxLimit(matchOddsList?.[0]),
+        min: getMarketMinLimit(matchOddsList?.[0]),
         status: matchOddsList[0]?.status,
       };
     }) || [];
@@ -372,7 +373,7 @@ function SoccerOver05({ openBetSlip, matchOddsList, gameid, match, selectedBetDa
                       marketName: "OVER_UNDER_05",
                       gameName: gameName || "Soccer Game",
                       min: oddsData?.[0]?.min ?? 0,
-                      max: oddsData?.[0]?.max ?? 0,
+                      max: getMarketMaxLimit(matchOddsList?.[0]),
                       sid: 1,
                       marketId: matchOddsList?.[0]?.id,
                     })
@@ -398,7 +399,7 @@ function SoccerOver05({ openBetSlip, matchOddsList, gameid, match, selectedBetDa
           <IoInformationCircle className="text-gray-400" />
           <span className="text-xs text-gray-400">
             min/max &nbsp;
-            {oddsData[0]?.min || 0}/{formatToK(oddsData[0]?.max) || 0}
+            {oddsData[0]?.min ?? 0}/{formatToK(oddsData[0]?.max) ?? 0}
           </span>
         </div>
       </div>

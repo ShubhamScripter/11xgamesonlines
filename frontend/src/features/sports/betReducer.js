@@ -200,6 +200,7 @@ const initialState = {
   eventName: [],
   pendingBet: [],
   betHistory: [],
+  betHistoryPagination: { total: 0, page: 1, pages: 1 },
   transHistory: [],
   proLossHistory: [],
   currentBetCount: 0,
@@ -270,7 +271,12 @@ const betSlice = createSlice({
       })
       .addCase(getBetHistory.fulfilled, (state, { payload }) => {
         state.loading = false;
-        state.betHistory = payload?.data;
+        state.betHistory = payload?.data ?? [];
+        state.betHistoryPagination = payload?.pagination ?? {
+          total: 0,
+          page: 1,
+          pages: 1,
+        };
         state.successMessage = payload?.message;
       })
       .addCase(getBetHistory.rejected, (state, { payload }) => {

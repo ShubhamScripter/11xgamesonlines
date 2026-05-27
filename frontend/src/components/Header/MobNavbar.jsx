@@ -69,7 +69,6 @@ function MobNavbar({ closeMenu }) {
     { label: "Cricket", icon: cricketColor, sportType: "Cricket", sportPath: "/cricket", subItems: cricketLeagues, badge: cricketInplayCount > 0 ? cricketInplayCount : undefined },
     { label: "Football", icon: footballColor, sportType: "Soccer", sportPath: "/football", subItems: soccerLeagues, badge: soccerInplayCount > 0 ? soccerInplayCount : undefined },
     { label: "Tennis", icon: tennisColor, sportType: "Tennis", sportPath: "/tennis", subItems: tennisLeagues, badge: tennisInplayCount > 0 ? tennisInplayCount : undefined },
-    { label: "Sportsbook", icon: footballColor, gameType: "sports", subItems: getProviders("sports") },
     { label: "Casino", icon: casinoColor, gameType: "casino", subItems: getProviders("casino") },
     { label: "Crash", icon: crashColor, gameType: "crash", subItems: getProviders("crash") },
     { label: "Slot", icon: slotColor, gameType: "slot", subItems: getProviders("slot") },
