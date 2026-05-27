@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from "react-redux";
-import { fetchSoccerData, fetchSoccerInplayData } from '../../features/sports/soccerSlice';
+import { fetchSoccerData } from '../../features/sports/soccerSlice';
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import { GrStarOutline } from "react-icons/gr";
 import { GoGraph } from "react-icons/go";
@@ -18,13 +18,13 @@ function Soccer({ activeTab }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { soccerData, soccerInplayData, soccerLoading, soccerError } = useSelector((state) => state.soccer || {});
+  const { soccerData } = useSelector((state) => state.soccer || {});
   
   const [openIndexes, setOpenIndexes] = useState([0]);
 
   const selectedLeague = location.state?.selectedLeague;
 
-  const sourceMatches = (activeTab === "InPlay" ? soccerInplayData : soccerData) ?? [];
+  const sourceMatches = soccerData ?? [];
 
   const filteredMatches = (Array.isArray(sourceMatches) ? sourceMatches : []).filter(match => {
     const isMatch = match.match.toLowerCase().includes(' v ') || 
@@ -85,12 +85,6 @@ function Soccer({ activeTab }) {
   useEffect(() => {
     dispatch(fetchSoccerData());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (activeTab === "InPlay") {
-      dispatch(fetchSoccerInplayData());
-    }
-  }, [activeTab, dispatch]);
 
   return (
     <div className="min-h-screen">

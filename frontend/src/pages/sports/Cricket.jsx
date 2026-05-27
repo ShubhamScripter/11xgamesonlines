@@ -9,7 +9,7 @@ import s from '../../assets/icon/s.png';
 import y from '../../assets/icon/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from "react-redux";
-import { fetchCricketData, fetchCricketInplayData } from '../../features/sports/cricketSlice';
+import { fetchCricketData } from '../../features/sports/cricketSlice';
 
 import MatchRow from '../../components/sports/MatchRow';
 
@@ -18,12 +18,12 @@ function Cricket({ activeTab }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { matches, inplayMatches, loader, error } = useSelector((state) => state.cricket);
+  const { matches } = useSelector((state) => state.cricket);
   const [openIndexes, setOpenIndexes] = useState([0]);
 
   const selectedLeague = location.state?.selectedLeague;
 
-  const sourceMatches = (activeTab === "InPlay" ? inplayMatches : matches) || [];
+  const sourceMatches = matches || [];
 
   // Filter matches based on activeTab and selectedLeague
   const filteredMatches = sourceMatches.filter(match => {
@@ -87,12 +87,6 @@ function Cricket({ activeTab }) {
   useEffect(() => {
     dispatch(fetchCricketData());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (activeTab === "InPlay") {
-      dispatch(fetchCricketInplayData());
-    }
-  }, [activeTab, dispatch]);
 
   return (
     <div className="min-h-screen">

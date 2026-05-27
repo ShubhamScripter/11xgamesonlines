@@ -226,7 +226,7 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
                   </td>
                   <td className="px-2 py-2">
                     <span className="px-2 py-1 rounded text-red-600 bg-red-100 border border-[#deb6c0] inline-block">
-                      {(user.totalExposure ?? 0).toLocaleString()}
+                      {(user.exposure ?? 0).toLocaleString()}
                     </span>
                   </td>
                   <td className="px-2 py-2">

@@ -395,6 +395,37 @@ export const setupWebSocket = (server) => {
 
           //  FIX: Subscribe to live score socket for this game
           subscribeToLiveScore(client.gameid, client.apitype);
+
+          // Push betting data immediately so clients don't wait for the poll interval
+          (async () => {
+            try {
+              let sid = 4;
+              if (client.apitype === 'tennis') sid = 2;
+              else if (client.apitype === 'soccer') sid = 1;
+              else if (client.apitype === 'horse-racing') sid = 10;
+              if (client.apitype === 'casino') return;
+
+              const newData = await fetchMatchData(client.gameid, sid);
+              if (!newData?.success || client.ws.readyState !== 1) return;
+
+              const cacheKey = `${client.gameid}_${client.apitype}`;
+              cachedData[cacheKey] = newData;
+
+              client.ws.send(
+                JSON.stringify({
+                  type: 'bettingData',
+                  gameid: client.gameid,
+                  apitype: client.apitype,
+                  data: newData.data,
+                })
+              );
+            } catch (err) {
+              console.error(
+                `[WS] Immediate betting fetch failed for ${client.gameid}:`,
+                err.message
+              );
+            }
+          })();
         }
       } catch (err) {
         console.error(' [WS] Invalid message:', err.message);

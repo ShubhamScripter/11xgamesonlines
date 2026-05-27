@@ -58,7 +58,7 @@ function DownLineList() {
         username: u.username,
         creditRef: u.creditRef || 0,
         balance: u.balance || 0,
-        exposure: u.totalExposure || 0,
+        exposure: u.exposure ?? u.totalExposure ?? 0,
         availBal: u.totalAvailableBalance || 0,
         playerBal: u.totalPlayerBalance || 0,
         refPL: 0,

@@ -43,10 +43,18 @@ function Navbar({ onClose = () => { }, sidebarOpen, setSidebarOpen }) {
   const [openDropdown, setOpenDropdown] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchCricketData());
-    dispatch(fetchSoccerData());
-    dispatch(fetchTennisData());
-  }, [dispatch]);
+    if (!sidebarOpen) return;
+
+    if (!Array.isArray(cricketMatches) || cricketMatches.length === 0) {
+      dispatch(fetchCricketData());
+    }
+    if (!Array.isArray(soccerMatches) || soccerMatches.length === 0) {
+      dispatch(fetchSoccerData());
+    }
+    if (!Array.isArray(tennisMatches) || tennisMatches.length === 0) {
+      dispatch(fetchTennisData());
+    }
+  }, [dispatch, sidebarOpen, cricketMatches, soccerMatches, tennisMatches]);
 
   useEffect(() => {
     if (!sidebarOpen) {

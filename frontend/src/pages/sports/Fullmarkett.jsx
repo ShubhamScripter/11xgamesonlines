@@ -735,6 +735,11 @@ import Spinner from '../../components/Spinner';
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
 import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
+
+// Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
+let lastBetToastKey = null;
+let lastBetToastAt = 0;
+
 function Fullmarkett() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -751,7 +756,7 @@ function Fullmarkett() {
   const hasCheckedRef = useRef(false); // ✅ run only once
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(true);
   const [TiedOddSelected, setTiedOddSelected] = useState("odds");
 
   const [betSlipOpen, setBetSlipOpen] = useState(false);
@@ -808,62 +813,59 @@ function Fullmarkett() {
     setBetAmount(0);
   };
 
-  // ✅ Fetch once before using socket (optional)
-  useEffect(() => {
-    if (gameid) {
-      setLoader(true);
-      dispatch(fetchCricketBatingData(gameid)).finally(() => {
-        setLoader(false);
-      });
-    }
-  }, [dispatch, gameid]);
-
+  // Load betting data once + subscribe for live updates (no duplicate HTTP fetch)
   useEffect(() => {
     if (!gameid) return;
-    // subscribe to betting updates for this game
+
+    let cancelled = false;
+    const hasCachedMarkets =
+      Array.isArray(battingData) && battingData.length > 0;
+    if (hasCachedMarkets) {
+      setBettingData(battingData);
+      setLoader(false);
+    } else {
+      setBettingData(null);
+      setLoader(true);
+    }
+
     wsClient.send({ type: "subscribe", gameid, apitype: "cricket" });
 
     const unsubscribe = wsClient.subscribe((message) => {
       if (
-        message?.type === "bettingData" &&
-        String(message.gameid) === String(gameid)
+        message?.type !== "bettingData" ||
+        String(message.gameid) !== String(gameid)
       ) {
-        setBettingData(message.data);
+        return;
+      }
+      const raw = message.data;
+      const markets = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+          ? raw.data
+          : Array.isArray(raw?.result)
+            ? raw.result
+            : [];
+      if (markets.length > 0) {
+        setBettingData(markets);
+        if (!cancelled) setLoader(false);
       }
     });
 
-    return () => unsubscribe();
-  }, [gameid]);
-
-    useEffect(() => {
-    let intervalId;
-
-    if (gameid) {
-      // Set loader true before initial fetch
-      setLoader(true);
-
-      const fetchData = async () => {
-        await dispatch(fetchCricketBatingData(gameid));
-        setLoader(false); // Stop loader after first successful fetch
-      };
-
-      fetchData();
-
-      // intervalId = setInterval(() => {
-      //   dispatch(fetchCricketBatingData(gameid));
-      // }, 2000);
-    }
-
+    dispatch(fetchCricketBatingData(gameid)).finally(() => {
+      if (!cancelled) setLoader(false);
+    });
 
     return () => {
-      clearInterval(intervalId);
+      cancelled = true;
+      unsubscribe();
     };
-  }, [gameid]);
+  }, [dispatch, gameid]);
 
   useEffect(() => {
-    setBettingData(battingData);
+    if (Array.isArray(battingData) && battingData.length > 0) {
+      setBettingData(battingData);
+    }
   }, [battingData]);
-console.log("betting data",bettingData)
 
   // ✅ Use socket data for all lists
   useEffect(() => {
@@ -929,19 +931,9 @@ console.log("betting data",bettingData)
       };
       setFormData(updatedFormData);
 
-      const data = await dispatch(createfancyBet(updatedFormData)).then((res) => {
-        if (successMessage) {
-          toast.success(successMessage);
-          setSelectedRun(null);
-          dispatch(messageClear());
-        }
-
-        if (errorMessage) {
-          toast.error(errorMessage);
-          dispatch(messageClear());
-        }
-      }) // Wait for bet to process
-      // toast.success(data.message || "Bet placed successfully");
+      // Wait for bet to process. Toasts/errors will be handled by the single useEffect
+      // listening to successMessage/errorMessage to avoid duplicate toasts.
+      await dispatch(createfancyBet(updatedFormData));
       // Only fetch user data if user is logged in
       const token = localStorage.getItem("token");
       if (token) {
@@ -949,7 +941,7 @@ console.log("betting data",bettingData)
         dispatch(getPendingBetAmo(gameid));
       }
     } catch (error) {
-      toast.error(error);
+      // Avoid duplicate toasts: error toast is handled in useEffect via errorMessage.
     }
   };
 
@@ -1052,7 +1044,16 @@ console.log("data source",dataSource)
   console.log("bookmaker list",BookmakerList)
   useEffect(() => {
     if (successMessage) {
-      // toast.success(successMessage);
+      const now = Date.now();
+      // block rapid duplicate toasts
+      if (now - lastBetToastAt < 1500) return;
+
+      const toastKey = `success:${successMessage}`;
+      if (lastBetToastKey !== toastKey) {
+        lastBetToastKey = toastKey;
+        lastBetToastAt = now;
+        toast.success(successMessage);
+      }
       setSelectedRun(null);
       dispatch(messageClear());
     }
@@ -1060,7 +1061,16 @@ console.log("data source",dataSource)
     if (errorMessage) {
       // Only show error toasts if user is logged in
       const token = localStorage.getItem("token");
-      if (token) {
+      const now = Date.now();
+      if (now - lastBetToastAt < 1500) {
+        dispatch(messageClear());
+        return;
+      }
+
+      const toastKey = `error:${errorMessage}`;
+      if (token && lastBetToastKey !== toastKey) {
+        lastBetToastKey = toastKey;
+        lastBetToastAt = now;
         toast.error(errorMessage);
       }
       dispatch(messageClear());
@@ -1069,7 +1079,9 @@ console.log("data source",dataSource)
 
   
  
-  const fancy1List = bettingData?.filter((item) => item.mname === "Normal");
+  const fancy1List = Array.isArray(dataSource)
+    ? dataSource.filter((item) => item.mname === "Normal")
+    : [];
 
   const fancy1Data =
     Array.isArray(fancy1List) && fancy1List.length > 0 && fancy1List[0].section
@@ -1229,15 +1241,19 @@ const sportsbookData = Array.isArray(dataSource)
     //   }
     // };
     // ...existing code...
-const fetchScorecard = async (isInitial = false) => {
+    const fetchScorecard = async (isInitial = false) => {
   if (!gameid || isLive) return;
 
   try {
     if (isInitial) setScorecardLoading(true);
 
-    const response = await fetch(
-      mediaUrls.scorecardUrl
-    );
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(mediaUrls.scorecardUrl, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
     const json = await response.json();
 
     const iframeUrl = json?.iframe?.url;
@@ -1276,7 +1292,7 @@ const fetchScorecard = async (isInitial = false) => {
         clearInterval(intervalId);
       }
     };
-  }, [isLive, gameid]);
+  }, [isLive, gameid, mediaUrls.scorecardUrl]);
 
   // Write HTML content to iframe when it changes
   useEffect(() => {
@@ -1411,9 +1427,19 @@ const fetchScorecard = async (isInitial = false) => {
   }
   const team1 = dataSource?.[0]?.runners?.[0]?.name || "";
   const team2 = dataSource?.[0]?.runners?.[1]?.name || "";
+  const hasMarketData =
+    Array.isArray(dataSource) &&
+    dataSource.length > 0 &&
+    (matchOddsList.length > 0 ||
+      tiedMatchList.length > 0 ||
+      BookmakerList.length > 0 ||
+      fancy1Data.length > 0 ||
+      sportsbookData.length > 0);
+  const showPageLoader = loader && !hasMarketData;
+
   return (
     <div>
-      {loader &&(
+      {showPageLoader && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 bg-opacity-40">
           <Spinner />
         </div>

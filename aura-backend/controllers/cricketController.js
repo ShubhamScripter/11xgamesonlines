@@ -17,6 +17,9 @@ const isBlockedCricketLeague = (cname) => {
   return BLOCKED_CRICKET_CNAMES.has(key);
 };
 
+const cricketBettingCache = new Map();
+const CRICKET_BETTING_CACHE_MS = 4000;
+
 export const getCricketData = async (req, res) => {
   try {
     const data = await fetchMatchList(4);
@@ -112,10 +115,16 @@ export const fetchCrirketBettingData = async (req, res) => {
   }
 
   try {
-    console.log("my game id is:",gameid);
+    const cacheKey = String(gameid);
+    const cached = cricketBettingCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CRICKET_BETTING_CACHE_MS) {
+      return res.status(200).json({ success: true, data: cached.payload });
+    }
+
     const json = await fetchMatchData(gameid, 4);
 
     if (json.success) {
+      cricketBettingCache.set(cacheKey, { ts: Date.now(), payload: json });
       return res.status(200).json({ success: true, data: json });
     } else {
       return res

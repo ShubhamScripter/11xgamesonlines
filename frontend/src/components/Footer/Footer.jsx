@@ -65,7 +65,7 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
                 className={`fixed top-[65px] left-0 h-[calc(100vh-145px)] w-full bg-[#141515] z-9 transform transition-transform duration-300 ease-in-out overflow-y-auto no-scrollbar
                 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
-                <MobNavbar closeMenu={() => setMenuOpen(false)} />
+                {menuOpen ? <MobNavbar closeMenu={() => setMenuOpen(false)} /> : null}
             </div>
                 
              {/* Sliding profile top to bottom */}   

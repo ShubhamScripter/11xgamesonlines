@@ -213,6 +213,8 @@ const downlineSlice = createSlice({
     totalPages: 1,
     currentPage: 1,
     pageSize: DEFAULT_PAGE_SIZE,
+    totalUserDownlineBalance: 0,
+    totalUserDownlineExposure: 0,
   },
   reducers: {},
   extraReducers: builder => {
@@ -238,6 +240,8 @@ const downlineSlice = createSlice({
   state.totalUsers = totalUsers;
   state.totalPages = totalPages || 1;
   state.currentPage = currentPage || 1;
+  state.totalUserDownlineBalance = Number(totalUserDownlineBalance) || 0;
+  state.totalUserDownlineExposure = Number(totalUserDownlineExposure) || 0;
 
   state.downlines = downlineArray.map((u, i) => ({
     id: i + 1,
@@ -254,8 +258,8 @@ const downlineSlice = createSlice({
     avbalance: u.avbalance,
     agentAvbalance: u.agentAvbalance,
     totalAvbalance: u.totalAvbalance,
-    exposure: u.exposure,
-    totalExposure: u.downlineExposure,
+    exposure: Number(u.exposure ?? 0),
+    totalExposure: u.downlineExposure ?? u.totalExposure ?? 0,
     exposureLimit: u.exposureLimit,
     playerbalancee: u.playerbalancee,
     creditRef: u.creditReference,
@@ -269,24 +273,30 @@ const downlineSlice = createSlice({
     lastIP: u.lastIP,
   }));
 
+  // Dashboard totals from API (full downline tree) — not from current page rows
+  const globalExposure = Number(totalUserDownlineExposure) || 0;
+  const globalPlayerBalance = Number(totalUserDownlineBalance) || 0;
+
   state.balanceData = [
-  { label: 'Total Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-  { label: 'Total Exposure', value: `INR ${(selfData.exposure ?? 0).toFixed(2)}` },
-  { label: 'Total Avail. Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-  { label: 'Balance', value: `INR ${(selfData.avbalance ?? 0).toFixed(2)}` },
- {
-  label: 'Available Balance',
-  value: `INR ${(
-    (selfData.avbalance ?? 0) + 
-    (selfData.totalBalance ?? 0)
-  ).toFixed(2)}`
-}
-,
-  { 
-    label: 'Total Player Balance', 
-    value: `INR ${totalUserDownlineBalance.toFixed(2)}` 
-  },
-];
+    { label: 'Total Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+    {
+      label: 'Total Exposure',
+      value: `INR ${globalExposure.toFixed(2)}`,
+      highlight: true,
+    },
+    { label: 'Total Avail. Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+    { label: 'Balance', value: `INR ${(selfData.avbalance ?? 0).toFixed(2)}` },
+    {
+      label: 'Available Balance',
+      value: `INR ${(
+        (selfData.avbalance ?? 0) + (selfData.totalBalance ?? 0)
+      ).toFixed(2)}`,
+    },
+    {
+      label: 'Total Player Balance',
+      value: `INR ${globalPlayerBalance.toFixed(2)}`,
+    },
+  ];
 
 
   state.loading = false;

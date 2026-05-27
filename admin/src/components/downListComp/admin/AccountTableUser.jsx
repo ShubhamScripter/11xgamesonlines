@@ -95,6 +95,8 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
 
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const getExposureValue = (user) => Number(user?.exposure ?? 0);
+
   return (
     <div>
       <div className="mt-4 overflow-x-auto">
@@ -174,7 +176,7 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
                   </td>
                   <td className="px-2 py-2">
                     <span className="px-2 py-1 rounded text-red-600 bg-red-100 border border-[#deb6c0] inline-block">
-                      {(user.exposure ?? 0).toLocaleString()}
+                      {getExposureValue(user).toLocaleString()}
                     </span>
                   </td>
                   <td className="px-2 py-2">

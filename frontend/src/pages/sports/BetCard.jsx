@@ -376,7 +376,6 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
 
   useEffect(() => {
     if (successMessage) {
-      toast.success(successMessage);
       dispatch(messageClear());
       // Add a small delay to ensure user data is refreshed before closing
       setTimeout(() => {
@@ -384,8 +383,6 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
       }, 500);
     }
     if (errorMessage) {
-      const msg = typeof errorMessage === 'string' ? errorMessage : (errorMessage?.message || 'Bet failed');
-      toast.error(msg);
       dispatch(messageClear());
     }
   }, [successMessage, errorMessage, dispatch, onClose]);

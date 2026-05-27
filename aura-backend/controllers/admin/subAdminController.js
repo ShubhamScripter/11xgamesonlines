@@ -1188,22 +1188,9 @@ export const getAllUser = async (req, res) => {
       })
     );
 
-    const split = usersWithDownlineUserBalance.reduce(
-      (acc, row) => {
-        if (row.role === 'admin') acc.admins.push(row);
-        else if (row.role === 'user') acc.users.push(row);
-        else acc.others.push(row);
-        return acc;
-      },
-      { admins: [], users: [], others: [] }
-    );
-
     return res.status(200).json({
       message: 'All sub-admin details retrieved successfully',
       data: usersWithDownlineUserBalance,
-      admins: split.admins,
-      users: split.users,
-      others: split.others,
       selfData: admin,
       totalUserDownlineBalance,
       totalUserDownlineExposure,

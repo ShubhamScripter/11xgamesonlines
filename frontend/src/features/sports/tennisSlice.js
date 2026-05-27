@@ -15,32 +15,78 @@ const normalizeTennisMatches = (matches) => {
   }));
 };
 
+let tennisMatchesPromise = null;
+
 export const fetchTennisData = createAsyncThunk(
   "tennis/fetchTennisData",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const response = await api.get("/tennis");
-      const list = response.data.matches ?? response.data.data ?? [];
-      return normalizeTennisMatches(list);
+      const state = getState();
+      const existing = state?.tennis?.data;
+      if (Array.isArray(existing) && existing.length > 0) {
+        return existing;
+      }
+
+      if (tennisMatchesPromise) {
+        return await tennisMatchesPromise;
+      }
+
+      tennisMatchesPromise = api
+        .get("/tennis")
+        .then((response) =>
+          normalizeTennisMatches(
+            response.data.matches ?? response.data.data ?? []
+          )
+        );
+
+      const result = await tennisMatchesPromise;
+      return result;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch matches"
       );
+    } finally {
+      tennisMatchesPromise = null;
     }
   }
 );
 
 export const fetchTennisInplayData = createAsyncThunk(
   "tennis/fetchTennisInplayData",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const response = await api.get("/tennis");
-      const list = response.data.matches ?? response.data.data ?? [];
-      return normalizeTennisMatches(list);
+      const state = getState();
+      const inplayExisting = state?.tennis?.inplayData;
+      if (Array.isArray(inplayExisting) && inplayExisting.length > 0) {
+        return inplayExisting;
+      }
+
+      const matchesExisting = state?.tennis?.data;
+      if (Array.isArray(matchesExisting) && matchesExisting.length > 0) {
+        return matchesExisting.filter((m) => m?.inplay === true || m?.iplay === true);
+      }
+
+      if (tennisMatchesPromise) {
+        const matches = await tennisMatchesPromise;
+        return matches.filter((m) => m?.inplay === true || m?.iplay === true);
+      }
+
+      tennisMatchesPromise = api
+        .get("/tennis")
+        .then((response) =>
+          normalizeTennisMatches(
+            response.data.matches ?? response.data.data ?? []
+          )
+        );
+
+      const matches = await tennisMatchesPromise;
+      return matches.filter((m) => m?.inplay === true || m?.iplay === true);
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch in-play matches"
       );
+    } finally {
+      tennisMatchesPromise = null;
     }
   }
 );

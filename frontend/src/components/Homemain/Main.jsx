@@ -4,9 +4,9 @@ import { FaCalendar, FaCalendarAlt } from "react-icons/fa";
 import { HiTrophy } from "react-icons/hi2";
 import { ImShield } from "react-icons/im";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchCricketData, fetchCricketInplayData } from "../../features/sports/cricketSlice";
-import { fetchSoccerData, fetchSoccerInplayData } from "../../features/sports/soccerSlice";
-import { fetchTennisData, fetchTennisInplayData } from "../../features/sports/tennisSlice";
+import { fetchCricketData } from "../../features/sports/cricketSlice";
+import { fetchSoccerData } from "../../features/sports/soccerSlice";
+import { fetchTennisData } from "../../features/sports/tennisSlice";
 import { useNavigate } from 'react-router-dom';
 import Inplay from './Inplay';
 import Today from './Today';
@@ -53,9 +53,6 @@ function Main() {
   const cricket = useSelector(state => state.cricket.matches || []);
   const soccer = useSelector(state => state.soccer.soccerData || []);
   const tennis = useSelector(state => state.tennis.data || []);
-  const cricketInplay = useSelector(state => state.cricket.inplayMatches || []);
-  const soccerInplay = useSelector(state => state.soccer.soccerInplayData || []);
-  const tennisInplay = useSelector(state => state.tennis.inplayData || []);
 
   // const cricket = []
   // const soccer = []
@@ -65,27 +62,23 @@ function Main() {
 
   useEffect(() => {
     dispatch(fetchCricketData());
-    dispatch(fetchCricketInplayData());
     dispatch(fetchSoccerData());
-    dispatch(fetchSoccerInplayData());
     dispatch(fetchTennisData());
-    dispatch(fetchTennisInplayData());
   }, [dispatch]);
 
   // If data hasn't loaded yet, show loading
   if (
     !cricket.length &&
     !soccer.length &&
-    !tennis.length &&
-    !cricketInplay.length &&
-    !soccerInplay.length &&
-    !tennisInplay.length
+    !tennis.length
   ) {
     return <div className="text-center py-4"><Spinner/></div>;
   }
 
   const allSports = [...cricket, ...soccer, ...tennis];
-  const allInplaySports = [...cricketInplay, ...soccerInplay, ...tennisInplay];
+  const cricketInplay = cricket.filter(m => m?.inplay === true);
+  const soccerInplay = soccer.filter(m => m?.inplay === true || m?.iplay === true);
+  const tennisInplay = tennis.filter(m => m?.inplay === true || m?.iplay === true);
 
   const filteredData = {
     all: Filter === "In Play" ? allInplaySports : filterMatches(allSports, Filter),
