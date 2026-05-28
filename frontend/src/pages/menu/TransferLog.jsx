@@ -63,7 +63,7 @@ function TransferLog() {
         >
           <MdArrowBackIos className='text-white text-2xl font-semibold' />
         </div>
-        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">P2P Transfer Log</span>
+        <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">Payment Transfer Log</span>
       </div>
       <div className='bg-[#f1f7ff] min-h-[80vh]'>
         {balanceDataList.length === 0 &&(

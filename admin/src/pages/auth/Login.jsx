@@ -1,5 +1,5 @@
 import React, { useState,useEffect } from 'react';
-import Logo from '../../assets/logo.png';
+import Logo from '../../assets/logodbdb.png';
 import { BiLogIn } from "react-icons/bi";
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';

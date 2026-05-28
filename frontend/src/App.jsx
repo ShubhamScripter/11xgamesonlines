@@ -25,8 +25,6 @@ import BetHistory from './pages/menu/BetHistory'
 import ProfitLoss from './pages/menu/ProfitLoss'
 import Activelog from './pages/menu/ActiveLog'
 import Myprofile from './pages/menu/MyProfile'
-import P2pTransfer from './pages/menu/P2pTransfer'
-import P2pTransferLog from './pages/menu/P2pTransferLog'
 import ManualDeposit from './pages/menu/ManualDeposit'
 import Settings from './pages/menu/Setting'
 import ChangePassword from './pages/menu/ChangePassword'
@@ -91,8 +89,6 @@ function App() {
                 <Route path='/user/profit-loss' element={<ProfitLoss />} />
                 <Route path='/user/active-log' element={<Activelog />} />
                 <Route path='/user/profile' element={<Myprofile />} />
-                <Route path='/user/p2p-transfer' element={<P2pTransfer />} />
-                <Route path='/user/p2p-transfer-log' element={<P2pTransferLog />} />
                 <Route path='/user/manual-deposit' element={<ManualDeposit />} />
                 <Route path='/user/setting' element={<Settings />} />
                 <Route path='/user/change-password' element={<ChangePassword />} />

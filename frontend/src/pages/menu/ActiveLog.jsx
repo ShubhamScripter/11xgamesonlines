@@ -71,6 +71,8 @@ function ActiveLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     dispatch(getUser());
@@ -90,7 +92,11 @@ function ActiveLog() {
       try {
         const res = await api.get(`/get/user-login-history/${uid}`);
         if (!cancelled) {
-          setLogs(res.data?.data || []);
+          const list = Array.isArray(res.data?.data) ? res.data.data : [];
+          const sorted = [...list].sort(
+            (a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime()
+          );
+          setLogs(sorted);
         }
       } catch (err) {
         if (!cancelled) {
@@ -113,8 +119,20 @@ function ActiveLog() {
     };
   }, [user?._id]);
 
+  const totalPages = Math.max(1, Math.ceil(logs.length / itemsPerPage));
+  const paginatedLogs = logs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   return (
-    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 min-h-full pb-24 md:pb-8">
       <div className="h-10 flex items-center">
         <div onClick={() => window.history.back()}>
           <MdArrowBackIos className="text-white text-md font-semibold" />
@@ -137,7 +155,30 @@ function ActiveLog() {
         )}
 
         {!loading && !error && logs.length > 0 && (
-          <ActivelogCard logdata={logs} />
+          <>
+            <ActivelogCard logdata={paginatedLogs} />
+            <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="rounded-md border border-[#2e363d] px-3 py-2 text-sm text-gray-200 disabled:opacity-50"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage <= 1}
+              >
+                Prev
+              </button>
+              <span className="text-xs md:text-sm text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="rounded-md border border-[#2e363d] px-3 py-2 text-sm text-gray-200 disabled:opacity-50"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

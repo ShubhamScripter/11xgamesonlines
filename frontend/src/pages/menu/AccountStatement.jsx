@@ -7,10 +7,10 @@ import api from '../../utils/axiosConfig';
 
 function AccountStatement() {
   const { user } = useSelector((state) => state.auth);
-  const [balance, setbalance] = useState(106.70)
-  const [currency, setcurrency] = useState('BDT')
   const [accountDataList, setAccountDataList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch account transactions (deposit/withdrawal)
   useEffect(() => {
@@ -77,11 +77,6 @@ function AccountStatement() {
           });
           
           setAccountDataList(mappedData);
-          
-          // Update balance from the latest transaction if available
-          if (mappedData.length > 0) {
-            setbalance(mappedData[0].balance);
-          }
         } else {
           setAccountDataList([]);
         }
@@ -95,8 +90,21 @@ function AccountStatement() {
 
     fetchAccountTransactions();
   }, [user]);
+
+  const totalPages = Math.max(1, Math.ceil(accountDataList.length / itemsPerPage));
+  const paginatedData = accountDataList.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   return (
-    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 h-screen">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 min-h-full pb-24 md:pb-8">
           <div className="bg-[#000] h-10 flex items-center">
             <div onClick={() => window.history.back()}>
               <MdArrowBackIos className="text-white text-md font-semibold" />
@@ -106,8 +114,8 @@ function AccountStatement() {
             </span>
           </div>
 
-      <div className='flex flex-col pb-5 '>
-        <MainBalanceCard balance={balance} currency={currency}/>
+      <div className='flex flex-col pb-5'>
+        <MainBalanceCard />
         <div>
           {loading ? (
             <div className="text-center py-8 text-gray-600">
@@ -118,7 +126,30 @@ function AccountStatement() {
               No deposit/withdrawal history found.
             </div>
           ) : (
-            <AccountStatementCard accountdata={accountDataList}/>
+            <>
+              <AccountStatementCard accountdata={paginatedData} />
+              <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-[#2e363d] px-3 py-2 text-sm text-gray-200 disabled:opacity-50"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage <= 1}
+                >
+                  Prev
+                </button>
+                <span className="text-xs md:text-sm text-gray-400">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="rounded-md border border-[#2e363d] px-3 py-2 text-sm text-gray-200 disabled:opacity-50"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>

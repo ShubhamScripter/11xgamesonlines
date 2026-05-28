@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import HeaderLogin from "../../components/Header/HeaderLogin";
-import { MdArrowBackIos } from "react-icons/md";
 import BetCard from "../../components/Bethistory/BetCard";
 import { getBetHistory } from "../../features/sports/betReducer";
 import api from "../../utils/axiosConfig";
@@ -10,7 +8,7 @@ function Bets() {
   const dispatch = useDispatch();
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
   const { user } = useSelector((state) => state.auth);
-  
+
   const [settlementFilter, setSettlementFilter] = useState("unsettle");
   const [casinoBetdata, setCasinoBetdata] = useState([]);
   const [casinoLoading, setCasinoLoading] = useState(false);
@@ -25,6 +23,7 @@ function Bets() {
       )
       .map((bet, idx) => {
         const created = bet.createdAt ? new Date(bet.createdAt) : new Date();
+        const isUnsettled = Number(bet?.status) === 0;
         return {
           betKind: "sports",
           id: bet._id || bet.id || `sports-${idx}`,
@@ -38,9 +37,9 @@ function Bets() {
           stake: Number(bet.betAmount ?? 0),
           profitLoss: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
           possibleProfit:
-            filterValue === "unsettle" ? Number(bet.betAmount ?? 0) : undefined,
+            isUnsettled ? Number(bet.betAmount ?? 0) : undefined,
           possibleLoss:
-            filterValue === "unsettle" ? Number(bet.price ?? 0) : undefined,
+            isUnsettled ? Number(bet.price ?? 0) : undefined,
           time: created.toLocaleString(),
           placedTs: created.getTime(),
           selection: bet.teamName || "",
@@ -81,7 +80,7 @@ function Bets() {
           "Casino",
         betAmount: Number(bet.bet_amount ?? 0),
         profitLoss:
-        settlementFilter === "unsettle"
+          settlementFilter === "unsettle"
             ? Number(bet.bet_amount ?? 0)
             : Number(bet?.change ?? 0) - Number(bet.bet_amount ?? 0),
         time: created ? created.toLocaleString() : "",
@@ -91,6 +90,13 @@ function Bets() {
   };
 
   const fetchCasinoBets = async () => {
+    if (settlementFilter !== "settel") {
+      setCasinoBetdata([]);
+      setCasinoError("");
+      setCasinoLoading(false);
+      return;
+    }
+
     try {
       setCasinoLoading(true);
       setCasinoError("");
@@ -105,17 +111,9 @@ function Bets() {
       }
       if (!userId) return;
 
-      const response =
-        settlementFilter === "unsettle"
-          ? await api.get(`/casino/bet-history/${userId}`, {
-              withCredentials: true,
-            })
-          : await api.get(
-              `/casino/all-bet-history?id=${userId}&page=1&limit=500`,
-              {
-                withCredentials: true,
-              }
-            );
+      const response = await api.get(`/casino/all-bet-history?id=${userId}&page=1&limit=500`, {
+        withCredentials: true,
+      });
 
       const list = response?.data?.data || [];
       setCasinoBetdata(mapCasinoBetData(list));
@@ -188,7 +186,6 @@ function Bets() {
           </button>
         </div>
       </div>
-
       {/* Bets List */}
       <div className="px-2 text-white pb-30 pt-5">
         {betsContent}

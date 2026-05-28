@@ -42,8 +42,6 @@ const FOOTER_COLUMNS = [
       { label: "Bet History", path: "/user/bet-history" },
       { label: "Profit & Loss", path: "/user/profit-loss" },
       { label: "Manual Deposit", path: "/user/manual-deposit" },
-      { label: "P2P Transfer", path: "/user/p2p-transfer" },
-      { label: "P2P Transfer Log", path: "/user/p2p-transfer-log" },
     ],
   },
   {
