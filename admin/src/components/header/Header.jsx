@@ -155,7 +155,7 @@
 // export default Header;
 
 import React, { useEffect, useCallback } from 'react';
-import Logo from '../../assets/logo.png';
+import Logo from '../../assets/logodbdb.png';
 import { IoMdRefresh } from "react-icons/io";
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAccountSummary } from '../../store/accountSummarySlice';
