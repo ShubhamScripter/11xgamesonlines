@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { formatActivityLogTime } from "../../../utils/time";
 
 function getPageNumbers(current, total, maxButtons = 7) {
   const pages = [];
@@ -84,7 +85,7 @@ function ActivityLogTable({ activityLogs }) {
             currentdata.map((log, index) => (
               <tr key={index} className="border-y border-y-[#7e97a7]">
                 <td className="px-2 py-2">
-                  {log.dateTime}
+                  {formatActivityLogTime(log)}
                 </td>
                 <td className="px-2 py-2">{log.status}</td>
                 <td className="px-2 py-2">{log.ip}</td>

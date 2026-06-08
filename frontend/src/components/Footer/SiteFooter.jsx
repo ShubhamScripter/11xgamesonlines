@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { HiOutlineExternalLink } from "react-icons/hi";
 import "./SiteFooter.css";
+import FooterTrust from "./FooterTrust";
 
 const FOOTER_COLUMNS = [
   {
@@ -40,15 +41,11 @@ const FOOTER_COLUMNS = [
       { label: "My Bets", path: "/mybets" },
       { label: "Current Bets", path: "/user/current-bets" },
       { label: "Bet History", path: "/user/bet-history" },
-      { label: "Profit & Loss", path: "/user/profit-loss" },
-      { label: "Manual Deposit", path: "/user/manual-deposit" },
     ],
   },
   {
     title: "Help",
     links: [
-      { label: "Upline WhatsApp", path: "/user/upline-whatsapp", auth: true },
-      { label: "Payment Transfer Log", path: "/user/payment-transfer-log", auth: true },
       { label: "Login", path: "/login", guestOnly: true },
       { label: "Register", path: "/register", guestOnly: true },
     ],
@@ -103,6 +100,8 @@ function SiteFooter() {
 
   return (
     <footer className="site-footer">
+      <FooterTrust />
+
       <div className="site-footer-grid">
         {visibleColumns.map((col) => (
           <div key={col.title} className="site-footer-column">

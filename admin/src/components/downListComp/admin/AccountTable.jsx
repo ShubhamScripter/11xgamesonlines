@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { FaExchangeAlt, FaUser, FaCog, FaLock, FaList, FaPercent } from "react-icons/fa";
-import { FaPencil } from "react-icons/fa6";
 import CreditRef from "./CreditRef";
 import ChangeStatus from "./ChangeStatus";
 import BlockMarket from "./BlockMarket";
@@ -151,12 +150,11 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
             <tr>
               <th className="px-2 py-2">Sr .No.</th>
               <th className="px-2 py-2">Account</th>
-              <th className="px-2 py-2">Credit Ref.</th>
+              <th className="px-2 py-2">Currency</th>
               <th className="px-2 py-2">Balance</th>
               <th className="px-2 py-2">Player Exposure</th>
               <th className="px-2 py-2">Avail. bal.</th>
               <th className="px-2 py-2">Player Balance</th>
-              <th className="px-2 py-2">Reference P/L</th>
               {currentUser?.role === "superAgent" &&<th className="px-2 py-2">Commission Limit</th>}
               <th className="px-2 py-2">Status</th>
               <th className="px-2 py-2">Action</th>
@@ -166,7 +164,7 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan="11"
+                  colSpan={currentUser?.role === "superAgent" ? 11 : 10}
                   className="text-center py-2 text-[#3b5160] bg-[#0000000d]"
                 >
                   No users available.
@@ -208,18 +206,7 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
                     </span>
                   </td>
                   <td className="px-2 py-2">
-                    <div className="inline-flex items-center gap-1 text-[#2066c6]">
-                      <span className="underline">{(user.creditRef ?? 0).toFixed(2)}</span>
-                      <FaPencil className="text-[#2066c6] cursor-pointer" onClick={() => {
-                        setSelectedUser({ 
-                          id: user._id, 
-                          role: user.role, 
-                          username: user.username || user.account,
-                          creditReference: user.creditRef || user.creditReference || 0
-                        });
-                        openCreditRef();
-                      }} />
-                    </div>
+                    {(user.currency || "BDT").toUpperCase()}
                   </td>
                   <td className="px-2 py-2 text-[#2066c6]">
                     {(user.balance ?? 0).toLocaleString()}
@@ -235,7 +222,6 @@ function AccountTable({ users, refreshDownlines, currentUser, serverPaginated = 
                   <td className="px-2 py-2">
                     {(user.playerbalancee ?? 0).toLocaleString()}
                   </td>
-                  <td className="px-2 py-2">{user.refPL ?? 0}</td>
                   {currentUser.role === "superAgent"&&
                   <td className="px-2 py-2">
                   {user.role === "agent" ? (

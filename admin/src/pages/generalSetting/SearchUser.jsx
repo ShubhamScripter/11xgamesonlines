@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchDownlineTree } from "../../store/downlineSlice";
 import { fetchAccountSummary } from "../../store/accountSummarySlice";
 import { useSelector, useDispatch } from "react-redux";
+import { displayUserCurrency } from "../../utils/userCurrency";
 function SearchUser() {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
@@ -46,7 +47,7 @@ function SearchUser() {
     setError("");
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get("/users-including-subadmins", {
+      const { data } = await axiosInstance.get("/getAllUsersWithCompleteInfo", {
         params: { page: 1, limit: 10, searchQuery: searchQuery.trim() },
       });
       const apiUsers = Array.isArray(data?.data) ? data.data : [];
@@ -180,6 +181,7 @@ function SearchUser() {
           <thead className="bg-[#e4e4e4] border-y border-y-[#7e97a7]">
             <tr>
               <th className="px-2 py-2">Username </th>
+              <th className="px-2 py-2">Currency</th>
               <th className="px-2 py-2">Balance</th>
               <th className="px-2 py-2">Available D/W</th>
               <th className="px-2 py-2">Exposure</th>
@@ -194,6 +196,9 @@ function SearchUser() {
               return (
                 <tr key={user?._id || user?.userName} className="bg-white border-y border-y-[#7e97a7]">
                   <td className="px-2 py-2">{user?.userName || "-"}</td>
+                  <td className="px-2 py-2 font-semibold">
+                    {displayUserCurrency(user?.currency)}
+                  </td>
                   <td className="px-2 py-2">{user?.avbalance ?? 0}</td>
                   <td className="px-2 py-2">{user?.avbalance ?? 0}</td>
                   <td className="px-2 py-2">{user?.exposure ?? 0}</td>

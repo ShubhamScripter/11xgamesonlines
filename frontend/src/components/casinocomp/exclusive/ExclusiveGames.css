@@ -115,6 +115,12 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+.exclusive-card-badge--rated {
+  background: rgba(245, 215, 122, 0.35);
+  color: #f5d77a;
+  font-size: 10px;
+}
+
 .exclusive-card-image {
   height: 100%;
   width: 100%;
@@ -142,4 +148,23 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #8a8a8a;
+}
+
+@media (max-width: 767px) {
+  .exclusive-nav {
+    display: none;
+  }
+
+  .exclusive-scroll {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    overflow-x: visible;
+    scroll-behavior: auto;
+  }
+
+  .exclusive-card {
+    width: 100%;
+    flex-shrink: 1;
+  }
 }

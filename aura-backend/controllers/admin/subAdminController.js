@@ -14,6 +14,14 @@ import SubAdmin from '../../models/subAdminModel.js';
 import TransactionHistory from '../../models/transtionHistoryModel.js';
 import WithdrawalHistory from '../../models/withdrawalHistoryModel.js';
 import { calculateAllExposure } from '../../utils/exposureUtils.js';
+import { formatLoginDateTime } from '../../utils/appTime.js';
+import {
+  amountToAdminBdt,
+  getUsdtToBdtRate,
+  mapSportsBetHistoryForAdmin,
+  mapTransactionsForAdmin,
+  mapUserFinancialsForAdmin,
+} from '../../utils/adminCurrency.js';
 
 const countUplines = async (user) => {
   let count = 0;
@@ -61,9 +69,9 @@ const updateAdmin = async (id) => {
         if (user.role !== 'user') {
           DownlineTotalExposure += user.totalExposure || user.exposure || 0;
           DownlineTotalBettingProfitLoss += user.bettingProfitLoss || 0;
-          console.log(
-            `[UPDATE ADMIN] Agent/Admin ${user.userName}: using stored totalExposure=${user.totalExposure || user.exposure || 0}`
-          );
+          // console.log(
+          //   `[UPDATE ADMIN] Agent/Admin ${user.userName}: using stored totalExposure=${user.totalExposure || user.exposure || 0}`
+          // );
           continue;
         }
 
@@ -87,9 +95,9 @@ const updateAdmin = async (id) => {
 
         // Update user's stored bettingProfitLoss if it drifted from betHistoryModel
         if (user.bettingProfitLoss !== userBettingPL) {
-          console.log(
-            `[UPDATE ADMIN] User ${user.userName}: correcting bettingProfitLoss from ${user.bettingProfitLoss} to ${userBettingPL}`
-          );
+          // console.log(
+          //   `[UPDATE ADMIN] User ${user.userName}: correcting bettingProfitLoss from ${user.bettingProfitLoss} to ${userBettingPL}`
+          // );
           user.bettingProfitLoss = userBettingPL;
           await user.save();
         }
@@ -104,14 +112,14 @@ const updateAdmin = async (id) => {
         // Market-based exposure calculation (handles fancy + non-fancy + offsetting)
         const userExposure = calculateAllExposure(updatedPendingBets);
         DownlineTotalExposure += userExposure;
-        console.log(
-          `[UPDATE ADMIN] User ${user.userName}: exposure=${userExposure} bettingPL=${userBettingPL}`
-        );
+        // console.log(
+        //   `[UPDATE ADMIN] User ${user.userName}: exposure=${userExposure} bettingPL=${userBettingPL}`
+        // );
       } catch (error) {
-        console.error(
-          `[UPDATE ADMIN] Error calculating exposure for user ${user.userName}:`,
-          error.message
-        );
+        // console.error(
+        //   `[UPDATE ADMIN] Error calculating exposure for user ${user.userName}:`,
+        //   error.message
+        // );
         // Fallback to user's stored values
         DownlineTotalExposure += user.exposure || 0;
         DownlineTotalBettingProfitLoss += user.bettingProfitLoss || 0;
@@ -215,6 +223,8 @@ export const getAllUsersWithCompleteInfo = async (req, res) => {
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+
     // Add both upline totalBalance and direct user info
     const usersWithCompleteInfo = await Promise.all(
       allUsers.map(async (user) => {
@@ -224,9 +234,12 @@ export const getAllUsersWithCompleteInfo = async (req, res) => {
         // Count uplines to determine if direct user
         const uplineCount = await countUplines(user);
 
+        const mapped = mapUserFinancialsForAdmin(user, usdtToBdtRate);
         return {
-          ...user.toObject(),
-          uplineTotalBalance: upline ? upline.totalBalance : 0,
+          ...mapped,
+          uplineTotalBalance: upline
+            ? amountToAdminBdt(upline.totalBalance, upline.currency, usdtToBdtRate)
+            : 0,
           uplineCount: uplineCount,
           isDirectUser: uplineCount === 1,
         };
@@ -238,6 +251,7 @@ export const getAllUsersWithCompleteInfo = async (req, res) => {
     return res.status(200).json({
       message: 'Users with complete info retrieved successfully',
       data: usersWithCompleteInfo,
+      usdtToBdtRate,
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
       currentPage: pageNum,
@@ -574,11 +588,13 @@ export const deleteSubAdmin = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: 'Sub-admin deleted successfully',
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
       currentPage: pageNum,
@@ -604,18 +620,7 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
     const response = await axios.get(`https://ipapi.co/${ip}/json/`);
     const { city, region, country_name: country, org: isp } = response.data;
 
-    const now = new Date();
-    const formattedDateTime = now
-      .toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-      .replace(',', '');
+    const formattedDateTime = formatLoginDateTime(new Date());
 
     await LoginHistory.create({
       userName,
@@ -930,10 +935,12 @@ export const getSubAdmin = async (req, res) => {
 
     //  Fetch the updated admin data after updateAdmin
     const updatedAdmin = await SubAdmin.findById(id);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     res.status(200).json({
       message: 'Sub-admin details retrieved successfully',
-      data: updatedAdmin,
+      data: mapUserFinancialsForAdmin(updatedAdmin, usdtToBdtRate),
+      usdtToBdtRate,
     });
   } catch (error) {
     console.error('Error fetching sub-admin:', error);
@@ -947,11 +954,12 @@ export const getUserProfile = async (req, res) => {
   try {
     const { userId } = req.params; // passed in route as /credit-ref-history/:userId
     // console.log("userId", userId);
-    const data = await SubAdmin.findById(userId); // optional: latest first
-    // console.log("data", data);
+    const data = await SubAdmin.findById(userId);
+    const usdtToBdtRate = await getUsdtToBdtRate();
     res.status(200).json({
       message: 'User Profile fetched successfully',
-      data,
+      data: mapUserFinancialsForAdmin(data, usdtToBdtRate),
+      usdtToBdtRate,
       success: true,
     });
   } catch (error) {
@@ -997,10 +1005,12 @@ export const getDeleteUser = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       message: 'All sub-admin details retrieved successfully',
-      data: allUsers,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
+      usdtToBdtRate,
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
       currentPage: pageNum,
@@ -1062,11 +1072,13 @@ export const restoreDeleteUser = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: 'User restored successfully',
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
       currentPage: pageNum,
@@ -1127,7 +1139,9 @@ export const getAllUser = async (req, res) => {
 
     const totalUsers = await SubAdmin.countDocuments(filter);
 
-    // ✅ Correct totals: sum over ALL downline 'user' accounts under this admin (entire tree)
+    const usdtToBdtRate = await getUsdtToBdtRate();
+
+    // ✅ Correct totals: sum over ALL downline 'user' accounts (BDT equivalent for USDT)
     let totalUserDownlineBalance = 0;
     let totalUserDownlineExposure = 0;
 
@@ -1140,13 +1154,21 @@ export const getAllUser = async (req, res) => {
           invite: currentCode,
           status: { $ne: 'delete' },
         },
-        { code: 1, role: 1, balance: 1, exposure: 1 }
+        { code: 1, role: 1, balance: 1, exposure: 1, currency: 1 }
       ).lean();
 
       for (const dl of downlines) {
         if (dl.role === 'user') {
-          totalUserDownlineBalance += dl.balance || 0;
-          totalUserDownlineExposure += dl.exposure || 0;
+          totalUserDownlineBalance += amountToAdminBdt(
+            dl.balance,
+            dl.currency,
+            usdtToBdtRate
+          );
+          totalUserDownlineExposure += amountToAdminBdt(
+            dl.exposure,
+            dl.currency,
+            usdtToBdtRate
+          );
         } else if (dl.code) {
           queueForTotals.push(dl.code);
         }
@@ -1154,10 +1176,11 @@ export const getAllUser = async (req, res) => {
     }
 
     // For each downline (HR / agent / admin), calculate the sum of balances
-    // of all 'user' role accounts in their entire downline tree.
+    // of all 'user' role accounts in their entire downline tree (in BDT).
     const usersWithDownlineUserBalance = await Promise.all(
       allUsers.map(async (user) => {
         let totalDownlineUserBalance = 0;
+        const userCurrency = user.currency || 'BDT';
 
         // BFS over hierarchy using invite / code chain
         const queue = [user.code];
@@ -1169,12 +1192,16 @@ export const getAllUser = async (req, res) => {
               invite: currentCode,
               status: { $ne: 'delete' },
             },
-            { code: 1, role: 1, balance: 1 }
+            { code: 1, role: 1, balance: 1, currency: 1 }
           ).lean();
 
           for (const dl of downlines) {
             if (dl.role === 'user') {
-              totalDownlineUserBalance += dl.balance || 0;
+              totalDownlineUserBalance += amountToAdminBdt(
+                dl.balance,
+                dl.currency,
+                usdtToBdtRate
+              );
             } else if (dl.code) {
               queue.push(dl.code);
             }
@@ -1182,8 +1209,9 @@ export const getAllUser = async (req, res) => {
         }
 
         return {
-          ...user.toObject(),
+          ...mapUserFinancialsForAdmin(user, usdtToBdtRate),
           totalDownlineUserBalance,
+          playerbalancee: totalDownlineUserBalance,
         };
       })
     );
@@ -1191,9 +1219,10 @@ export const getAllUser = async (req, res) => {
     return res.status(200).json({
       message: 'All sub-admin details retrieved successfully',
       data: usersWithDownlineUserBalance,
-      selfData: admin,
+      selfData: mapUserFinancialsForAdmin(admin, usdtToBdtRate),
       totalUserDownlineBalance,
       totalUserDownlineExposure,
+      usdtToBdtRate,
       ipWarnings: null,
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
@@ -1246,9 +1275,12 @@ export const getAllOnlyUser = async (req, res) => {
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+
     // Apply the same exposure calculation logic as getUserById
     const usersWithCorrectExposure = await Promise.all(
       allUsers.map(async (user) => {
+        const userCurrency = user.currency || 'BDT';
         try {
           // Get all pending bets for this user
           const updatedPendingBets = await betModel.find({
@@ -1259,18 +1291,17 @@ export const getAllOnlyUser = async (req, res) => {
           // Market-based exposure calculation (handles fancy + non-fancy + offsetting)
           const currentExposure = calculateAllExposure(updatedPendingBets);
 
-          // Return user with corrected exposure (same as getUserById)
-          return {
-            ...user.toObject(),
-            exposure: currentExposure,
-          };
+          // Return user with corrected exposure (same as getUserById), in BDT for admin
+          return mapUserFinancialsForAdmin(
+            { ...user.toObject(), exposure: currentExposure },
+            usdtToBdtRate
+          );
         } catch (error) {
           console.error(
             `[FANCY EXPOSURE] Error calculating exposure for user ${user.userName}:`,
             error.message
           );
-          // Return user with original exposure if calculation fails
-          return user;
+          return mapUserFinancialsForAdmin(user, usdtToBdtRate);
         }
       })
     );
@@ -1280,6 +1311,7 @@ export const getAllOnlyUser = async (req, res) => {
     return res.status(200).json({
       message: 'All sub-admin details retrieved successfully',
       data: usersWithCorrectExposure,
+      usdtToBdtRate,
       totalUsers,
       totalPages: Math.ceil(totalUsers / limitNum),
       currentPage: pageNum,
@@ -1326,12 +1358,17 @@ export const getUsersByInvite = async (req, res) => {
       { admins: [], users: [], others: [] }
     );
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const mapList = (list) =>
+      list.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate));
+
     res.status(200).json({
       message: 'Users retrieved successfully',
-      data: usersData,
-      admins: split.admins,
-      users: split.users,
-      others: split.others,
+      usdtToBdtRate,
+      data: mapList(usersData),
+      admins: mapList(split.admins),
+      users: mapList(split.users),
+      others: mapList(split.others),
     });
   } catch (error) {
     console.error('Error fetching users by invite code:', error);
@@ -1357,9 +1394,11 @@ export const getSubAdminuser = async (req, res) => {
     const subAdmins = await SubAdmin.find(filter)
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum);
+    const usdtToBdtRate = await getUsdtToBdtRate();
     return res.status(200).json({
       message: `Sub-admin details for level  retrieved successfully`,
-      data: subAdmins,
+      usdtToBdtRate,
+      data: subAdmins.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Error fetching sub-admin:', error);
@@ -1434,11 +1473,13 @@ export const updateCreditReference = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: `Credit ${creditReference} updated successfully`,
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Update SubAdmin Error:', error);
@@ -1495,11 +1536,13 @@ export const updateExploserLimit = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: 'User updated successfully',
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Update User Error:', error);
@@ -1579,11 +1622,13 @@ export const updatePartnership = async (req, res) => {
           };
 
     const allUsers = await SubAdmin.find(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: `Partnership updated to ${parsedPartnership} successfully`,
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Update Partnership Error:', error);
@@ -1796,12 +1841,14 @@ export const withdrowalAndDeposite = async (req, res) => {
 
     const actionLabel = type === 'deposite' ? 'deposit' : 'withdrawal';
     const targetUserName = editUser?.userName || 'user';
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: `Amount ${balance} ${actionLabel} completed successfully for user ${targetUserName}`,
       totalUsers,
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Update SubAdmin Error:', error);
@@ -1854,12 +1901,14 @@ export const userSetting = async (req, res) => {
       .skip((pageNum - 1) * limitNum);
 
     const totalUsers = await SubAdmin.countDocuments(filter);
+    const usdtToBdtRate = await getUsdtToBdtRate();
 
     return res.status(200).json({
       success: true,
       message: `User ${status} successfully`,
       totalUsers,
-      data: allUsers,
+      usdtToBdtRate,
+      data: allUsers.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Update SubAdmin Error:', error);
@@ -2068,9 +2117,16 @@ export const getAgentTransactionHistory = async (req, res) => {
       return masked;
     });
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const data = await mapTransactionsForAdmin(
+      maskedTransactions,
+      usdtToBdtRate
+    );
+
     return res.status(200).json({
       success: true,
-      data: maskedTransactions,
+      data,
+      usdtToBdtRate,
       page: pageNum,
       limit: limitNum,
       totalPages: Math.ceil(totalCount / limitNum),
@@ -2147,9 +2203,16 @@ export const getAgentOwnTransactionHistory = async (req, res) => {
       return masked;
     });
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const data = await mapTransactionsForAdmin(
+      maskedTransactions,
+      usdtToBdtRate
+    );
+
     return res.status(200).json({
       success: true,
-      data: maskedTransactions,
+      data,
+      usdtToBdtRate,
       page: pageNum,
       limit: limitNum,
       totalPages: Math.ceil(totalCount / limitNum),
@@ -2160,6 +2223,128 @@ export const getAgentOwnTransactionHistory = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+/** Only transactions where target user is from or to (no downline tree). */
+export const getUserOwnTransactionHistory = async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, limit = 100 } = req.query;
+    const { userId } = req.params;
+    const { id: adminId } = req;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'User ID is required' });
+    }
+
+    const admin = await SubAdmin.findById(adminId, {
+      code: 1,
+      userName: 1,
+      role: 1,
+    }).lean();
+    if (!admin) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Admin not found' });
+    }
+
+    const targetUser = await SubAdmin.findById(userId, { invite: 1, userName: 1 }).lean();
+    if (!targetUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
+    }
+
+    if (String(userId) !== String(adminId) && admin.role !== 'superadmin') {
+      let isDownline = false;
+      let currentInvite = targetUser.invite;
+      let depth = 0;
+      while (currentInvite && depth < 10) {
+        if (currentInvite === admin.code) {
+          isDownline = true;
+          break;
+        }
+        const parent = await SubAdmin.findOne(
+          { code: currentInvite },
+          { invite: 1 }
+        ).lean();
+        if (!parent) break;
+        currentInvite = parent.invite;
+        depth++;
+      }
+      if (!isDownline) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const you = targetUser.userName;
+    const filter = {
+      $or: [{ from: you }, { to: you }],
+    };
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1);
+      filter.createdAt = { $gte: start, $lte: end };
+    }
+
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(Math.max(1, parseInt(limit) || 100), 500);
+    const totalCount = await TransactionHistory.countDocuments(filter);
+
+    const transactions = await TransactionHistory.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .lean();
+
+    const adminUserName = admin.userName;
+    const maskedTransactions = transactions.map((txn) => {
+      const masked = { ...txn };
+      delete masked.invite;
+
+      if (String(userId) === String(adminId)) {
+        if (masked.from === you) {
+          masked.from = you;
+        } else if (masked.to === you) {
+          masked.from = 'Upline';
+          masked.to = you;
+        }
+      } else {
+        if (masked.from === adminUserName) masked.from = 'You';
+        if (
+          masked.to === you &&
+          masked.from !== adminUserName &&
+          masked.from !== 'deposit-reject'
+        ) {
+          masked.from = 'Upline';
+        }
+      }
+      return masked;
+    });
+
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const data = await mapTransactionsForAdmin(
+      maskedTransactions,
+      usdtToBdtRate
+    );
+
+    return res.status(200).json({
+      success: true,
+      data,
+      usdtToBdtRate,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(totalCount / limitNum),
+      totalRecords: totalCount,
+    });
+  } catch (error) {
+    console.error('Error fetching user own transactions:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 export const getUserTransactionHistory = async (req, res) => {
   try {
     const { startDate, endDate, page = 1, limit = 10 } = req.query;
@@ -2295,9 +2480,16 @@ export const getUserTransactionHistory = async (req, res) => {
       return masked;
     });
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const data = await mapTransactionsForAdmin(
+      maskedTransactions,
+      usdtToBdtRate
+    );
+
     return res.status(200).json({
       success: true,
-      data: maskedTransactions,
+      data,
+      usdtToBdtRate,
       page: pageNum,
       limit: limitNum,
       totalPages: Math.ceil(totalCount / limitNum),
@@ -2348,7 +2540,7 @@ console.log("admin is:", admin);
       }
     }
 
-    const filter = { userId: { $in: userIds } };
+    const filter = { userId: { $in: userIds.map((uid) => String(uid)) } };
 
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -2385,11 +2577,31 @@ console.log("betData is:", betData);
 
     const totalCount = await betHistoryModel.countDocuments(filter);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const betUserIds = [
+      ...new Set(betData.map((b) => String(b.userId || '')).filter(Boolean)),
+    ];
+    const betUsers = betUserIds.length
+      ? await SubAdmin.find({ _id: { $in: betUserIds } })
+          .select('currency')
+          .lean()
+      : [];
+    const currencyByBetUser = new Map(
+      betUsers.map((u) => [String(u._id), u.currency || 'BDT'])
+    );
+
+    const data = betData.map((bet) => {
+      const plain = typeof bet.toObject === 'function' ? bet.toObject() : bet;
+      const c = currencyByBetUser.get(String(plain.userId)) || 'BDT';
+      return mapSportsBetHistoryForAdmin(plain, c, usdtToBdtRate);
+    });
+
     return res.status(200).json({
       success: true,
+      usdtToBdtRate,
       totalUsers: userIds.length,
       totalBets: betData.length,
-      data: betData,
+      data,
       totalPages: Math.ceil(totalCount / limitNum),
     });
   } catch (error) {
@@ -2419,10 +2631,13 @@ export const parentsDetails = async (req, res) => {
     if (papa) dataArray.push(papa);
     if (dada) dataArray.push(dada);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+
     return res.status(200).json({
       success: true,
       message: 'Parent details fetched successfully',
-      data: dataArray,
+      usdtToBdtRate,
+      data: dataArray.map((u) => mapUserFinancialsForAdmin(u, usdtToBdtRate)),
     });
   } catch (error) {
     console.error('Error fetching parent details:', error);
@@ -2591,6 +2806,10 @@ export const getUserCompleteInfo = async (req, res) => {
     // ✅ REFETCH USER TO GET UPDATED VALUES
     user = await SubAdmin.findById(userId);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const userCurrency = user.currency || 'BDT';
+    const mappedUser = mapUserFinancialsForAdmin(user, usdtToBdtRate);
+
     // Get parent/upline information
     const parent = user.invite ? await SubAdmin.findOne({ code: user.invite }) : null;
     const grandParent = parent && parent.invite ? await SubAdmin.findOne({ code: parent.invite }) : null;
@@ -2601,27 +2820,46 @@ export const getUserCompleteInfo = async (req, res) => {
       status: { $ne: "delete" } 
     });
 
-    const totalUserDownlineBalance = await getTotalUserDownlineBalance(user.code);
+    const totalUserDownlineBalance = await getTotalUserDownlineBalance(
+      user.code,
+      usdtToBdtRate
+    );
 
-    // Calculate downline statistics
+    // Calculate downline statistics (all amounts in BDT for admin)
     const downlineStats = {
       totalDirectDownlines: directDownlines.length,
       activeDownlines: directDownlines.filter(u => u.status === "active").length,
       inactiveDownlines: directDownlines.filter(u => u.status === "inactive").length,
-      totalDownlineBalance: directDownlines.reduce((sum, u) => sum + (u.balance || 0), 0),
-      totalDownlineAvBalance: directDownlines.reduce((sum, u) => sum + (u.avbalance || 0), 0),
-      totalDownlineExposure: directDownlines.reduce((sum, u) => sum + (u.exposure || 0), 0),
+      totalDownlineBalance: directDownlines.reduce(
+        (sum, u) => sum + amountToAdminBdt(u.balance, u.currency, usdtToBdtRate),
+        0
+      ),
+      totalDownlineAvBalance: directDownlines.reduce(
+        (sum, u) => sum + amountToAdminBdt(u.avbalance, u.currency, usdtToBdtRate),
+        0
+      ),
+      totalDownlineExposure: directDownlines.reduce(
+        (sum, u) => sum + amountToAdminBdt(u.exposure, u.currency, usdtToBdtRate),
+        0
+      ),
       totalUserDownlineBalance,
     };
 
-    //  CALCULATE NEW VALUES
+    //  CALCULATE NEW VALUES (BDT)
     const totalDownlineAvBalanceValue = downlineStats.totalDownlineAvBalance;
-    const agentAvbalanceValue = (user.totalAvbalance || 0) + (user.balance || 0);
+    const agentAvbalanceValue =
+      amountToAdminBdt(mappedUser.totalAvbalance, userCurrency, usdtToBdtRate) +
+      amountToAdminBdt(mappedUser.balance, userCurrency, usdtToBdtRate);
 
     // Get user's transaction history (last 10)
-    const recentTransactions = await TransactionHistory.find({ userId })
+    const recentTransactionsRaw = await TransactionHistory.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(10)
+      .lean();
+    const recentTransactions = await mapTransactionsForAdmin(
+      recentTransactionsRaw,
+      usdtToBdtRate
+    );
 
     // Get user's withdrawal history (last 5)
     const recentWithdrawals = await WithdrawalHistory.find({ 
@@ -2660,7 +2898,7 @@ export const getUserCompleteInfo = async (req, res) => {
         .limit(10);
     }
 
-    // Calculate additional statistics
+    // Calculate additional statistics (BDT)
     const financialStats = {
       totalCreditGiven: recentTransactions
         .filter(t => t.deposite > 0)
@@ -2669,7 +2907,11 @@ export const getUserCompleteInfo = async (req, res) => {
         .filter(t => t.withdrawl > 0)
         .reduce((sum, t) => sum + t.withdrawl, 0),
       totalBetsPlaced: bettingHistory.length,
-      totalBetAmount: bettingHistory.reduce((sum, bet) => sum + (bet.betAmount || 0), 0),
+      totalBetAmount: bettingHistory.reduce(
+        (sum, bet) =>
+          sum + amountToAdminBdt(bet.betAmount, userCurrency, usdtToBdtRate),
+        0
+      ),
     };
 
     // Prepare hierarchy information
@@ -2701,6 +2943,7 @@ export const getUserCompleteInfo = async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        currency: userCurrency,
         account: user.account,
         code: user.code,
         status: user.status,
@@ -2708,22 +2951,25 @@ export const getUserCompleteInfo = async (req, res) => {
         updatedAt: user.updatedAt,
       },
 
-      //  FINANCIAL INFORMATION WITH UPDATED VALUES
+      //  FINANCIAL INFORMATION (amounts in BDT for admin)
       financialInfo: {
-        balance: user.balance,
-        avbalance: user.avbalance,
-        totalBalance: user.totalBalance, // ✅ Now this will have the updated value from updateAdmin
-        //  CHANGED: totalAvbalance now shows totalDownlineAvBalance
+        currency: userCurrency,
+        balance: mappedUser.balance,
+        avbalance: mappedUser.avbalance,
+        totalBalance: mappedUser.totalBalance,
         totalAvbalance: totalDownlineAvBalanceValue,
-        //  CHANGED: agentAvbalance now shows totalAvbalance + balance
         agentAvbalance: agentAvbalanceValue,
-        creditReference: user.creditReference,
-        profitLoss: user.profitLoss,
-        exposure: user.exposure,
-        totalExposure: user.totalExposure,
-        exposureLimit: user.exposureLimit,
+        creditReference: mappedUser.creditReference,
+        profitLoss: mappedUser.profitLoss,
+        exposure: mappedUser.exposure,
+        totalExposure: mappedUser.totalExposure,
+        exposureLimit: amountToAdminBdt(
+          user.exposureLimit,
+          userCurrency,
+          usdtToBdtRate
+        ),
         commission: user.commission,
-        rollingCommission: user.rollingCommission,
+        rollingCommission: mappedUser.rollingCommission,
         partnership: user.partnership,
       },
 
@@ -2751,16 +2997,20 @@ export const getUserCompleteInfo = async (req, res) => {
       // Downline information
       downlineInfo: {
         stats: downlineStats,
-        directDownlines: directDownlines.map(d => ({
-          id: d._id,
-          name: d.name,
-          userName: d.userName,
-          role: d.role,
-          balance: d.balance,
-          avbalance: d.avbalance,
-          status: d.status,
-          createdAt: d.createdAt
-        })),
+        directDownlines: directDownlines.map((d) => {
+          const m = mapUserFinancialsForAdmin(d, usdtToBdtRate);
+          return {
+            id: d._id,
+            name: d.name,
+            userName: d.userName,
+            role: d.role,
+            currency: m.currency,
+            balance: m.balance,
+            avbalance: m.avbalance,
+            status: d.status,
+            createdAt: d.createdAt,
+          };
+        }),
         totalUserDownlineBalance,
       },
 
@@ -2788,7 +3038,8 @@ export const getUserCompleteInfo = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User complete information retrieved successfully",
-      data: completeUserInfo
+      usdtToBdtRate,
+      data: completeUserInfo,
     });
 
   } catch (error) {
@@ -2801,30 +3052,207 @@ export const getUserCompleteInfo = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-const getTotalUserDownlineBalance = async (parentCode) => {
-  let total = 0;
-
-  // Find all direct downlines
-  const downlines = await SubAdmin.find({ invite: parentCode, status: { $ne: "delete" } });
-
-
-  for (const d of downlines) {
-    if (d.role === "user") {
-      
-      total += d.balance || 0; // Add balance if role is "user"
+/** Lightweight profile for my-account pages (no updateAdmin / downline aggregation). */
+export const getUserProfileLight = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
     }
 
-    // Recurse for this downline's own downlines
-    total += await getTotalUserDownlineBalance(d.code);
+    const user = await SubAdmin.findById(userId).select(
+      "name userName email phone role balance avbalance totalBalance status currency"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const mapped = mapUserFinancialsForAdmin(user, usdtToBdtRate);
+
+    return res.status(200).json({
+      success: true,
+      usdtToBdtRate,
+      data: {
+        basicInfo: {
+          name: user.name,
+          userName: user.userName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          currency: mapped.currency || user.currency || 'BDT',
+        },
+        financialInfo: {
+          balance: mapped.balance,
+          avbalance: mapped.avbalance,
+          totalBalance: mapped.totalBalance,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching light profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+const getTotalUserDownlineBalance = async (parentCode, rate = 0) => {
+  let total = 0;
+
+  const downlines = await SubAdmin.find({
+    invite: parentCode,
+    status: { $ne: 'delete' },
+  });
+
+  for (const d of downlines) {
+    if (d.role === 'user') {
+      total += amountToAdminBdt(d.balance, d.currency, rate);
+    }
+    total += await getTotalUserDownlineBalance(d.code, rate);
   }
 
   return total;
+};
+
+/** Collect invite codes for admin + all non-user downlines (BFS). */
+const collectDownlineInviteCodes = async (rootCode) => {
+  const codes = new Set([rootCode]);
+  const queue = [rootCode];
+
+  while (queue.length > 0) {
+    const code = queue.shift();
+    const children = await SubAdmin.find(
+      { invite: code, status: { $ne: 'delete' }, role: { $ne: 'user' } },
+      { code: 1 }
+    ).lean();
+
+    for (const child of children) {
+      if (child.code && !codes.has(child.code)) {
+        codes.add(child.code);
+        queue.push(child.code);
+      }
+    }
+  }
+
+  return codes;
+};
+
+const buildUpperlineChain = (user, codeToParent) => {
+  const upperline = [];
+  let invite = user.invite;
+  let depth = 0;
+
+  while (invite && depth < 20) {
+    const parent = codeToParent.get(invite);
+    if (!parent) break;
+    upperline.push({ role: parent.role, userName: parent.userName });
+    invite = parent.invite;
+    depth += 1;
+  }
+
+  return upperline;
+};
+
+/** Locked end-users (status=locked) for Bet Lock User admin page. */
+export const getLockedUsers = async (req, res) => {
+  try {
+    const { id, role } = req;
+    const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitNum = Math.min(
+      Math.max(1, parseInt(req.query.limit, 10) || 10),
+      100
+    );
+
+    const admin = await SubAdmin.findById(id, { code: 1, role: 1 }).lean();
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found',
+      });
+    }
+
+    const filter = {
+      status: 'locked',
+      role: 'user',
+    };
+
+    if (role !== 'superadmin') {
+      const codes = await collectDownlineInviteCodes(admin.code);
+      filter.invite = { $in: [...codes] };
+    }
+
+    const totalRecords = await SubAdmin.countDocuments(filter);
+    const lockedUsers = await SubAdmin.find(filter)
+      .select(
+        'userName name remark invite role status balance avbalance exposure creditReference currency updatedAt createdAt'
+      )
+      .sort({ updatedAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .lean();
+
+    const parents = await SubAdmin.find(
+      { status: { $ne: 'delete' }, role: { $ne: 'user' } },
+      { code: 1, invite: 1, userName: 1, role: 1 }
+    ).lean();
+
+    const codeToParent = new Map();
+    for (const p of parents) {
+      if (p.code) codeToParent.set(p.code, p);
+    }
+
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const data = lockedUsers.map((user) => {
+      const m = mapUserFinancialsForAdmin(user, usdtToBdtRate);
+      return {
+        _id: user._id,
+        userName: user.userName,
+        name: user.name || '',
+        role: user.role,
+        status: user.status,
+        currency: m.currency,
+        balance: m.balance ?? 0,
+        avbalance: m.avbalance ?? 0,
+        exposure: m.exposure ?? 0,
+        creditReference: m.creditReference ?? 0,
+        remark: user.remark || '-',
+        upperline: buildUpperlineChain(user, codeToParent),
+        updatedAt: user.updatedAt,
+        createdAt: user.createdAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      usdtToBdtRate,
+      data,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(totalRecords / limitNum) || 1,
+      totalRecords,
+    });
+  } catch (error) {
+    console.error('Error fetching locked users:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
+  }
 };
 
 export const getDuplicateIPUsers = async (req, res) => {

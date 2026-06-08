@@ -107,7 +107,8 @@ function MobNavbar({ closeMenu }) {
       await dispatch(logout());
       dispatch(reset());
       closeMenu();
-      navigate("/login", { replace: true });
+      // Hard redirect so the router basename resets (drops the "$" prefix).
+      window.location.assign("/login");
       return;
     }
     if (item.subItems) {

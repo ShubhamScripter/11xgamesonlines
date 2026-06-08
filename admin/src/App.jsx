@@ -48,6 +48,7 @@ import AgentBettingProfitLoss from './pages/downlineList/agent/BettingProfitLoss
 import AgentTransactionHistory from './pages/downlineList/agent/TransactionHistory';
 import AgentActivityLog from './pages/downlineList/agent/ActivityLog';
 
+import MyAccountLayout from './layouts/MyAccountLayout';
 import MyAccountSummary from './pages/myAccount/MyAccountSummary';
 import MyAccountStatement from './pages/myAccount/MyAccountStatement';
 import MyProfile from './pages/myAccount/MyProfile';
@@ -97,15 +98,10 @@ import Transactionslog from './pages/banking/Transactionslog';
 import GeneralSetting from './pages/generalSetting/GeneralSetting';
 import CustomerSupport from './pages/customerSupport/CustomerSupport';
 import SearchUser from './pages/generalSetting/SearchUser';
-import Surveillance from './pages/generalSetting/Surveillance';
 import BetLockeduser from './pages/generalSetting/BetLockeduser';
 import PlayerBalance from './pages/generalSetting/PlayerBalance';
 import ActiveMatch from './pages/generalSetting/ActiveMatch';
 import InActiveMatch from './pages/generalSetting/InActiveMatch';
-import UpdateFancyStatus from './pages/generalSetting/UpdateFancyStatus';
-import SuspendedResult from './pages/generalSetting/SuspendedResult';
-import SuspendedFancyResult from './pages/generalSetting/SuspendedFancyResult';
-import SuspendedMarketResult from './pages/generalSetting/SuspendedMarketResult';
 import ViewBets from './pages/generalSetting/ViewBets';
 import InactiveUsers from './pages/generalSetting/InactiveUsers';
 import BetLockedUsers from './pages/generalSetting/BetLockedUsers';
@@ -132,10 +128,12 @@ function App() {
             <Route path='/betting-profit-loss/:role/:userId' element={<BettingProfitLoss />} />
             <Route path='/transaction-history/:role/:userId' element={<TransactionHistory />} />
             <Route path='/transaction-history2/:role/:userId' element={<TransactionHistory2 />} />
-            <Route path='/my-account-summary' element={<MyAccountSummary />} />
-            <Route path='/my-account-statement' element={<MyAccountStatement />} />
-            <Route path='/my-profile' element={<MyProfile />} />
-            <Route path='/my-activity-log' element={<MyActivityLog />} />
+            <Route element={<MyAccountLayout />}>
+              <Route path='/my-account-summary' element={<MyAccountSummary />} />
+              <Route path='/my-account-statement' element={<MyAccountStatement />} />
+              <Route path='/my-profile' element={<MyProfile />} />
+              <Route path='/my-activity-log' element={<MyActivityLog />} />
+            </Route>
             <Route path='/AprofitByDownline' element={<AprofitByDownline />} />
             <Route path='/AprofitDownline' element={<AprofitDownline />} />
             <Route path='/AprofitDownline/sub_admin/:userId' element={<AprofitDownlineSubAdmin />} />
@@ -171,14 +169,9 @@ function App() {
             <Route path='/customer-support' element={<CustomerSupport />} />
             <Route path='/general-setting' element={<GeneralSetting />} />
             <Route path='/searchuser' element={<SearchUser />} />
-            <Route path='/SurveillanceSetting' element={<Surveillance />} />
             <Route path='/PlayerBalance' element={<PlayerBalance />} />
             <Route path='/active-match' element={<ActiveMatch />} />
             <Route path='/in-active-match' element={<InActiveMatch />} />
-            <Route path='/updateFancyStatus' element={<UpdateFancyStatus />} />
-            <Route path='/SuspendedResult' element={<SuspendedResult />} />
-            <Route path='/SuspendedFancyResult' element={<SuspendedFancyResult />} />
-            <Route path='/SuspendedMarketResult' element={<SuspendedMarketResult />} />
             <Route path='/viewBets' element={<ViewBets />} />
             <Route path='/inactive-users' element={<InactiveUsers />} />
             <Route path='/BetLockUser' element={<BetLockedUsers />} />

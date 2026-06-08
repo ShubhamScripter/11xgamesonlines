@@ -3,7 +3,9 @@ import express from 'express';
 import {
   checkMatchStatus,
   getDeactivatedMatches,
+  getInactiveMatches,
   toggleMatchStatus,
+  updateMatchStatus,
 } from '../../controllers/admin/matchSettingsController.js';
 import { adminAuthMiddleware } from '../../middleware/authMiddleware.js';
 
@@ -16,8 +18,14 @@ router.patch(
   toggleMatchStatus
 );
 
+// Inactive matches list (admin UI)
+router.get('/inactivematches', adminAuthMiddleware, getInactiveMatches);
+
+// Activate / suspend match (admin UI)
+router.patch('/matches/:matchId/status', adminAuthMiddleware, updateMatchStatus);
+
 //Get all deactivated matches
-router.get('/match-settings/deactivated', getDeactivatedMatches);
+router.get('/match-settings/deactivated', adminAuthMiddleware, getDeactivatedMatches);
 
 //Check single match status
 router.get(

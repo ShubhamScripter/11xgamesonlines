@@ -23,7 +23,10 @@ export const getPublicAppSettings = async (req, res) => {
     const doc = await getAppSettingsDoc();
     return res.json({
       success: true,
-      data: { supportWhatsApp: doc.supportWhatsApp || '' },
+      data: {
+        supportWhatsApp: doc.supportWhatsApp || '',
+        usdtToBdtRate: doc.usdtToBdtRate || 0,
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -42,6 +45,7 @@ export const getAdminAppSettings = async (req, res) => {
         supportWhatsApp: doc.supportWhatsApp || '',
         whatsappDialCode: doc.whatsappDialCode || '',
         whatsappPhoneNational: doc.whatsappPhoneNational || '',
+        usdtToBdtRate: doc.usdtToBdtRate || 0,
       },
     });
   } catch (error) {
@@ -62,63 +66,84 @@ export const updateAdminAppSettings = async (req, res) => {
       });
     }
 
-    const { whatsappDialCode, whatsappPhoneNational, supportWhatsApp } =
+    const { whatsappDialCode, whatsappPhoneNational, supportWhatsApp, usdtToBdtRate } =
       req.body;
 
     const doc = await getAppSettingsDoc();
 
-    if (
-      whatsappDialCode === undefined &&
-      whatsappPhoneNational === undefined &&
-      supportWhatsApp !== undefined &&
-      typeof supportWhatsApp === 'string'
-    ) {
-      const p = parseFullToDialAndNational(supportWhatsApp);
-      if (!p.dial || !ALLOWED_DIALS.has(p.dial)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Could not detect a valid country code in the number',
-        });
-      }
-      const nat = String(p.national || '').replace(/\D/g, '');
-      if (nat.length < 6 || nat.length > 15) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number must be 6–15 digits (national part)',
-        });
-      }
-      doc.whatsappDialCode = p.dial;
-      doc.whatsappPhoneNational = nat;
-    } else {
-      const dial = String(whatsappDialCode ?? '')
-        .replace(/\D/g, '')
-        .trim();
-      const national = String(whatsappPhoneNational ?? '')
-        .replace(/\D/g, '')
-        .trim();
+    // Only touch WhatsApp fields when the request actually carries them, so a
+    // rate-only update doesn't trip the phone-number validation.
+    const whatsappProvided =
+      whatsappDialCode !== undefined ||
+      whatsappPhoneNational !== undefined ||
+      supportWhatsApp !== undefined;
 
-      if (!dial || !ALLOWED_DIALS.has(dial)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Select a valid country',
-        });
-      }
-      if (national.length < 6 || national.length > 15) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'Enter mobile number only (6–15 digits), without country code',
-        });
+    if (whatsappProvided) {
+      if (
+        whatsappDialCode === undefined &&
+        whatsappPhoneNational === undefined &&
+        supportWhatsApp !== undefined &&
+        typeof supportWhatsApp === 'string'
+      ) {
+        const p = parseFullToDialAndNational(supportWhatsApp);
+        if (!p.dial || !ALLOWED_DIALS.has(p.dial)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Could not detect a valid country code in the number',
+          });
+        }
+        const nat = String(p.national || '').replace(/\D/g, '');
+        if (nat.length < 6 || nat.length > 15) {
+          return res.status(400).json({
+            success: false,
+            message: 'Phone number must be 6–15 digits (national part)',
+          });
+        }
+        doc.whatsappDialCode = p.dial;
+        doc.whatsappPhoneNational = nat;
+      } else {
+        const dial = String(whatsappDialCode ?? '')
+          .replace(/\D/g, '')
+          .trim();
+        const national = String(whatsappPhoneNational ?? '')
+          .replace(/\D/g, '')
+          .trim();
+
+        if (!dial || !ALLOWED_DIALS.has(dial)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Select a valid country',
+          });
+        }
+        if (national.length < 6 || national.length > 15) {
+          return res.status(400).json({
+            success: false,
+            message:
+              'Enter mobile number only (6–15 digits), without country code',
+          });
+        }
+
+        doc.whatsappDialCode = dial;
+        doc.whatsappPhoneNational = national;
       }
 
-      doc.whatsappDialCode = dial;
-      doc.whatsappPhoneNational = national;
+      doc.supportWhatsApp = buildFullWhatsAppDigits(
+        doc.whatsappDialCode,
+        doc.whatsappPhoneNational
+      );
     }
 
-    doc.supportWhatsApp = buildFullWhatsAppDigits(
-      doc.whatsappDialCode,
-      doc.whatsappPhoneNational
-    );
+    if (usdtToBdtRate !== undefined) {
+      const rate = Number(usdtToBdtRate);
+      if (!Number.isFinite(rate) || rate < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'USDT→BDT rate must be a non-negative number',
+        });
+      }
+      doc.usdtToBdtRate = rate;
+    }
+
     await doc.save();
 
     return res.json({
@@ -128,6 +153,7 @@ export const updateAdminAppSettings = async (req, res) => {
         supportWhatsApp: doc.supportWhatsApp,
         whatsappDialCode: doc.whatsappDialCode,
         whatsappPhoneNational: doc.whatsappPhoneNational,
+        usdtToBdtRate: doc.usdtToBdtRate || 0,
       },
     });
   } catch (error) {

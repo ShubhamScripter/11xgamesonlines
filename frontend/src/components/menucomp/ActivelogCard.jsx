@@ -1,20 +1,10 @@
 import React from 'react';
+import { formatAppDateTime24 } from '../../utils/time';
 
 function formatHeaderDate(log) {
   if (log.createdAt) {
-    try {
-      return new Date(log.createdAt).toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      });
-    } catch {
-      /* fall through */
-    }
+    const formatted = formatAppDateTime24(log.createdAt, '');
+    if (formatted) return formatted;
   }
   return log.dateTime || '—';
 }

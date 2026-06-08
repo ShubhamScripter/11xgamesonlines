@@ -14,6 +14,7 @@ import { RiBankCardFill, RiWallet3Fill } from "react-icons/ri";
 import { HiOutlineChevronRight } from "react-icons/hi";
 import { GoPlus } from "react-icons/go";
 import { TfiReload } from "react-icons/tfi";
+import { currencySymbol } from "../../utils/currency";
 
 function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
   const location = useLocation();
@@ -122,7 +123,7 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
                 </span>
                 <div className="flex bg-[#303232] pl-3 items-center h-full rounded-sm gap-2">
                   <span className="text-white text-[14px] md:text-[12px] md:text-base font-semibold">
-                    BDT{" "}
+                    {currencySymbol(user?.currency)}{" "}
                       <span className="font-normal border-r border-gray-500 pr-1">{Number(user?.avbalance || 0).toFixed(2)}</span>
                     &nbsp; Exp (
                       <span className="text-[#e52219]">

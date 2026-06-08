@@ -9,7 +9,7 @@ function AddSubAdmin({ onClose, roleToCreate, parentId, siteTag }) {
     username: "",
     password: "",
     confirmpassword: "",
-    timezone: "Asia/Kolkata",
+    timezone: "Asia/Dhaka",
   });
 
   const handleChange = (e) => {

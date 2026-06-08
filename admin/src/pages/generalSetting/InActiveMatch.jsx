@@ -113,7 +113,13 @@ function InActiveMatch() {
   const fetchInactiveMatches = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get("/inactivematches");
+      const response = await axiosInstance.get("/inactivematches", {
+        params: {
+          limit: 500,
+          ...(selectedSport !== "all" ? { sport: selectedSport } : {}),
+          ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+        },
+      });
       const data = response.data;
 
       if (data.success && Array.isArray(data.data)) {
@@ -141,7 +147,7 @@ function InActiveMatch() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedSport, searchTerm]);
 
   useEffect(() => {
     fetchInactiveMatches();

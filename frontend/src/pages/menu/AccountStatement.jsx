@@ -4,6 +4,7 @@ import { MdArrowBackIos } from "react-icons/md";
 import MainBalanceCard from '../../components/menucomp/MainBalanceCard';
 import AccountStatementCard from '../../components/menucomp/AccountStatementCard';
 import api from '../../utils/axiosConfig';
+import { formatAppDateTime } from '../../utils/time';
 
 function AccountStatement() {
   const { user } = useSelector((state) => state.auth);
@@ -68,7 +69,7 @@ function AccountStatement() {
                 : 'Withdrawal';
 
             return {
-              date: new Date(item.createdAt).toLocaleString(),
+              date: formatAppDateTime(item.createdAt),
               deposit: Math.abs(change),
               balance: Number(item?.amount || 0),
               change,

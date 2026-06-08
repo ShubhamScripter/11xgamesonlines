@@ -109,7 +109,7 @@ function AccountSummary() {
                   </tr>
                   <tr className="border-y border-y-[#7e97a7]">
                     <td className="px-2 py-2">Time Zone</td>
-                    <td className="px-2 py-2">Asia/Kolkata</td>
+                    <td className="px-2 py-2">Asia/Dhaka</td>
                   </tr>
                 </tbody>
               </table>

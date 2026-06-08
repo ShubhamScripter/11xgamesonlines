@@ -1,16 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { IoIosCloseCircleOutline, IoMdCloseCircle } from "react-icons/io";
-import { FaRegEyeSlash, FaRegEye } from "react-icons/fa";
+import { FaRegEyeSlash, FaRegEye, FaChevronDown } from "react-icons/fa";
 import { useNavigate ,Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, reset } from '../../features/auth/authSlice';
 import toast, { Toaster } from 'react-hot-toast';
+import { homeUrlForCurrency, getStoredCurrency } from '../../utils/currency';
 import logo from '../../assets/bajiLogo.png';
 import logoMp4 from '../../assets/bajiVideo.mp4'
 import moblogoMp4 from '../../assets/welcome-bn.mp4';
 import { HiOutlineHome } from 'react-icons/hi';
 
 const MAX_USERNAME_LENGTH = 10;
+
+const CURRENCY_OPTIONS = [
+  { code: 'BDT', label: 'BDT' },
+  { code: 'USDT', label: 'USDT' },
+];
+
+function CurrencyIcon({ code }) {
+  if (code === 'USDT') {
+    return (
+      <span className="w-6 h-6 rounded-full bg-[#26a17b] flex items-center justify-center text-white text-[13px] font-bold shrink-0">
+        $
+      </span>
+    );
+  }
+  // BDT — Bangladesh flag style (green field with red circle)
+  return (
+    <span className="w-6 h-6 rounded-full bg-[#006a4e] flex items-center justify-center shrink-0">
+      <span className="w-3 h-3 rounded-full bg-[#f42a41]" />
+    </span>
+  );
+}
 
 function Register() {
   const navigate = useNavigate();
@@ -20,6 +42,8 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currency, setCurrency] = useState('BDT');
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const [hasTypedUser, setHasTypedUser] = useState(false);
   const [hasTypedEmail, setHasTypedEmail] = useState(false);
   const [hasTypedPass, setHasTypedPass] = useState(false);
@@ -34,9 +58,14 @@ function Register() {
 
   useEffect(() => {
     if (isError) toast.error(message);
-    if (isSuccess || user) navigate('/');
+    if (isSuccess || user) {
+      // Full-page redirect so the router basename matches the chosen currency
+      // (USDT browses under "/$/...", BDT under "/...").
+      window.location.assign(homeUrlForCurrency(getStoredCurrency()));
+      return;
+    }
     dispatch(reset());
-  }, [user, isError, isSuccess, message, navigate, dispatch]);
+  }, [user, isError, isSuccess, message, dispatch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,6 +105,7 @@ function Register() {
         password,
         name: name.trim() || trimmedUsername,
         email: email.trim(),
+        currency,
       })
     );
   };
@@ -143,6 +173,44 @@ function Register() {
                       )}
                       {hasTypedUser && username === "" && (
                       <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Choose currency</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setCurrencyOpen((prev) => !prev)}
+                        className={`w-full flex items-center justify-between px-4 py-3 bg-[#222424] text-white rounded-[2px] border ${currencyOpen ? 'border-[#14805e]' : 'border-transparent'} transition-colors`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <CurrencyIcon code={currency} />
+                          <span className="font-medium">{currency}</span>
+                        </span>
+                        <FaChevronDown className={`text-gray-400 text-sm transition-transform ${currencyOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {currencyOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setCurrencyOpen(false)} />
+                          <ul className="absolute z-20 left-0 right-0 mt-1 bg-[#222424] border border-[#3a3d3d] rounded-[2px] overflow-hidden shadow-lg">
+                            {CURRENCY_OPTIONS.map((opt) => (
+                              <li
+                                key={opt.code}
+                                onClick={() => {
+                                  setCurrency(opt.code);
+                                  setCurrencyOpen(false);
+                                }}
+                                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#2c2f2f] ${currency === opt.code ? 'bg-[#1c2b25] text-white' : 'text-[#cfd6dc]'}`}
+                              >
+                                <CurrencyIcon code={opt.code} />
+                                <span className="font-medium">{opt.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
                       )}
                     </div>
                   </div>

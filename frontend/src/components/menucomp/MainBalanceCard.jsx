@@ -1,6 +1,8 @@
 import React,{useState, useEffect} from 'react'
 import { useSelector, useDispatch } from "react-redux";
 import { getUser } from '../../features/auth/authSlice';
+import { normalizeCurrency, convertUsdtToBdt } from '../../utils/currency';
+import useUsdtToBdtRate from '../../hooks/useUsdtToBdtRate';
 
 function MainBalanceCard() {
   const dispatch = useDispatch();
@@ -8,6 +10,7 @@ function MainBalanceCard() {
   // console.log("user from balance overview", user);
   const [balance, setBalance] = useState(106.70)
   const [currency, setcurrency] = useState('BDT')
+  const usdtToBdtRate = useUsdtToBdtRate();
 
   useEffect(() => {
     dispatch(getUser());
@@ -17,7 +20,7 @@ function MainBalanceCard() {
     if (user) {
 
       setBalance(user.avbalance || 0);
-      // setCurrency(user.currency || 'INR');
+      setcurrency(normalizeCurrency(user.currency));
     }
   }, [user]);
   return (
@@ -25,9 +28,15 @@ function MainBalanceCard() {
         <div className='bg-[#262c32] rounded-2xl p-3'>
           <h3 className='text-white text-lg md:text-xl font-semibold'>Your Balances</h3>
           <div className='flex items-center gap-2  mt-2'>
-            <div className='bg-[#17934e] rounded-lg text-white w-fit p-1'>{currency}</div>
+            <div className='bg-[#17934e] rounded-lg text-white w-fit p-1'>{currency === 'USDT' ? 'USDT ($)' : currency}</div>
             <div className='text-xl md:text-2xl font-bold text-white'>{Number(balance).toFixed(2)}</div>
           </div>
+          {currency === 'USDT' && usdtToBdtRate > 0 && (
+            <div className='text-sm text-gray-300 mt-1'>
+              ≈ {convertUsdtToBdt(balance, usdtToBdtRate).toFixed(2)} BDT
+              <span className='text-gray-400'> (1 USDT = {usdtToBdtRate} BDT)</span>
+            </div>
+          )}
         </div>
     </div>
   )

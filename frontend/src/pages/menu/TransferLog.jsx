@@ -5,6 +5,7 @@ import MainBalanceCard from '../../components/menucomp/MainBalanceCard';
 import BalanceCard from '../../components/menucomp/BalanceCard';
 import { useSelector, useDispatch } from "react-redux";
 import {getTransactionHistory} from '../../features/sports/betReducer';
+import { formatAppDateTime } from '../../utils/time';
 // const balanceDataList = [
 //   {
 //     date: "7/2/2025, 5:12:45 PM",
@@ -45,7 +46,7 @@ function TransferLog() {
   useEffect(() => {
     if (transHistory && Array.isArray(transHistory)) {
       const mapped = transHistory.map((t) => ({
-        date: new Date(t.createdAt).toLocaleString(),
+        date: formatAppDateTime(t.createdAt),
         deposit: parseFloat(t.deposite > 0 ? t.deposite : t.withdrawl) || 0,
         balance: parseFloat(t.amount) || 0,
         // 👇 Combine "from" and "to" in a readable string format

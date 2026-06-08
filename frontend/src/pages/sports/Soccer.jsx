@@ -12,6 +12,7 @@ import y from '../../assets/icon/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import MatchRow from '../../components/sports/MatchRow';
+import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
 
 function Soccer({ activeTab }) {
   const dispatch = useDispatch();
@@ -86,45 +87,38 @@ function Soccer({ activeTab }) {
     dispatch(fetchSoccerData());
   }, [dispatch]);
 
+  const sportMeta = SPORT_LIST_META.soccer;
+
   return (
-    <div className="min-h-screen">
-      {/* Header Row (Static) */}
-      <div className="grid grid-cols-12 bg-[#0b0e11] py-2 border-b border-[#2a313a] items-center sticky top-0 z-9">
-        <div className="col-span-7 px-4">
-          <span className="text-white font-bold text-sm">Football</span>
-        </div>
-        <div className="col-span-5 grid grid-cols-3 text-center pr-2">
-          <span className="text-white text-[10px] font-bold">1</span>
-          <span className="text-white text-[10px] font-bold">X</span>
-          <span className="text-white text-[10px] font-bold">2</span>
+    <div className="min-h-screen pb-6">
+      <div className="w-full max-w-md mx-auto px-2 sm:px-0">
+        <div className="overflow-hidden rounded-md border border-[#2a313a] bg-[#0b0e11] shadow-sm">
+          {groupedArray.length === 0 ? (
+            <p className="text-center text-[#8b949e] text-sm py-8 px-4">
+              {sportMeta.emptyMessage}
+            </p>
+          ) : (
+            groupedArray.map((comp, idx) => (
+              <div key={idx}>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    openIndexes.includes(idx) ? 'max-h-full' : 'max-h-0'
+                  }`}
+                >
+                  {comp.matches.map((match, i) => (
+                    <MatchRow
+                      key={`${match.id}-${i}`}
+                      match={match}
+                      sportType="soccer"
+                      hideOdds
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
-
-      {groupedArray.map((comp, idx) => (
-        <div key={idx} className="mb-0">
-          {/* Competition Header (Optional, if you want grouping like before but darker) */}
-          {/* <div
-            className="flex items-center justify-between px-4 py-1 bg-[#1b1f23] border-b border-[#2a313a] cursor-pointer"
-            onClick={() => handleToggle(idx)}
-          >
-            <div className="flex items-center gap-2 text-xs font-bold text-gray-300">
-               {comp.title}
-            </div>
-            <span className="text-gray-400 text-xs">{openIndexes.includes(idx) ? <IoIosArrowDown /> : <IoIosArrowUp />}</span>
-          </div> */}
-
-          {/* Matches List */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              openIndexes.includes(idx) ? 'max-h-full' : 'max-h-0'
-            }`}
-          >
-            {comp.matches.map((match, i) => (
-              <MatchRow key={i} match={match} sportType="soccer" />
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

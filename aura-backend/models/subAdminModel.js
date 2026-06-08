@@ -9,6 +9,11 @@ const subAdminSchema = new mongoose.Schema(
     account: { type: String, required: true },
     code: { type: String, required: true },
     commition: { type: String },
+    currency: {
+      type: String,
+      enum: ['USDT', 'BDT'],
+      default: 'BDT',
+    },
     balance: {
       type: Number,
       default: 0,

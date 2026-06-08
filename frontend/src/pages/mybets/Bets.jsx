@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import BetCard from "../../components/Bethistory/BetCard";
+import BetTypeFilters from "../../components/Bethistory/BetTypeFilters";
 import { getBetHistory } from "../../features/sports/betReducer";
 import api from "../../utils/axiosConfig";
+import {
+  filterBetsByCategory,
+  mapCasinoBetForCard,
+  mapSportsBetForCard,
+  sortBetsByTimeDesc,
+} from "../../utils/betCategory";
+
+const PAGE_SIZE = 5;
+const FETCH_LIMIT = 500;
 
 function Bets() {
   const dispatch = useDispatch();
@@ -10,154 +20,177 @@ function Bets() {
   const { user } = useSelector((state) => state.auth);
 
   const [settlementFilter, setSettlementFilter] = useState("unsettle");
-  const [casinoBetdata, setCasinoBetdata] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState(["all"]);
+  const [casinoBets, setCasinoBets] = useState([]);
   const [casinoLoading, setCasinoLoading] = useState(false);
-  const [casinoError, setCasinoError] = useState("");
 
-  const mapSportsBetData = (apiData, filterValue) => {
-    if (!apiData || !Array.isArray(apiData)) return [];
-
-    return apiData
-      .filter((bet) =>
-        filterValue === "settel" ? Number(bet?.status) !== 0 : Number(bet?.status) === 0
-      )
-      .map((bet, idx) => {
-        const created = bet.createdAt ? new Date(bet.createdAt) : new Date();
-        const isUnsettled = Number(bet?.status) === 0;
-        return {
-          betKind: "sports",
-          id: bet._id || bet.id || `sports-${idx}`,
-          marketName: bet.marketName || "—",
-          gameName: bet.gameName || "—",
-          eventName: bet.eventName || "—",
-          odd:
-            bet.xValue != null && bet.xValue !== ""
-              ? Number(bet.xValue)
-              : Number(bet.price ?? 0),
-          stake: Number(bet.betAmount ?? 0),
-          profitLoss: Number(bet.profitLossChange ?? bet.resultAmount ?? 0),
-          possibleProfit:
-            isUnsettled ? Number(bet.betAmount ?? 0) : undefined,
-          possibleLoss:
-            isUnsettled ? Number(bet.price ?? 0) : undefined,
-          time: created.toLocaleString(),
-          placedTs: created.getTime(),
-          selection: bet.teamName || "",
-          otype: bet.otype === "back" ? "Back" : "Lay",
-          betResult: bet.betResult || "—",
-          fancyScore: bet.fancyScore ?? bet.fancy_score ?? null,
-        };
-      });
-  };
+  const formatDate = (date) => date.toISOString().split("T")[0];
 
   const fetchSportsBets = () => {
-    const currentDate = new Date();
-    const startDate = new Date(currentDate);
-    startDate.setDate(currentDate.getDate() - 30);
-    const endDate = currentDate.toISOString().split("T")[0];
+    const end = new Date();
+    const start = new Date();
 
-    dispatch(getBetHistory({ 
-      startDate: startDate.toISOString().split("T")[0],
-      endDate,
-      page: 1, 
-      selectedGame: '', 
-      selectedVoid: settlementFilter,
-      limit: 50 
-    }));
-  };
+    if (settlementFilter === "unsettle") {
+      start.setMonth(end.getMonth() - 3);
+    } else {
+      start.setDate(end.getDate() - 30);
+    }
 
-  const mapCasinoBetData = (apiData) => {
-    if (!apiData || !Array.isArray(apiData)) return [];
-
-    return apiData.map((bet, idx) => {
-      const created = bet.createdAt ? new Date(bet.createdAt) : null;
-      return {
-        betKind: "casino",
-        id: bet._id || bet.game_round || `casino-${idx}`,
-        gameName:
-          (bet.game_name && String(bet.game_name).trim()) ||
-          bet.game_uid ||
-          "Casino",
-        betAmount: Number(bet.bet_amount ?? 0),
-        profitLoss:
-          settlementFilter === "unsettle"
-            ? Number(bet.bet_amount ?? 0)
-            : Number(bet?.change ?? 0) - Number(bet.bet_amount ?? 0),
-        time: created ? created.toLocaleString() : "",
-        placedTs: created ? created.getTime() : 0,
-      };
-    });
+    dispatch(
+      getBetHistory({
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+        page: 1,
+        selectedGame: "",
+        selectedVoid: settlementFilter,
+        limit: FETCH_LIMIT,
+      })
+    );
   };
 
   const fetchCasinoBets = async () => {
     if (settlementFilter !== "settel") {
-      setCasinoBetdata([]);
-      setCasinoError("");
+      setCasinoBets([]);
       setCasinoLoading(false);
       return;
     }
 
     try {
-      setCasinoLoading(true);
-      setCasinoError("");
-
-      let userId = user?._id || user?.id;
-      if (!userId) {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const userData = JSON.parse(userStr);
-          userId = userData._id || userData.id;
-        }
-      }
+      const userId = user?._id || user?.id;
       if (!userId) return;
 
-      const response = await api.get(`/casino/all-bet-history?id=${userId}&page=1&limit=500`, {
-        withCredentials: true,
-      });
-
-      const list = response?.data?.data || [];
-      setCasinoBetdata(mapCasinoBetData(list));
-    } catch (e) {
-      console.error("Error fetching casino bets:", e);
-      setCasinoError(e?.response?.data?.message || "Failed to load casino bets");
-      setCasinoBetdata([]);
+      setCasinoLoading(true);
+      const response = await api.get(
+        `/casino/bet-history/${userId}?page=1&limit=${FETCH_LIMIT}`,
+        { withCredentials: true }
+      );
+      setCasinoBets(response?.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching casino bet history:", error);
+      setCasinoBets([]);
     } finally {
       setCasinoLoading(false);
     }
   };
-
-  const sportsBetData = useMemo(
-    () => mapSportsBetData(betHistory, settlementFilter),
-    [betHistory, settlementFilter]
-  );
-  const combinedBetData = useMemo(() => {
-    return [...sportsBetData, ...casinoBetdata].sort(
-      (a, b) => Number(b?.placedTs ?? 0) - Number(a?.placedTs ?? 0)
-    );
-  }, [sportsBetData, casinoBetdata]);
 
   useEffect(() => {
     fetchSportsBets();
     fetchCasinoBets();
   }, [settlementFilter, user]);
 
+  const allBets = useMemo(() => {
+    if (settlementFilter === "unsettle") {
+      const sports = (betHistory || [])
+        .map((b) => mapSportsBetForCard(b, { unsettledOnly: true }))
+        .filter(Boolean);
+      return sortBetsByTimeDesc(sports);
+    }
+
+    const sports = (betHistory || [])
+      .map((b) => mapSportsBetForCard(b))
+      .filter(Boolean);
+    const casino = (casinoBets || [])
+      .map((b, idx) => mapCasinoBetForCard(b, idx))
+      .filter(Boolean);
+    return sortBetsByTimeDesc([...sports, ...casino]);
+  }, [betHistory, casinoBets, settlementFilter]);
+
+  const filterCounts = useMemo(() => {
+    const counts = {
+      all: allBets.length,
+      casino: 0,
+      match_odds: 0,
+      tied_match: 0,
+      bookmaker: 0,
+      fancy: 0,
+    };
+    allBets.forEach((b) => {
+      if (b.betKind === "casino") counts.casino += 1;
+      else if (counts[b.betCategory] != null) counts[b.betCategory] += 1;
+    });
+    return counts;
+  }, [allBets]);
+
+  const filteredBets = useMemo(
+    () => filterBetsByCategory(allBets, typeFilter),
+    [allBets, typeFilter]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredBets.length / PAGE_SIZE));
+
+  const paginatedBets = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredBets.slice(start, start + PAGE_SIZE);
+  }, [filteredBets, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setTypeFilter(["all"]);
+  }, [settlementFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, filteredBets.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const isLoading = loading || (settlementFilter === "settel" && casinoLoading);
+
   let betsContent = null;
-  if (loading || casinoLoading) {
+  if (isLoading) {
     betsContent = (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg font-semibold text-gray-600">Loading bets...</div>
+      <div className="flex justify-center items-center h-40">
+        <div className="text-sm font-semibold text-gray-400">
+          {settlementFilter === "unsettle"
+            ? "Loading current bets..."
+            : "Loading bet history..."}
+        </div>
       </div>
     );
-  } else if (errorMessage || casinoError) {
+  } else if (errorMessage) {
     betsContent = (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg font-semibold text-red-600">
-          Error: {errorMessage || casinoError}
+      <div className="flex justify-center items-center h-40">
+        <div className="text-sm font-semibold text-red-400">
+          Error: {errorMessage}
         </div>
       </div>
     );
   } else {
-    betsContent = <BetCard data={combinedBetData} />;
+    betsContent = (
+      <>
+        <BetCard data={paginatedBets} compact />
+        {filteredBets.length > 0 && (
+          <div className="flex flex-wrap justify-center items-center gap-3 mt-4 mb-6 text-sm text-gray-300">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              className="px-3 py-1.5 border border-gray-600 rounded bg-[#262c32] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages} · {filteredBets.length} bets
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
+              className="px-3 py-1.5 border border-gray-600 rounded bg-[#262c32] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </>
+    );
   }
 
   return (
@@ -186,8 +219,13 @@ function Bets() {
           </button>
         </div>
       </div>
-      {/* Bets List */}
-      <div className="px-2 text-white pb-30 pt-5">
+
+      <div className="px-2 text-white pb-30 pt-3 space-y-3">
+        <BetTypeFilters
+          value={typeFilter}
+          onChange={setTypeFilter}
+          counts={filterCounts}
+        />
         {betsContent}
       </div>
     </div>

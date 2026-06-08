@@ -451,6 +451,7 @@ console.log("localDownlines", localDownlines);
         <thead className="bg-[#e4e4e4] border-y border-y-[#7e97a7]">
           <tr>
             <th className="px-2 py-2">UID</th>
+            <th className="px-2 py-2">Currency</th>
             <th className="px-2 py-2">Balance</th>
             <th className="px-2 py-2">Available D/W</th>
             <th className="px-2 py-2">Exposure</th>
@@ -465,6 +466,9 @@ console.log("localDownlines", localDownlines);
           {localDownlines.map((user) => (
             <tr key={user._id} className="bg-[#fff] border-y border-[#7e97a7]">
               <td className="cursor-pointer px-2 py-2">{user.username || "-"}</td>
+              <td className="px-2 py-2 font-semibold">
+                {(user.currency || "BDT").toUpperCase()}
+              </td>
               <td className="px-2 py-2">{(user.avbalance ?? 0).toFixed(2)}</td>
               <td className="px-2 py-2">{(user.avbalance ?? 0).toFixed(2)}</td>
               <td className="px-2 py-2">{(user.exposure ?? 0).toFixed(2)}</td>

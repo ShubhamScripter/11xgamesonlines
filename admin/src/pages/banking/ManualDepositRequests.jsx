@@ -132,6 +132,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
             <tr>
               <th className="p-2 text-left">Date</th>
               <th className="p-2 text-left">User</th>
+              <th className="p-2 text-left">Currency</th>
               <th className="p-2 text-left">Method</th>
               {isWithdrawPage ? <th className="p-2 text-left">Bank Details</th> : null}
               <th className="p-2 text-left">Amount</th>
@@ -143,14 +144,17 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td className="p-3 text-center" colSpan={8}>Loading...</td></tr>
+              <tr><td className="p-3 text-center" colSpan={9}>Loading...</td></tr>
             ) : requests.length === 0 ? (
-              <tr><td className="p-3 text-center" colSpan={8}>No requests found</td></tr>
+              <tr><td className="p-3 text-center" colSpan={9}>No requests found</td></tr>
             ) : (
               requests.map((r) => (
                 <tr key={r._id} className="border-t">
                   <td className="p-2">{formatIST(r.createdAt)}</td>
                   <td className="p-2">{r.userName}</td>
+                  <td className="p-2 font-semibold">
+                    {(r.currency || 'BDT').toUpperCase()}
+                  </td>
                   <td className="p-2">{r.method}</td>
                   {isWithdrawPage ? (
                     <td className="p-2">

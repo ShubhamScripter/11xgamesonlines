@@ -94,12 +94,6 @@ export const POPULAR_GAMES_ROW2 = [
     game_uid: "490096198e28f770a3f85adb6ee49e0f",
     icon: "https://bulkapi.in/jili/Golden-Empire.png",
   },
-  {
-    title: "Boxing King",
-    provider: "JILI",
-    game_uid: "981f5f9675002fbeaaf24c4128b938d7",
-    icon: "https://bulkapi.in/jili/Boxing-King.png",
-  },
 ];
 
 /** @deprecated Use POPULAR_GAMES_ROW2 */

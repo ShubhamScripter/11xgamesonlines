@@ -135,7 +135,7 @@
 //                     onClick={() => setShowCalendar(!showCalendar)}
 //                   >
 //                     <span className="material-icons text-green-500"><AiFillCalendar /></span>
-//                     {state[0].startDate.toLocaleDateString()} - {state[0].endDate.toLocaleDateString()}
+//                     {formatAppDate(state[0].startDate)} - {formatAppDate(state[0].endDate)}
 //                   </button>
 //                   {showCalendar && (
 //                     <div ref={calendarRef} className="absolute z-50 mt-2">
@@ -192,6 +192,7 @@ import 'react-date-range/dist/theme/default.css';
 import { AiFillCalendar } from "react-icons/ai";
 import ProfitLossCard from '../../components/menucomp/ProfitLossCard';
 import { getProLoss } from '../../features/sports/betReducer';
+import { formatAppDate, formatAppDateISO, formatAppDateTime } from '../../utils/time';
 
 function ProfitLoss() {
   const dispatch = useDispatch();
@@ -211,13 +212,7 @@ function ProfitLoss() {
   const calendarRef = useRef(null);
 
   // ----------------------- HELPER FUNCTIONS -------------------------
-  // Format date to YYYY-MM-DD (local timezone, no UTC shift)
-  const formatDateLocal = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const formatDateLocal = (date) => formatAppDateISO(date);
 
   // Get status based on profit
   const getStatusFromProfit = (profit) => {
@@ -247,8 +242,8 @@ function ProfitLoss() {
       commission: bet.commission || 0, // Not available in new API response
       avgOdds: 0, // Not available in new API response
       matched: Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0),
-      placed: bet.date ? new Date(bet.date).toLocaleString() : '',
-      taken: bet.date ? new Date(bet.date).toLocaleString() : '',
+      placed: bet.date ? formatAppDateTime(bet.date) : '',
+      taken: bet.date ? formatAppDateTime(bet.date) : '',
       profit: Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0),
       status: getStatusFromProfit(
         Number(bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0)
@@ -345,7 +340,7 @@ function ProfitLoss() {
               onClick={() => setShowCalendar(!showCalendar)}
             >
               <AiFillCalendar className="text-green-500" />
-              {state[0].startDate.toLocaleDateString()} - {state[0].endDate.toLocaleDateString()}
+              {formatAppDate(state[0].startDate)} - {formatAppDate(state[0].endDate)}
             </button>
 
             {showCalendar && (

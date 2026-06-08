@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaExchangeAlt, FaUser, FaCog, FaLock, FaList } from "react-icons/fa";
-import { FaPencil } from "react-icons/fa6";
 import CreditRef from "./CreditRef";
 
 import ChangeStatus from "./ChangeStatus";
@@ -105,12 +104,11 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
             <tr>
               <th className="px-2 py-2">Sr .No.</th>
               <th className="px-2 py-2">Account</th>
-              <th className="px-2 py-2">Credit Ref.</th>
+              <th className="px-2 py-2">Currency</th>
               <th className="px-2 py-2">Balance</th>
               <th className="px-2 py-2">Player Exposure</th>
               <th className="px-2 py-2">Avail. bal.</th>
               <th className="px-2 py-2">Exposure Limit</th>
-              <th className="px-2 py-2">Reference P/L</th>
               <th className="px-2 py-2">Status</th>
               <th className="px-2 py-2">Action</th>
             </tr>
@@ -119,7 +117,7 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan="10"
+                  colSpan="9"
                   className="text-center py-2 text-[#3b5160] bg-[#0000000d]"
                 >
                   No users available.
@@ -158,18 +156,7 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
                     </span>
                   </td>
                   <td className="px-2 py-2">
-                    <div className="inline-flex items-center gap-1 text-[#2066c6]">
-                      <span className="underline">{(user.creditRef ?? 0).toFixed(2)}</span>
-                      <FaPencil className="text-[#2066c6] cursor-pointer" onClick={() => {
-                        setSelectedUser({ 
-                          id: user._id, 
-                          role: user.role, 
-                          username: user.username || user.account,
-                          creditReference: user.creditRef || user.creditReference || 0
-                        });
-                        openCreditRef();
-                      }} />
-                    </div>
+                    {(user.currency || "BDT").toUpperCase()}
                   </td>
                   <td className="px-2 py-2 text-[#2066c6]">
                     {(user.balance ?? 0).toLocaleString()}
@@ -185,7 +172,6 @@ function AccountTableUser({ users, refreshDownlines, serverPaginated = false }) 
                   <td className="px-2 py-2">
                     {(user.exposureLimit ?? 0).toLocaleString()}
                   </td>
-                  <td className="px-2 py-2">{user.refPL ?? 0}</td>
                   <td className="px-2 py-2">
                     <div className={`${user.status==="active"?"bg-[#e5f1dc] text-[#508d0e] border border-[#bedca7]":"bg-[#ebb7b7] text-[#db2828] border border-[#c68585]"}  px-2 py-1  rounded-lg text-[12px] font-semibold flex gap-1 items-center`}>
                       <span className={`${user.status==="active"?"text-[#4cbb17]":"text-[#921313]"}`}>●</span>

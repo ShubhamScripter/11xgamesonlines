@@ -6,6 +6,7 @@ import { MdArrowBackIosNew } from "react-icons/md";
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getUser } from '../../features/auth/authSlice';
+import { currencySymbol } from '../../utils/currency';
 function HeaderLoginBack() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -35,7 +36,7 @@ function HeaderLoginBack() {
         <div className="flex gap-2 items-center">
           <div className="flex flex-col">
             <span className="text-white text-[8px] md:text-sm leading-none">{user?.userName || '-'}</span>
-            <span className="text-white text-[10px] md:text-base font-semibold">BDT <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>&nbsp; Exp (<span className="text-[#e52219]">
+            <span className="text-white text-[10px] md:text-base font-semibold">{currencySymbol(user?.currency)} <span className="font-normal">{Number(user?.avbalance || 0).toFixed(2)}</span>&nbsp; Exp (<span className="text-[#e52219]">
                     {Number(user?.exposure).toFixed(2)}
                   </span>)</span>
           </div>

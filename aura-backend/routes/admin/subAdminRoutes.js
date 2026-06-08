@@ -9,6 +9,7 @@ import {
   forceLogoutUser,
   getAgentTransactionHistory,
   getAgentOwnTransactionHistory,
+  getUserOwnTransactionHistory,
   // getAllBetHistory,
   getAllDownlineBets,
   getAllOnlyUser,
@@ -34,7 +35,9 @@ import {
   userSetting,
   withdrowalAndDeposite,
   getDuplicateIPUsers,
+  getLockedUsers,
   getUserCompleteInfo,
+  getUserProfileLight,
 } from '../../controllers/admin/subAdminController.js';
 import { adminAuthMiddleware } from '../../middleware/authMiddleware.js';
 import {
@@ -96,6 +99,11 @@ router.post(
   getAgentOwnTransactionHistory
 );
 router.get(
+  '/get/user-own-trantion-history/:userId',
+  adminAuthMiddleware,
+  getUserOwnTransactionHistory
+);
+router.get(
   '/get/user-trantion-history/:userId',
   adminAuthMiddleware,
   getUserTransactionHistory
@@ -114,8 +122,10 @@ router.post(
   changePasswordBySubAdmin
 );
 router.post("/sub-admin/profile-data", adminAuthMiddleware, getUserCompleteInfo);
+router.post("/sub-admin/profile-light", adminAuthMiddleware, getUserProfileLight);
 
 router.get("/duplicate-ip-users", adminAuthMiddleware, getDuplicateIPUsers);
+router.get("/users-locked", adminAuthMiddleware, getLockedUsers);
 
 router.get('/admin/app-settings', adminAuthMiddleware, getAdminAppSettings);
 router.put('/admin/app-settings', adminAuthMiddleware, updateAdminAppSettings);

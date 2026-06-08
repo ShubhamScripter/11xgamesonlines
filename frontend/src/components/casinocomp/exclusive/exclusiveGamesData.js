@@ -48,4 +48,10 @@ export const EXCLUSIVE_GAMES = [
     game_uid: "490096198e28f770a3f85adb6ee49e0f",
     icon: "https://bulkapi.in/jili/Golden-Empire.png",
   },
+  {
+    title: "Aviator",
+    provider: "SPRIBE",
+    game_uid: "a04d1f3eb8ccec8a4823bdf18e3f0e84",
+    icon: "https://bulkapi.in/Spribe/avitor.png",
+  },
 ];

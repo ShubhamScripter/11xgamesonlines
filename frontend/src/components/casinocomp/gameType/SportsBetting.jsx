@@ -1,8 +1,8 @@
 import React from "react";
-import SportsBookGrid from "../../sports/SportsBookGrid";
+import SportCategoryBar from "../../sports/SportCategoryBar";
 
 function SportsBetting() {
-  return <SportsBookGrid className="bg-[#141515] px-4 pb-4" />;
+  return <SportCategoryBar className="bg-[#141515] px-3 pb-4 pt-2" />;
 }
 
 export default SportsBetting;

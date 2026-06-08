@@ -13,7 +13,7 @@ function BalanceCard({balanceData}) {
             <strong className={`text-[15px] font-semibold`}>
               {item.highlight ? (
                 <>
-                  INR <span className="text-red-500">{item.value.replace('INR ', '')}</span>
+                  BDT <span className="text-red-500">{item.value.replace(/^BDT\s/, '')}</span>
                 </>
               ) : (
                 item.value

@@ -8,6 +8,7 @@ import LoginHistory from '../models/loginHistory.js';
 import passwordHistory from '../models/passwordHistory.js';
 import SubAdmin from '../models/subAdminModel.js';
 import { calculateAllExposure } from '../utils/exposureUtils.js';
+import { formatLoginDateTime } from '../utils/appTime.js';
 
 export const registerUser = async (req, res) => {
   try {
@@ -31,7 +32,11 @@ export const registerUser = async (req, res) => {
 export const registerSelf = async (req, res) => {
   try {
     console.log("req.body",req.body);
-    const { userName, password, name, phone, email } = req.body;
+    const { userName, password, name, phone, email, currency } = req.body;
+
+    // Currency chosen at signup: USDT shows "$" everywhere, BDT is the default.
+    const normalizedCurrency =
+      String(currency || '').trim().toUpperCase() === 'USDT' ? 'USDT' : 'BDT';
 
     if (!userName || !password) {
       return res
@@ -104,6 +109,7 @@ export const registerSelf = async (req, res) => {
       invite: parentCode,
       password,
       role: 'user',
+      currency: normalizedCurrency,
       phone: phoneNum,
       balance: 0,
       baseBalance: 0,
@@ -190,18 +196,7 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
       // Still save login row when geo lookup fails (localhost, rate limit, etc.)
     }
 
-    const now = new Date();
-    const formattedDateTime = now
-      .toLocaleString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-      .replace(',', '');
+    const formattedDateTime = formatLoginDateTime(new Date());
 
     const normalizedStatus =
       status === 'Success'

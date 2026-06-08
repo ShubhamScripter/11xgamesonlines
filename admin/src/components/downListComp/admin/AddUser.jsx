@@ -19,7 +19,7 @@ function AddUser({ onClose, roleToCreate, parentId, siteTag = "baaji.net", maxCo
     username: "",
     password: "",
     confirmpassword: "",
-    timezone: "Asia/Kolkata",
+    timezone: "Asia/Dhaka",
     commission: 0,
     exposureLimit: 0,
   });

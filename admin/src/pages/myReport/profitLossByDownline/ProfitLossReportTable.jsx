@@ -25,6 +25,7 @@ function ProfitLossReportTable({ reportData }) {
         <thead className="bg-[#e4e4e4] border-y border-y-[#7e97a7]">
           <tr>
             <th className="px-2 py-2">UID</th>
+            <th className="px-2 py-2">Currency</th>
             <th className="px-2 py-2">Stake</th>
             <th className="px-2 py-2">Downline P/L</th>
             <th className="px-2 py-2">Player P/L</th>
@@ -46,6 +47,9 @@ function ProfitLossReportTable({ reportData }) {
                   <span className="underline cursor-pointer">{row.uid}</span>
                 </a>
               </td>
+              <td className="px-2 py-2 font-semibold">
+                {(row.currency || "BDT").toUpperCase()}
+              </td>
               <td className="px-2 py-2">{formatNumber(row.stake)}</td>
               <td className="px-2 py-2 text-[#198754]">
                 {formatNumber(row.downlinePL)}
@@ -62,7 +66,7 @@ function ProfitLossReportTable({ reportData }) {
           {data.length === 0 ? (
             <tr>
               <td
-                colSpan="10"
+                colSpan="7"
                 className="text-center py-4 text-[#3b5160] bg-[#0000000d] border-y border-[#7e97a7]"
               >
                 You have no bets in this time period.
@@ -71,6 +75,7 @@ function ProfitLossReportTable({ reportData }) {
           ) : (
             <tr className="bg-[#e4e4e4] border-y border-y-[#7e97a7] font-[700]">
               <td className="px-2 py-2">Total</td>
+              <td className="px-2 py-2">—</td>
               <td className="px-2 py-2">{formatNumber(totals.stake)}</td>
               <td className="px-2 py-2 text-[#198754]">
                 {formatNumber(totals.downlinePL)}

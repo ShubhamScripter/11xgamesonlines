@@ -12,6 +12,7 @@ import Fishing from "../../components/casinocomp/gameType/Fishing";
 import Lottery from "../../components/casinocomp/gameType/Lottery";
 import SportsBetting from "../../components/casinocomp/gameType/SportsBetting";
 import Sports from "../../components/sports/Sports";
+import MostRatedGames from "../../components/casinocomp/mostRated/MostRatedGames";
 import ExclusiveGames from "../../components/casinocomp/exclusive/ExclusiveGames";
 
 function Home() {
@@ -49,6 +50,7 @@ function Home() {
       <Category active={selected} setActive={setSelected} />
       {content}
       <Sports />
+      <MostRatedGames />
       <ExclusiveGames />
     </div>
   );

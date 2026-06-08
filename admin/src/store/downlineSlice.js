@@ -248,6 +248,7 @@ const downlineSlice = createSlice({
     _id: u._id,
     role: u.role,
     username: u.userName,
+    currency: u.currency || 'BDT',
     account: u.account,
     code: u.code,
     commission: u.commission ?? u.commition ?? 0,
@@ -261,7 +262,7 @@ const downlineSlice = createSlice({
     exposure: Number(u.exposure ?? 0),
     totalExposure: u.downlineExposure ?? u.totalExposure ?? 0,
     exposureLimit: u.exposureLimit,
-    playerbalancee: u.playerbalancee,
+    playerbalancee: u.playerbalancee ?? u.totalDownlineUserBalance ?? 0,
     creditRef: u.creditReference,
     rollingCommission: u.rollingCommission,
     phone: u.phone,
@@ -277,24 +278,25 @@ const downlineSlice = createSlice({
   const globalExposure = Number(totalUserDownlineExposure) || 0;
   const globalPlayerBalance = Number(totalUserDownlineBalance) || 0;
 
+  // Amounts from API are already in BDT (USDT wallets converted server-side).
   state.balanceData = [
-    { label: 'Total Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+    { label: 'Total Balance', value: `BDT ${(selfData.totalBalance ?? 0).toFixed(2)}` },
     {
       label: 'Total Exposure',
-      value: `INR ${globalExposure.toFixed(2)}`,
+      value: `BDT ${globalExposure.toFixed(2)}`,
       highlight: true,
     },
-    { label: 'Total Avail. Balance', value: `INR ${(selfData.totalBalance ?? 0).toFixed(2)}` },
-    { label: 'Balance', value: `INR ${(selfData.avbalance ?? 0).toFixed(2)}` },
+    { label: 'Total Avail. Balance', value: `BDT ${(selfData.totalBalance ?? 0).toFixed(2)}` },
+    { label: 'Balance', value: `BDT ${(selfData.avbalance ?? 0).toFixed(2)}` },
     {
       label: 'Available Balance',
-      value: `INR ${(
+      value: `BDT ${(
         (selfData.avbalance ?? 0) + (selfData.totalBalance ?? 0)
       ).toFixed(2)}`,
     },
     {
       label: 'Total Player Balance',
-      value: `INR ${globalPlayerBalance.toFixed(2)}`,
+      value: `BDT ${globalPlayerBalance.toFixed(2)}`,
     },
   ];
 

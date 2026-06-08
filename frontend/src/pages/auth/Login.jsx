@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, reset } from '../../features/auth/authSlice'; 
 import toast from 'react-hot-toast';
+import { homeUrlForCurrency, getStoredCurrency } from '../../utils/currency';
 import logo from '../../assets/bajiLogo.png';
 import logoMp4 from '../../assets/bajiVideo.mp4';
 import moblogoMp4 from '../../assets/welcome-bn.mp4';
@@ -36,10 +37,13 @@ function Login() {
       toast.error(message);
     }
     if (isSuccess || user) {
-      navigate('/');
+      // Full-page redirect so the router basename matches the user's currency
+      // (USDT browses under "/$/...", BDT under "/...").
+      window.location.assign(homeUrlForCurrency(getStoredCurrency()));
+      return;
     }
     dispatch(reset());
-  }, [user, isError, isSuccess, message, navigate, dispatch]);
+  }, [user, isError, isSuccess, message, dispatch]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

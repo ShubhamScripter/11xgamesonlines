@@ -48,12 +48,11 @@ function AccountTable({ users }) {
             <tr>
               <th className="px-2 py-2">Sr .No.</th>
               <th className="px-2 py-2">Account</th>
-              <th className="px-2 py-2">Credit Ref.</th>
+              <th className="px-2 py-2">Currency</th>
               <th className="px-2 py-2">Balance</th>
               <th className="px-2 py-2">Player Exposure</th>
               <th className="px-2 py-2">Avail. bal.</th>
               <th className="px-2 py-2">Player Balance</th>
-              <th className="px-2 py-2">Reference P/L</th>
               <th className="px-2 py-2">Status</th>
               <th className="px-2 py-2">Action</th>
             </tr>
@@ -82,8 +81,8 @@ function AccountTable({ users }) {
                     {user.username || user.account || "N/A"}
                   </span>
                 </td>
-                <td className="px-2 py-2 text-[#2066c6] underline">
-                  {(user.creditRef ?? 0).toFixed(2)}
+                <td className="px-2 py-2">
+                  {(user.currency || "BDT").toUpperCase()}
                 </td>
                 <td className="px-2 py-2 text-[#2066c6]">
                   {(user.balance ?? 0).toLocaleString()}
@@ -95,7 +94,6 @@ function AccountTable({ users }) {
                 </td>
                 <td className="px-2 py-2">{(user.availBal ?? 0).toLocaleString()}</td>
                 <td className="px-2 py-2">{(user.playerBal ?? 0).toLocaleString()}</td>
-                <td className="px-2 py-2">{user.refPL ?? 0}</td>
                 <td className="px-2 py-2">
                   <div className="bg-[#e5f1dc] text-[#508d0e] px-2 py-1 border border-[#bedca7] rounded-lg text-[12px] font-semibold flex gap-1 items-center">
                     <span className="text-[#4cbb17]">●</span>

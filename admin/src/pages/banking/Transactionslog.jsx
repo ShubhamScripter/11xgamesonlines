@@ -112,16 +112,13 @@ function Transactionslog() {
 
   useEffect(() => {
     const fetchLogs = async () => {
+      if (!userId) return;
+      setLoading(true);
       try {
-        // POST request with JSON body
-        const res = await axiosInstance.post(
-          "/get/agent-trantionhistory",
-          { id: userId }
+        const res = await axiosInstance.get(
+          `/get/user-own-trantion-history/${userId}`,
+          { params: { limit: 500 } }
         );
-
-        console.log("Fetched transactions:", res.data);
-
-        // Response shape: { success:true, data:[...], totalPages:1 }
         setLogs(Array.isArray(res.data.data) ? res.data.data : []);
       } catch (err) {
         console.error("Failed to load transactions:", err);
@@ -131,7 +128,7 @@ function Transactionslog() {
       }
     };
 
-    if (userId) fetchLogs();
+    fetchLogs();
   }, [userId]);
 
   if (loading) {

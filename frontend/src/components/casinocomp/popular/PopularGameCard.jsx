@@ -6,12 +6,9 @@ function PopularGameCard({ game, onClick, disabled, className = "" }) {
       type="button"
       onClick={() => onClick(game)}
       disabled={disabled}
-      className={`flex-shrink-0 w-[108px] text-left disabled:opacity-60 ${className}`}
+      className={`w-full min-w-0 text-left disabled:opacity-60 md:w-[108px] md:flex-shrink-0 ${className}`}
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-[#1a1a1a]">
-        <span className="absolute right-1.5 top-1.5 z-10 rounded bg-black/50 px-1 text-[9px] font-bold uppercase tracking-wide text-white/90">
-          bj
-        </span>
         <img
           src={game.icon}
           alt={game.title}

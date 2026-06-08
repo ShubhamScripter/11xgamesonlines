@@ -9,6 +9,9 @@ import HeaderLogin from '../../components/Header/HeaderLogin';
 import api from '../../utils/axiosConfig';
 import { resolveUploadUrl } from '../../utils/uploadUrl';
 import ImagePreviewLink from '../../components/common/ImagePreviewLink';
+import { formatAppDateTime } from '../../utils/time';
+import { currencySymbol, normalizeCurrency, convertUsdtToBdt } from '../../utils/currency';
+import useUsdtToBdtRate from '../../hooks/useUsdtToBdtRate';
 
 function buildWhatsAppChatUrl(digits, message) {
   const d = String(digits || '').replace(/\D/g, '');
@@ -42,6 +45,8 @@ const INITIAL_WITHDRAW_DETAILS = {
 
 function ManualDeposit() {
   const { user } = useSelector((state) => state.auth);
+  const usdtToBdtRate = useUsdtToBdtRate();
+  const isUsdtUser = normalizeCurrency(user?.currency) === 'USDT';
   const [searchParams] = useSearchParams();
   const [requestType, setRequestType] = useState(() => {
     const t = searchParams.get('type');
@@ -426,7 +431,7 @@ function ManualDeposit() {
         {!(requestType === 'deposit' && method === 'whatsapp') ? (
         <form onSubmit={submitRequest} className="rounded-xl space-y-4">
           <div className="text-sm font-semibold">
-            Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request (BDT)
+            Submit {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'} Request ({currencySymbol(user?.currency)})
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
@@ -436,9 +441,15 @@ function ManualDeposit() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-              placeholder="Enter Amount (BDT)"
+              placeholder={`Enter Amount (${currencySymbol(user?.currency)})`}
               required
             />
+            {isUsdtUser && usdtToBdtRate > 0 && Number(amount) > 0 && (
+              <div className="sm:col-span-2 text-xs text-gray-300 -mt-2">
+                ≈ {convertUsdtToBdt(amount, usdtToBdtRate).toFixed(2)} BDT
+                <span className="text-gray-400"> (1 USDT = {usdtToBdtRate} BDT)</span>
+              </div>
+            )}
             <input
               type="text"
               inputMode={requestType === 'deposit' ? 'numeric' : 'text'}
@@ -705,7 +716,7 @@ function ManualDeposit() {
                 ) : (
                   requests.map((r) => (
                     <tr key={r._id} className="border-b">
-                      <td className="py-2">{new Date(r.createdAt).toLocaleString()}</td>
+                      <td className="py-2">{formatAppDateTime(r.createdAt)}</td>
                       <td>{r.requestType || 'deposit'}</td>
                       <td>{r.method}</td>
                       <td>{Number(r.amount || 0).toFixed(2)}</td>

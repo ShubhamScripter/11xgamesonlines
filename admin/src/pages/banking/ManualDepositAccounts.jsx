@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { FaToggleOff, FaToggleOn } from 'react-icons/fa';
 import axiosInstance from '../../utils/axiosInstance';
 import { resolveUploadUrl } from '../../utils/uploadUrl';
+import { formatAppDate } from '../../utils/time';
 
 const METHOD_SECTIONS = ['bank', 'upi', 'crypto', 'whatsapp'];
 
@@ -196,12 +197,7 @@ function ManualDepositAccounts() {
     return `Add ${form.method.toUpperCase()} Account`;
   };
 
-  const formatDate = (value) => {
-    if (!value) return '-';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '-';
-    return d.toLocaleDateString('en-GB');
-  };
+  const formatDate = (value) => formatAppDate(value);
 
   const getTypeBadgeClass = (method) => {
     if (method === 'bank') return 'bg-[#e8f1ff] text-[#0b4bb3]';

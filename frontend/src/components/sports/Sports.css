@@ -111,6 +111,57 @@
   text-overflow: ellipsis;
 }
 
+/* Sports tab: Cricket / Soccer / Tennis */
+.sport-category-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sport-category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 10px 8px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #222424;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.sport-category-item:hover {
+  background: #2a2d2e;
+}
+
+.sport-category-item--active {
+  border-color: #ffffff;
+  background: #2a2a2a;
+}
+
+.sport-category-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sport-category-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sport-category-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
 .sports-casino-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

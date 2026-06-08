@@ -12,6 +12,10 @@ import {
   resolvePublicUploadUrl,
   toUploadPathOnly,
 } from '../utils/uploadUrl.js';
+import {
+  amountToAdminBdt,
+  getUsdtToBdtRate,
+} from '../utils/adminCurrency.js';
 
 const VALID_METHODS = ['bank', 'upi', 'crypto', 'whatsapp'];
 
@@ -665,9 +669,31 @@ export const getManualDepositRequestsForAdmin = async (req, res) => {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const userIds = [
+      ...new Set(merged.map((r) => String(r.userId || '')).filter(Boolean)),
+    ];
+    const users = userIds.length
+      ? await SubAdmin.find({ _id: { $in: userIds } })
+          .select('currency')
+          .lean()
+      : [];
+    const currencyById = new Map(
+      users.map((u) => [String(u._id), u.currency || 'BDT'])
+    );
+
     return res.status(200).json({
       success: true,
-      data: merged.map((r) => withResolvedDepositRequest(req, r)),
+      usdtToBdtRate,
+      data: merged.map((r) => {
+        const resolved = withResolvedDepositRequest(req, r);
+        const c = currencyById.get(String(r.userId)) || 'BDT';
+        return {
+          ...resolved,
+          currency: c,
+          amount: amountToAdminBdt(resolved.amount, c, usdtToBdtRate),
+        };
+      }),
     });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error: error.message });

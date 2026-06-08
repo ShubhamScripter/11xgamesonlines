@@ -237,6 +237,7 @@ function AccountSummary() {
         totalExposure: data.data.financialInfo?.totalExposure ?? 0,
         creditReference: data.data.financialInfo?.creditReference ?? 0,
         profitLoss: data.data.financialInfo?.profitLoss ?? 0,
+        currency: data.data.financialInfo?.currency ?? "BDT",
         timezone: data.data.settings?.timezone ?? "-",
         phone: data.data.basicInfo?.phone ?? "-",
       };
@@ -330,6 +331,12 @@ function AccountSummary() {
                   <tr className="border-y border-y-[#7e97a7]">
                     <td className="px-2 py-2">Email</td>
                     <td className="px-2 py-2">{userData.email}</td>
+                  </tr>
+                  <tr className="border-y border-y-[#7e97a7]">
+                    <td className="px-2 py-2">Currency</td>
+                    <td className="px-2 py-2 font-semibold">
+                      {(userData.currency || "BDT").toUpperCase()}
+                    </td>
                   </tr>
                   <tr className="border-y border-y-[#7e97a7]">
                     <td className="px-2 py-2">Password</td>

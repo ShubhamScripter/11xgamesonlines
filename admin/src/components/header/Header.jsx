@@ -199,7 +199,7 @@ function Header() {
         </div>
         <div>
           <span className='bg-black rounded-lg p-1 m-2 text-sm text-white'>Main</span>
-          <span className='text-white text-sm'>INR {balance.toFixed(2)}</span>
+          <span className='text-white text-sm'>BDT {balance.toFixed(2)}</span>
         </div>
         <div
           className='rounded-sm p-1 border border-[#0000004d] shadow-[#0000004d] cursor-pointer'

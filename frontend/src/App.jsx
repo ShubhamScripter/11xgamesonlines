@@ -33,6 +33,28 @@ import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
 import Slot from './components/casinocomp/gameType/Slot'
 import CasinoProvider from './components/casinocomp/CasinoProvider'
+import Sponsorships from './pages/trust/Sponsorships'
+import BrandAmbassadors from './pages/trust/BrandAmbassadors'
+import SponsorshipDetail from './pages/trust/SponsorshipDetail'
+import AmbassadorDetail from './pages/trust/AmbassadorDetail'
+
+// Protected account pages mounted under /user/*. For USDT users the router
+// basename ("/$") prefixes these automatically (e.g. /$/user/profile).
+const ACCOUNT_ROUTES = [
+  { path: 'payment-transfer-log', element: <TransferLog /> },
+  { path: 'upline-whatsapp', element: <UplineWhatsapp /> },
+  { path: 'balance-overview', element: <BalanceOverview /> },
+  { path: 'account-statement', element: <AccountStatement /> },
+  { path: 'current-bets', element: <CurrentBets /> },
+  { path: 'bet-history', element: <BetHistory /> },
+  { path: 'profit-loss', element: <ProfitLoss /> },
+  { path: 'active-log', element: <Activelog /> },
+  { path: 'profile', element: <Myprofile /> },
+  { path: 'manual-deposit', element: <ManualDeposit /> },
+  { path: 'setting', element: <Settings /> },
+  { path: 'change-password', element: <ChangePassword /> },
+];
+
 function App() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(location.pathname);
@@ -65,6 +87,10 @@ function App() {
               <Route path="/football" element={<Soccer activeTab="All" />} />
               <Route path="/tennis" element={<Tennis activeTab="All" />} />
               <Route path="/casino/:category/:provider" element={<CasinoProvider key={location.pathname} />} />
+              <Route path="/sponsorships" element={<Sponsorships />} />
+              <Route path="/sponsorships/:slug" element={<SponsorshipDetail />} />
+              <Route path="/brand-ambassadors" element={<BrandAmbassadors />} />
+              <Route path="/brand-ambassadors/:slug" element={<AmbassadorDetail />} />
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/mybets" element={<Bets />} />
@@ -80,18 +106,9 @@ function App() {
                   path="/sports/tennis/:match/:gameid"
                   element={<Fullmarket2 />} 
                 />
-                <Route path='/user/payment-transfer-log' element={<TransferLog />} />
-                <Route path='/user/upline-whatsapp' element={<UplineWhatsapp />} />
-                <Route path='/user/balance-overview' element={<BalanceOverview />} />
-                <Route path='/user/account-statement' element={<AccountStatement />} />
-                <Route path='/user/current-bets' element={<CurrentBets />} />
-                <Route path='/user/bet-history' element={<BetHistory />} />
-                <Route path='/user/profit-loss' element={<ProfitLoss />} />
-                <Route path='/user/active-log' element={<Activelog />} />
-                <Route path='/user/profile' element={<Myprofile />} />
-                <Route path='/user/manual-deposit' element={<ManualDeposit />} />
-                <Route path='/user/setting' element={<Settings />} />
-                <Route path='/user/change-password' element={<ChangePassword />} />
+                {ACCOUNT_ROUTES.map((r) => (
+                  <Route key={r.path} path={`/user/${r.path}`} element={r.element} />
+                ))}
               </Route>
             </Route>
           </Routes>

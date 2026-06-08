@@ -1,6 +1,11 @@
 import axios from "axios";
 import { encrypt, decrypt } from "../utils/casinoCrypto.js";
 import SubAdmin from '../models/subAdminModel.js'
+import { getAppSettingsDoc } from '../models/appSettingsModel.js';
+import {
+  getUsdtToBdtRate,
+  mapCasinoBetHistoryForAdmin,
+} from '../utils/adminCurrency.js';
 import { sendToUser, sendUserRefresh } from '../socket/bettingSocket.js';
 // 🔧 Casino API Configuration
 const API_TOKEN = process.env.CASINO_API_KEY;
@@ -10,6 +15,30 @@ const SERVER_URL = process.env.CASINO_API_URL;
 const CASINO_CURRENCY = String(process.env.CASINO_CURRENCY || 'BDT')
   .trim()
   .toUpperCase();
+
+// The casino always operates in BDT. A USDT user's wallet is stored in USDT, so
+// amounts must be converted both ways using the admin-configured rate.
+async function getUserCasinoRate(user) {
+  const isUsdt = String(user?.currency || '').toUpperCase() === 'USDT';
+  let rate = 0;
+  if (isUsdt) {
+    const settings = await getAppSettingsDoc();
+    rate = Number(settings?.usdtToBdtRate) || 0;
+  }
+  return { isUsdt, rate };
+}
+
+/** BDT amount (from casino) -> user's wallet currency (USDT users divide by rate). */
+function bdtToUserAmount(amountBdt, isUsdt, rate) {
+  if (isUsdt && rate > 0) return (Number(amountBdt) || 0) / rate;
+  return Number(amountBdt) || 0;
+}
+
+/** User's wallet amount -> BDT (casino currency). */
+function userAmountToBdt(amount, isUsdt, rate) {
+  if (isUsdt && rate > 0) return (Number(amount) || 0) * rate;
+  return Number(amount) || 0;
+}
 
 
 
@@ -50,10 +79,22 @@ export const startCasinoGame = async (req, res) => {
       });
     }
 
+    // Casino operates in BDT. If the user's currency is USDT, send the
+    // BDT-equivalent of their balance (balance × admin USDT→BDT rate);
+    // BDT users' balance is sent as-is.
+    let effectiveBalance = Number(subAdmin.avbalance) || 0;
+    if (String(subAdmin.currency || '').toUpperCase() === 'USDT') {
+      const settings = await getAppSettingsDoc();
+      const rate = Number(settings?.usdtToBdtRate) || 0;
+      if (rate > 0) {
+        effectiveBalance = effectiveBalance * rate;
+      }
+    }
+
     // Use server balance (0 allowed — game still opens for demo / deposit prompt)
     const walletAmount = Math.max(
       0,
-      Math.round(Number(subAdmin.avbalance) * 100) / 100
+      Math.round(effectiveBalance * 100) / 100
     );
 
     const timestamp = Math.round(Date.now());
@@ -68,7 +109,7 @@ export const startCasinoGame = async (req, res) => {
       currency: CASINO_CURRENCY,
     };
 
-    console.log("🔹 Request data:", requestData);
+    console.log("🔹 Request data: is:", requestData);
 
     // 🔧 Encrypt the payload using the secret key
     const message = JSON.stringify(requestData);
@@ -386,7 +427,7 @@ import CasinoBetHistory from '../models/casinoBetHistory.model.js';
 
 export const casinoCallback = async (req, res) => {
   try {
-    console.log("🎰 Casino callback:", req.body);
+    console.log("🎰 my Casino callback: is:", req.body);
 
     const {
       mobile,
@@ -428,9 +469,17 @@ export const casinoCallback = async (req, res) => {
         return res.json({ code: 1, msg: "User not found" });
       }
 
-      // ✅ Calculate balance change: wallet_after - wallet_before
-      const balanceChange = Number(wallet_after) - Number(wallet_before || currentUser.avbalance);
-      
+      const { isUsdt, rate } = await getUserCasinoRate(currentUser);
+
+      // Casino values are in BDT. Compute the change in BDT, then convert it to
+      // the user's wallet currency before applying (USDT users divide by rate).
+      const walletBeforeBdt =
+        wallet_before != null && wallet_before !== ''
+          ? Number(wallet_before)
+          : userAmountToBdt(currentUser.avbalance, isUsdt, rate);
+      const balanceChangeBdt = Number(wallet_after) - walletBeforeBdt;
+      const balanceChange = bdtToUserAmount(balanceChangeBdt, isUsdt, rate);
+
       // ✅ Update BOTH balance and avbalance to maintain consistency
       const updatedUser = await SubAdmin.findOneAndUpdate(
         { userName: mobile },
@@ -459,12 +508,12 @@ export const casinoCallback = async (req, res) => {
         game_uid,
         game_name,
         game_round,
-        bet_amount: bet,
+        bet_amount: bdtToUserAmount(bet, isUsdt, rate),
         win_amount: 0,
-        change: Number(change || -bet),
-        wallet_before: Number(wallet_before || currentUser.avbalance),
+        change: bdtToUserAmount(Number(change != null && change !== '' ? change : -bet), isUsdt, rate),
+        wallet_before: bdtToUserAmount(walletBeforeBdt, isUsdt, rate),
         wallet_after: Number(updatedUser.avbalance),
-        currency_code: currency_code || CASINO_CURRENCY,
+        currency_code: isUsdt ? 'USDT' : (currency_code || CASINO_CURRENCY),
         token,
         provider_timestamp: timestamp ? new Date(timestamp) : new Date(),
         providerRaw: req.body,
@@ -493,9 +542,14 @@ export const casinoCallback = async (req, res) => {
         return res.json({ code: 1, msg: "User not found" });
       }
 
-      // ✅ Calculate balance change: wallet_after - current avbalance
-      const balanceChange = Number(wallet_after) - Number(currentUser.avbalance);
-      
+      const { isUsdt, rate } = await getUserCasinoRate(currentUser);
+
+      // wallet_after is in BDT. Compare against the user's current balance
+      // expressed in BDT, then convert the change back to the user's currency.
+      const currentBdt = userAmountToBdt(currentUser.avbalance, isUsdt, rate);
+      const balanceChangeBdt = Number(wallet_after) - currentBdt;
+      const balanceChange = bdtToUserAmount(balanceChangeBdt, isUsdt, rate);
+
       // ✅ Update BOTH balance and avbalance to maintain consistency
       const updatedUser = await SubAdmin.findOneAndUpdate(
         { userName: mobile },
@@ -517,8 +571,8 @@ export const casinoCallback = async (req, res) => {
 
       console.log(`💰 Balance updated | ${mobile} | Balance: ${updatedUser.balance} | AvBalance: ${updatedUser.avbalance} | Win: ${win} | Change: ${balanceChange}`);
 
-      betRecord.win_amount = win;
-      betRecord.change = Number(change || win);
+      betRecord.win_amount = bdtToUserAmount(win, isUsdt, rate);
+      betRecord.change = bdtToUserAmount(Number(change != null && change !== '' ? change : win), isUsdt, rate);
       betRecord.wallet_after = Number(updatedUser.avbalance);
       betRecord.providerRaw = req.body;
       betRecord.processedAt = new Date();
@@ -885,11 +939,34 @@ export const getAllDownlineCasinoBetHistory = async (req, res) => {
       CasinoBetHistory.countDocuments(filter),
     ]);
 
+    const usdtToBdtRate = await getUsdtToBdtRate();
+    const betUserIds = [
+      ...new Set(betData.map((b) => String(b.userId || '')).filter(Boolean)),
+    ];
+    const betUsers = betUserIds.length
+      ? await SubAdmin.find({ _id: { $in: betUserIds } })
+          .select('currency')
+          .lean()
+      : [];
+    const currencyByBetUser = new Map(
+      betUsers.map((u) => [String(u._id), u.currency || 'BDT'])
+    );
+
+    const data = betData.map((bet) => {
+      const c =
+        currencyByBetUser.get(String(bet.userId)) ||
+        (String(bet.currency_code || '').toUpperCase() === 'USDT'
+          ? 'USDT'
+          : 'BDT');
+      return mapCasinoBetHistoryForAdmin(bet, c, usdtToBdtRate);
+    });
+
     return res.status(200).json({
       success: true,
+      usdtToBdtRate,
       totalUsers: userIds.length,
-      totalBets: betData.length,
-      data: betData,
+      totalBets: data.length,
+      data,
       pagination: {
         total: totalCount,
         page: pageNum,
@@ -1163,7 +1240,7 @@ export const getCasinoProfitLossByDate = async (req, res) => {
                 $dateToString: {
                   format: "%Y-%m-%d",
                   date: "$createdAt",
-                  timezone: "Asia/Kolkata" // Use IST timezone or adjust to your server timezone
+                  timezone: "Asia/Dhaka" // GMT+6
                 }
               },
               bet_amount: 1,

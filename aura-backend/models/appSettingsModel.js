@@ -24,6 +24,12 @@ const appSettingsSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    // Exchange rate: 1 USDT = X BDT. 0 means "not configured yet".
+    usdtToBdtRate: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

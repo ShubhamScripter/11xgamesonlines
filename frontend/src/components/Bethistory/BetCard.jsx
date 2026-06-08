@@ -60,7 +60,7 @@ const BetCard = ({ data, compact = false }) => {
                 <tr>
                   <th colSpan={2} className={compact ? "p-2 text-left" : "p-3 text-left"}>
                     <span className={compact ? "text-sm font-semibold" : "md:text-lg font-semibold"}>
-                      {isCasino ? "Casino" : "Sports"}
+                      {bet.categoryLabel || (isCasino ? "Casino" : "Sports")}
                     </span>
                   </th>
                 </tr>

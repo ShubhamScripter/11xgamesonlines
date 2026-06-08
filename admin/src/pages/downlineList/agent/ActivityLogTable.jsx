@@ -1,4 +1,5 @@
 import React,{useState} from "react";
+import { formatActivityLogTime } from "../../../utils/time";
 
 function ActivityLogTable({ activityLogs }) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,7 +45,7 @@ function ActivityLogTable({ activityLogs }) {
           ) : (
             currentdata.map((log, index) => (
               <tr key={index} className="border-y border-y-[#7e97a7]">
-                <td className="px-2 py-2">{log.loginDateTime}</td>
+                <td className="px-2 py-2">{formatActivityLogTime(log)}</td>
                 <td className="px-2 py-2">
                   <span>{log.status}</span>
                 </td>

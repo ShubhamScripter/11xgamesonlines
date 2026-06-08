@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import ChangePassword from '../../assets/change-password.jpg'
 import SearchUsers from '../../assets/search-users.jpg'
-import Surveillance from "../../assets/surveillance.jpg"
 import ActiveMatchList from "../../assets/active-match-list.jpg"
 import InActiveMatchList from '../../assets/in-active-match-list.jpg'
-import UpdatefancyStatus from '../../assets/update-fancy-status.jpg'
-import SuspendedResult from '../../assets/suspended-result.jpg'
 import Inactiveusers from '../../assets/inactive-users.jpg'
 import BetLockedUsers from '../../assets/bet-locked-users.jpg'
 
@@ -22,10 +19,15 @@ function GeneralSetting() {
     const [duplicateIPs, setDuplicateIPs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
+
+    const [usdtRate, setUsdtRate] = useState('');
+    const [savedRate, setSavedRate] = useState(0);
+    const [savingRate, setSavingRate] = useState(false);
+
     const user = useSelector(state => state.auth.user);
     const allowedRoles = ["superadmin", "admin","subadmin","seniorSuper"];
     const canViewDuplicateIPs = allowedRoles.includes(user?.role);
+    const canManageSettings = allowedRoles.includes(user?.role);
     
     const openModal = () => setEditPopupOpen(true);
     const closeModal = () => setEditPopupOpen(false);
@@ -36,6 +38,41 @@ function GeneralSetting() {
         fetchDuplicateIPs();
       }
     }, [canViewDuplicateIPs]);
+
+    // Fetch the current USDT→BDT exchange rate on mount
+    useEffect(() => {
+      if (!canManageSettings) return;
+      (async () => {
+        try {
+          const { data } = await axios.get('/admin/app-settings');
+          const rate = Number(data?.data?.usdtToBdtRate) || 0;
+          setSavedRate(rate);
+          setUsdtRate(rate ? String(rate) : '');
+        } catch (err) {
+          console.error('Error fetching exchange rate:', err);
+        }
+      })();
+    }, [canManageSettings]);
+
+    const saveUsdtRate = async () => {
+      const rate = Number(usdtRate);
+      if (!Number.isFinite(rate) || rate <= 0) {
+        alert('Enter a valid rate greater than 0 (e.g. 120 means 1 USDT = 120 BDT).');
+        return;
+      }
+      setSavingRate(true);
+      try {
+        const { data } = await axios.put('/admin/app-settings', { usdtToBdtRate: rate });
+        const newRate = Number(data?.data?.usdtToBdtRate) || rate;
+        setSavedRate(newRate);
+        setUsdtRate(String(newRate));
+        alert('Exchange rate saved.');
+      } catch (err) {
+        alert(err?.response?.data?.message || 'Failed to save exchange rate');
+      } finally {
+        setSavingRate(false);
+      }
+    };
 
     const fetchDuplicateIPs = async () => {
       setLoading(true);
@@ -139,12 +176,46 @@ function GeneralSetting() {
             <img src={ChangePassword} alt="" className='rounded-[10px] border-2 border-[#333]'
             onClick={()=>setEditPopupOpen(true)}
             />
-           
-            <img src={Surveillance} alt="" className='rounded-[10px] border-2 border-[#333]'
-            onClick={()=>navigate('/SurveillanceSetting')}
-            />
         </div>
       </div>
+
+      {/* Currency / Exchange Rate */}
+      {canManageSettings && (
+        <div className='bg-[#e0e6e6] border-b border-b-[#7e97a7] p-4 mt-4'>
+          <h2 className='text-[#243a48] font-[700]'>Currency / Exchange Rate</h2>
+          <p className='text-sm text-gray-600 mt-1'>
+            Set how many BDT equal 1 USDT. This rate is used to convert USDT ($) amounts to BDT.
+          </p>
+          <div className='flex flex-wrap items-end gap-3 mt-3'>
+            <div className='flex flex-col gap-1'>
+              <label className='text-xs text-gray-600'>1 USDT ($) =</label>
+              <div className='flex items-center gap-2'>
+                <input
+                  type='number'
+                  min='0'
+                  step='0.01'
+                  value={usdtRate}
+                  onChange={(e) => setUsdtRate(e.target.value)}
+                  placeholder='e.g. 120'
+                  className='border border-[#aaa] px-3 py-2 rounded w-[160px] text-sm bg-white'
+                />
+                <span className='text-sm text-[#243a48] font-semibold'>BDT</span>
+              </div>
+            </div>
+            <button
+              type='button'
+              disabled={savingRate}
+              onClick={saveUsdtRate}
+              className='bg-[#243a48] text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50'
+            >
+              {savingRate ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+          <p className='text-xs text-gray-500 mt-2'>
+            Current: {savedRate > 0 ? `1 USDT = ${savedRate} BDT` : 'Not set'}
+          </p>
+        </div>
+      )}
 
       <div className='bg-[#e0e6e6] border-b border-b-[#7e97a7]  p-4 mt-4'>
         <h2 className='text-[#243a48] font-[700]'>Match And Bets</h2>
@@ -154,12 +225,6 @@ function GeneralSetting() {
             />
             <img src={InActiveMatchList} alt="" className='rounded-[10px] border-2 border-[#333]'
             onClick={()=>navigate('/in-active-match')}
-            />
-            <img src={UpdatefancyStatus} alt="" className='rounded-[10px] border-2 border-[#333]'
-            onClick={()=>navigate('/updateFancyStatus')}
-            />
-            <img src={SuspendedResult} alt="" className='rounded-[10px] border-2 border-[#333]'
-            onClick={()=>navigate('/SuspendedResult')}
             />
         </div>
       </div>

@@ -103,7 +103,6 @@ function ExclusiveGames() {
             onClick={() => handleGameClick(game)}
           >
             <div className="exclusive-card-image-wrap">
-              <span className="exclusive-card-badge">bj</span>
               <img
                 src={game.icon}
                 alt={game.title}
