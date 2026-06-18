@@ -244,11 +244,19 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   const [stake, setStake] = useState('');
   const quickAmounts = [10, 100, 200, 500];
 
+  const fancyGameTypes = new Set(['Normal', 'meter', 'line', 'ball', 'khado']);
+  const isFancyBet =
+    odds?.isFancy || fancyGameTypes.has(odds?.gameType);
+
   useEffect(() => {
-    if (odds?.odds || odds?.xValue) {
+    if (!odds) return;
+    if (isFancyBet) {
+      // Fancy: upper value = run line (e.g. 143), lower = rate (stored in xValue)
+      setBetOdds(odds.odds ?? odds.fancyScore ?? odds.xValue ?? 1);
+    } else if (odds.odds != null || odds.xValue != null) {
       setBetOdds(odds.xValue ?? odds.odds ?? 1.01);
     }
-  }, [odds]);
+  }, [odds, isFancyBet]);
 
   useEffect(() => {
     const targetGameId = matchId || odds?.gameId;
@@ -261,8 +269,10 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
 
   // Handlers
   const handleOddsChange = (val) => {
-    let newOdds = parseFloat((parseFloat(betOdds) + val).toFixed(2));
-    if (newOdds < 1.01) newOdds = 1.01;
+    const step = isFancyBet ? 1 : 0.01;
+    const floor = isFancyBet ? 1 : 1.01;
+    let newOdds = parseFloat((parseFloat(betOdds) + val * step).toFixed(isFancyBet ? 0 : 2));
+    if (newOdds < floor) newOdds = floor;
     setBetOdds(newOdds);
   };
 
@@ -296,7 +306,8 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
         onBetDataChange({
           selection: odds?.selection,
           odds: betOdds,
-          xValue: betOdds,
+          xValue: isFancyBet ? odds?.xValue : betOdds,
+          fancyScore: isFancyBet ? betOdds : odds?.fancyScore,
           type: odds?.type,
           stake: stake,
           gameId: odds?.gameId,
@@ -306,6 +317,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
           otype: odds?.otype,
           sid: odds?.sid,
           marketId: odds?.marketId,
+          isFancy: isFancyBet,
         });
       } else {
         // Clear the data when stake is empty
@@ -345,19 +357,26 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
       sid: odds?.sportSid ?? odds?.sportId ?? odds?.sport_id ?? 4,
       otype: odds?.otype || odds?.type, // back/lay
       price: numericStake,
-      xValue: parseFloat(betOdds),
+      xValue: isFancyBet ? parseFloat(odds?.xValue) : parseFloat(betOdds),
       gameType: odds?.gameType || 'Match Odds',
-      gameName: odds?.gameName || 'Cricket Game', // Use the gameName from odds prop
+      gameName:
+        odds?.gameName ||
+        (odds?.sportSid === 1
+          ? 'Soccer Game'
+          : odds?.sportSid === 2
+            ? 'Tennis Game'
+            : 'Cricket Game'),
       teamName: odds?.selection,
       marketName: odds?.marketName || 'Match Odds',
       eventName: odds?.eventName,
+      oname: odds?.oname,
       marketId: odds?.marketId,
-      fancyScore: odds?.fancyScore,
+      selectionId: odds?.selectionId,
+      fancyScore: isFancyBet ? parseFloat(betOdds) : odds?.fancyScore,
     };
 
     try {
       // Use createfancyBet for Fancy categories the backend supports
-      const fancyGameTypes = new Set(['Normal', 'meter', 'line', 'ball', 'khado']);
       if (fancyGameTypes.has(formData.gameType)) {
         await dispatch(createfancyBet(formData));
       } else {
@@ -432,16 +451,16 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
                   <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Odds</label>
                 </div>
                 <div className="flex items-center h-10 border border-gray-600 rounded-lg overflow-hidden focus-within:border-[#17934e] transition-colors">
-                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(-0.01)}>-</button>
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(-1)}>-</button>
                   <input
                     type="number"
-                    step="0.01"
-                    min="1.01"
+                    step={isFancyBet ? "1" : "0.01"}
+                    min={isFancyBet ? "1" : "1.01"}
                     value={betOdds}
                     onChange={e => setBetOdds(e.target.value)}
                     className="w-full text-center text-sm font-bold focus:outline-none text-white"
                   />
-                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(0.01)}>+</button>
+                  <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(1)}>+</button>
                 </div>
               </div>
               {/* Stake */}

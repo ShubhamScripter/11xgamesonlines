@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 
 import adminModel from '../models/adminModel.js';
-import { fetchMatchData, fetchMatchList } from '../services/matchApi/index.js';
+import {
+  fetchMatchData,
+  fetchMatchList,
+  fetchScore,
+} from '../services/matchApi/index.js';
 
 dotenv.config();
 
@@ -19,62 +23,44 @@ const isBlockedCricketLeague = (cname) => {
 
 const cricketBettingCache = new Map();
 const CRICKET_BETTING_CACHE_MS = 4000;
+const CRICKET_MATCHES_CACHE_MS = 15000;
+let cricketMatchesCache = { ts: 0, payload: null };
+let cricketMatchesInFlight = null;
 
 export const getCricketData = async (req, res) => {
   try {
-    const data = await fetchMatchList(4);
+    if (
+      cricketMatchesCache.payload &&
+      Date.now() - cricketMatchesCache.ts < CRICKET_MATCHES_CACHE_MS
+    ) {
+      return res.status(200).json(cricketMatchesCache.payload);
+    }
 
-    if (data.success) {
+    if (cricketMatchesInFlight) {
+      const payload = await cricketMatchesInFlight;
+      return res.status(200).json(payload);
+    }
+
+    cricketMatchesInFlight = fetchMatchList(4).then((data) => {
+      if (!data.success) {
+        throw new Error('Failed to fetch matches');
+      }
+
       const t1 = data.data.t1 || [];
       const t2 = data.data.t2 || [];
       const allMatches = [...t1, ...t2];
 
       const transformed = allMatches
-        .map((match) => {
-          const marketStatus = match.status != null ? String(match.status) : '';
-
-          const team1Odds =
-            match.section && match.section.length >= 1
-              ? {
-                  home: match.section[0].odds[0]?.odds?.toString() || '0',
-                  away: match.section[0].odds[1]?.odds?.toString() || '0',
-                  gstatus:
-                    match.section[0].gstatus != null
-                      ? String(match.section[0].gstatus)
-                      : marketStatus,
-                }
-              : { home: '0', away: '0', gstatus: marketStatus };
-
-          const team2Odds =
-            match.section && match.section.length >= 2
-              ? {
-                  home: match.section[1].odds[0]?.odds?.toString() || '0',
-                  away: match.section[1].odds[1]?.odds?.toString() || '0',
-                  gstatus:
-                    match.section[1].gstatus != null
-                      ? String(match.section[1].gstatus)
-                      : marketStatus,
-                }
-              : { home: '0', away: '0', gstatus: marketStatus };
-
-          const oddsArr = [
-            team1Odds,
-            { home: '0', away: '0', gstatus: marketStatus },
-            team2Odds,
-          ];
-
-          return {
-            id: match.beventId || match.oldgmid || match.gmid,
-            beventId: match.beventId || null,
-            match: match.ename,
-            date: match.stime,
-            cname: match.cname,
-            channels: [],
-            odds: oddsArr,
-            inplay: match.iplay,
-            status: marketStatus,
-          };
-        })
+        .map((match) => ({
+          id: match.beventId || match.oldgmid || match.gmid,
+          beventId: match.beventId || null,
+          match: match.ename,
+          date: match.stime,
+          cname: match.cname,
+          channels: [],
+          inplay: match.iplay,
+          status: match.status != null ? String(match.status) : '',
+        }))
         .filter((m) => {
           if (isBlockedCricketLeague(m.cname)) return false;
 
@@ -95,15 +81,41 @@ export const getCricketData = async (req, res) => {
         return match.inplay === true || matchDate >= now;
       });
 
-      return res.status(200).json({ success: true, matches: filteredMatches });
-    } else {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Failed to fetch matches' });
-    }
+      const payload = { success: true, matches: filteredMatches };
+      cricketMatchesCache = { ts: Date.now(), payload };
+      return payload;
+    });
+
+    const payload = await cricketMatchesInFlight;
+    cricketMatchesInFlight = null;
+    return res.status(200).json(payload);
   } catch (err) {
+    cricketMatchesInFlight = null;
     console.error('Error fetching matches:', err.message, err.stack);
     return res.status(500).json({ success: false, message: 'Internal Server Error: ' + err.message });
+  }
+};
+
+export const getCricketScorecard = async (req, res) => {
+  const { gameid } = req.query;
+
+  if (!gameid) {
+    return res.status(400).json({ success: false, message: 'Missing gameid' });
+  }
+
+  try {
+    const data = await fetchScore(gameid, 4);
+    if (data?.success && data?.iframe?.url) {
+      return res.status(200).json(data);
+    }
+    return res.status(502).json({
+      success: false,
+      message: data?.message || 'Scorecard not available',
+      data,
+    });
+  } catch (error) {
+    console.error('Error fetching cricket scorecard:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

@@ -1,6 +1,15 @@
-/** Max stake/limit for display & bet slip: prefer maxb, else max (and common aliases). */
+/** Max stake/limit for display & bet slip: prefer max, else maxb (and common aliases). */
 export function getMarketMaxLimit(market) {
   if (!market) return 0;
+
+  const primary =
+    market.maxLiabilityPerBet ??
+    market.max ??
+    market.maxLimit;
+  if (primary != null && primary !== "" && !Number.isNaN(Number(primary))) {
+    const n = Number(primary);
+    if (n > 0) return n;
+  }
 
   const maxb = market.maxb ?? market.maxB ?? market.max_b;
   if (maxb != null && maxb !== "" && !Number.isNaN(Number(maxb))) {
@@ -8,13 +17,7 @@ export function getMarketMaxLimit(market) {
     if (n > 0) return n;
   }
 
-  const fallback =
-    market.maxLiabilityPerBet ??
-    market.max ??
-    market.maxLimit ??
-    0;
-  const n = Number(fallback);
-  return Number.isNaN(n) ? 0 : n;
+  return 0;
 }
 
 export function getMarketMinLimit(market) {

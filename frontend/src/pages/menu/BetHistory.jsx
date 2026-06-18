@@ -160,7 +160,7 @@ function BetHistory() {
 
   const filterCounts = useMemo(() => {
 
-    const counts = { all: allBets.length, casino: 0, match_odds: 0, tied_match: 0, bookmaker: 0, fancy: 0 };
+    const counts = { all: allBets.length, casino: 0, match_odds: 0, bookmaker: 0, fancy: 0 };
 
     allBets.forEach((b) => {
 

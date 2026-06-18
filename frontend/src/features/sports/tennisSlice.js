@@ -130,7 +130,7 @@ const tennisSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchTennisData.pending, (state) => {
-        state.loading = true;
+        if (!state.data.length) state.loading = true;
         state.tesnnisError = null;
       })
       .addCase(fetchTennisData.fulfilled, (state, action) => {

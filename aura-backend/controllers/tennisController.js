@@ -1,6 +1,10 @@
 // controllers/tennisController.js
 import dotenv from 'dotenv';
-import { fetchMatchList, fetchMatchData } from '../services/matchApi/index.js';
+import {
+  fetchMatchList,
+  fetchMatchData,
+  fetchScore,
+} from '../services/matchApi/index.js';
 
 dotenv.config();
 
@@ -49,6 +53,29 @@ export const fetchTennisData = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: 'Internal Server Error: ' + error.message });
+  }
+};
+
+export const getTennisScorecard = async (req, res) => {
+  const { gameid } = req.query;
+
+  if (!gameid) {
+    return res.status(400).json({ success: false, message: 'Missing gameid' });
+  }
+
+  try {
+    const data = await fetchScore(gameid, 2);
+    if (data?.success && data?.iframe?.url) {
+      return res.status(200).json(data);
+    }
+    return res.status(502).json({
+      success: false,
+      message: data?.message || 'Scorecard not available',
+      data,
+    });
+  } catch (error) {
+    console.error('Error fetching tennis scorecard:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

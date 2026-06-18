@@ -1,18 +1,32 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import HeaderLogin from '../components/Header/HeaderLogin';
 import Navbar from '../components/Header/Navbar';
 import MobNavbar from '../components/Header/MobNavbar';
 import Footer from '../components/Footer/Footer';
 import SiteFooter from '../components/Footer/SiteFooter';
 import ScrollToTop from '../components/ScrollToTop';
-import { Outlet } from 'react-router-dom';
+import {
+  isHomePath,
+  prefetchSportsListings,
+} from '../utils/prefetchSportsListings';
 
 function MainLayout() {
+  const dispatch = useDispatch();
+  const location = useLocation();
   const mainScrollRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
+
+  useEffect(() => {
+    if (isHomePath(location.pathname)) {
+      prefetchSportsListings(dispatch);
+    }
+  }, [dispatch, location.pathname]);
+
   return (
     <>
       <HeaderLogin setSidebarOpen={setSidebarOpen} closeMenu={() => setMenuOpen(false)}/>

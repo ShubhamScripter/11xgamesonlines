@@ -78,7 +78,7 @@ function ActivityLogTable({ activityLogs }) {
                 colSpan="10"
                 className="text-center py-4 text-[#3b5160] bg-[#0000000d] border-y border-[#7e97a7]"
               >
-                No login activity found.
+                No login activity found for this user yet. Activity is recorded on login and registration.
               </td>
             </tr>
           ) : (

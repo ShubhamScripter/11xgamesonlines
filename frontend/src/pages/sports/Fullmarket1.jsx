@@ -338,6 +338,7 @@ import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
 import {
   getSportsMediaUrls,
+  getBetfairTvLinkByEventId,
   resolveBeventId,
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
@@ -681,9 +682,19 @@ function Fullmarket1() {
 
   useEffect(() => {
     if (!gameid || !key) return;
-    setIsLoadingStream(true);
-    setLiveStreamUrl(mediaUrls.liveStreamUrl);
-    setIsLoadingStream(false);
+    let isCancelled = false;
+    const setStreamUrl = async () => {
+      setIsLoadingStream(true);
+      const tvUrl = await getBetfairTvLinkByEventId({ gameid, key });
+      if (!isCancelled) {
+        setLiveStreamUrl(tvUrl || mediaUrls.liveStreamUrl);
+        setIsLoadingStream(false);
+      }
+    };
+    setStreamUrl();
+    return () => {
+      isCancelled = true;
+    };
   }, [gameid, key, mediaUrls.liveStreamUrl]);
 
   // Reset live stream when switching away from Live
@@ -833,13 +844,6 @@ function Fullmarket1() {
   
     
 //  console.log("match odd list",matchOddsList)
-  const tiedMatchList = Array.isArray(bettingData)
-    ? bettingData.filter(
-      (item) =>
-        item?.mname === "Tied Match" || item?.mname === "Bookmaker IPL CUP"
-    )
-    : [];
-
 
   // const BookmakerList = Array.isArray(bettingData)
   //   ? bettingData.filter((item) => item.mname === "Bookmaker")
@@ -889,28 +893,73 @@ function Fullmarket1() {
   //     }))
   //     : [];
     // console.log("fancy1 data",fancy1Data) oddeven
-  // Fancybet List/Data
+  // Fancybet List/Data (legacy Normal sections + exchange INNINGS_RUNS runners)
+  const isFancyNormalMarket = (item) => {
+    if (!item || typeof item !== 'object') return false;
+    const name = String(item.mname || item.name || '').trim().toLowerCase();
+    const hasSections =
+      Array.isArray(item.section) && item.section.length > 0;
+    const hasRunners =
+      Array.isArray(item.runners) && item.runners.length > 0;
+    return (
+      (name === 'normal' || item.mtype === 'INNINGS_RUNS') &&
+      (hasSections || hasRunners)
+    );
+  };
+
+  const mapFancySection = (market, sec) => ({
+    team: sec.nat,
+    sid: sec.sid,
+    odds: sec.odds,
+    max: getMarketMaxLimit({ ...market, ...sec }),
+    min: getMarketMinLimit({ ...market, ...sec }),
+    mname: market.mname,
+    gstatus: sec.gstatus,
+    marketStatus: market.status,
+    marketid:
+      gameid && sec.sid != null
+        ? `${gameid}_${sec.sid}`
+        : sec.marketId || sec.market_id || market.mid,
+  });
+
+  const mapFancyRunner = (market, runner) => ({
+    team: runner.name || runner.runnerName,
+    sid: runner.id,
+    odds: [
+      ...(runner.back?.[0]
+        ? [{ oname: 'back1', odds: runner.back[0].price, size: runner.back[0].size }]
+        : []),
+      ...(runner.lay?.[0]
+        ? [{ oname: 'lay1', odds: runner.lay[0].price, size: runner.lay[0].size }]
+        : []),
+    ],
+    max: getMarketMaxLimit(market),
+    min: getMarketMinLimit(market),
+    mname: market.mname || market.mtype,
+    gstatus: runner.status,
+    marketStatus: market.status,
+    marketid:
+      gameid && runner.id != null
+        ? `${gameid}_${runner.id}`
+        : market.mid || market.id,
+  });
+
   const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter((item) => item.mtype === "INNINGS_RUNS")
+    ? dataSource.filter(isFancyNormalMarket)
     : [];
 
-  const fancy1Data = fancy1List.flatMap((market) =>
-    (market.runners || []).map((runner) => ({
-      team: runner.name,
-      sid: runner.id,
-      odds: [
-        ...(runner.back?.[0]
-          ? [{ oname: "back1", odds: runner.back[0].price, size: runner.back[0].size }]
-          : []),
-        ...(runner.lay?.[0]
-          ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
-          : []),
-      ],
-      min: getMarketMinLimit(market) || null,
-      max: getMarketMaxLimit(market) || null,
-      status: market.status ?? runner.status ?? "OPEN",
-    }))
-  );
+  const fancy1Data =
+    Array.isArray(fancy1List) && fancy1List.length > 0
+      ? fancy1List.flatMap((market) => {
+          if (Array.isArray(market.section) && market.section.length > 0) {
+            return market.section.map((sec) => mapFancySection(market, sec));
+          }
+          if (Array.isArray(market.runners) && market.runners.length > 0) {
+            return market.runners.map((runner) => mapFancyRunner(market, runner));
+          }
+          return [];
+        })
+      : [];
   const oddevenList = Array.isArray(dataSource)
   ? dataSource.filter((item) => item.mname === "oddeven" || item.name?.toLowerCase().includes("odd even"))
   : [];
@@ -975,7 +1024,7 @@ const oddevenData =
   let content;
 
   if (selected === "Fancybet") {
-    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} />;
+    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} sportSid={1} gameName="Soccer Game" />;
   } else if (selected === "Sportbook") {
     content = <Sportbook openBetSlip={openBetSlip} oddevenData={oddevenData} gameid={gameid} match={match}/>;
   }

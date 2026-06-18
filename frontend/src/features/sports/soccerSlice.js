@@ -116,7 +116,7 @@ const soccerSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchSoccerData.pending, (state) => {
-        state.soccerLoading = true;
+        if (!state.soccerData.length) state.soccerLoading = true;
         state.soccerError = null;
       })
       .addCase(fetchSoccerData.fulfilled, (state, action) => {

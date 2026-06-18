@@ -724,7 +724,6 @@ import Matchodds from '../../components/leaguescomp/Matchodds';
 import Bookmakers from '../../components/leaguescomp/Bookmakers';
 import Fancybet from '../../components/leaguescomp/Fancybet';
 import Sportbook from '../../components/leaguescomp/Sportbook';
-import TiedMatch from '../../components/leaguescomp/TiedMatch';
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {createBet,createfancyBet,getPendingBetAmo,messageClear} from '../../features/sports/betReducer'
@@ -734,7 +733,12 @@ import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
 import Spinner from '../../components/Spinner';
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
-import { getSportsMediaUrls, SPORTS_MEDIA_TYPE } from '../../utils/sportsMediaUrls';
+import {
+  getSportsMediaUrls,
+  getBetfairTvLinkByEventId,
+  SPORTS_MEDIA_TYPE,
+} from '../../utils/sportsMediaUrls';
+import api from '../../utils/axiosConfig';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 
 // Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
@@ -757,7 +761,7 @@ function Fullmarkett() {
   const hasCheckedRef = useRef(false); // ✅ run only once
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(false);
   const [TiedOddSelected, setTiedOddSelected] = useState("odds");
 
   const [betSlipOpen, setBetSlipOpen] = useState(false);
@@ -781,6 +785,9 @@ function Fullmarkett() {
   const [isLoadingStream, setIsLoadingStream] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState("");
   const [scorecardUrl, setScorecardUrl] = useState("");
+  const [scorecardAllow, setScorecardAllow] = useState(
+    "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+  );
   const { loading, successMessage, errorMessage } = useSelector(
     (state) => state.bet
   );
@@ -957,7 +964,6 @@ function Fullmarkett() {
 
   const dataSource =
     Array.isArray(bettingData) && bettingData.length > 0 ? bettingData : battingData;
-console.log("data source",dataSource)
 
   const normalizeRunnersToSection = (market) => {
     // Provider sometimes sends `section` (with nat/odds), sometimes `runners` (with back/lay).
@@ -1000,32 +1006,6 @@ console.log("data source",dataSource)
         }))
     : [];
   console.log("match odd list", matchOddsList);
-  // const tiedMatchList = Array.isArray(bettingData)
-  //   ? bettingData.filter(
-  //     (item) =>
-  //       item?.mname === "Tied Match" || item?.mname === "Bookmaker IPL CUP"
-  //   )
-  //   : [];
-  const tiedMatchList = Array.isArray(dataSource)
-    ? dataSource
-        .filter(
-          (item) =>
-            item?.name === "Tied Match" ||
-            item?.mtype === "TIED_MATCH" ||
-            item?.mname === "Tied Match" ||
-            item?.mname === "TIED_MATCH"
-        )
-        .map((market) => ({
-          ...market,
-          section: normalizeRunnersToSection(market),
-          max: getMarketMaxLimit(market),
-          min: getMarketMinLimit(market),
-          matched: market.matched,
-          status: market.status,
-        }))
-    : [];
-    console.log("tied match list",tiedMatchList)
-
 
   // const BookmakerList = Array.isArray(bettingData)
   //   ? bettingData.filter((item) => item.mname === "Bookmaker")
@@ -1080,22 +1060,71 @@ console.log("data source",dataSource)
 
   
  
+  const isFancyNormalMarket = (item) => {
+    if (!item || typeof item !== 'object') return false;
+    const name = String(item.mname || item.name || '').trim().toLowerCase();
+    const hasSections =
+      Array.isArray(item.section) && item.section.length > 0;
+    const hasRunners =
+      Array.isArray(item.runners) && item.runners.length > 0;
+    return (
+      (name === 'normal' || item.mtype === 'INNINGS_RUNS') &&
+      (hasSections || hasRunners)
+    );
+  };
+
+  const mapFancySection = (market, sec) => ({
+    team: sec.nat,
+    sid: sec.sid,
+    odds: sec.odds,
+    max: getMarketMaxLimit({ ...market, ...sec }),
+    min: getMarketMinLimit({ ...market, ...sec }),
+    mname: market.mname,
+    gstatus: sec.gstatus,
+    marketStatus: market.status,
+    marketid:
+      gameid && sec.sid != null
+        ? `${gameid}_${sec.sid}`
+        : sec.marketId || sec.market_id || market.mid,
+  });
+
+  const mapFancyRunner = (market, runner) => ({
+    team: runner.name || runner.runnerName,
+    sid: runner.id,
+    odds: [
+      ...(runner.back?.[0]
+        ? [{ oname: 'back1', odds: runner.back[0].price, size: runner.back[0].size }]
+        : []),
+      ...(runner.lay?.[0]
+        ? [{ oname: 'lay1', odds: runner.lay[0].price, size: runner.lay[0].size }]
+        : []),
+    ],
+    max: getMarketMaxLimit(market),
+    min: getMarketMinLimit(market),
+    mname: market.mname || market.mtype,
+    gstatus: runner.status,
+    marketStatus: market.status,
+    marketid:
+      gameid && runner.id != null
+        ? `${gameid}_${runner.id}`
+        : market.mid || market.id,
+  });
+
   const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter((item) => item.mname === "Normal")
+    ? dataSource.filter(isFancyNormalMarket)
     : [];
 
   const fancy1Data =
-    Array.isArray(fancy1List) && fancy1List.length > 0 && fancy1List[0].section
-      ? fancy1List?.[0].section.map((sec) => ({
-        team: sec.nat,
-        sid: sec.sid,
-        odds: sec.odds,
-        max: getMarketMaxLimit({ ...fancy1List[0], ...sec }),
-        min: getMarketMinLimit({ ...fancy1List[0], ...sec }),
-        mname: fancy1List[0].mname,
-        gstatus: sec.gstatus,
-        marketStatus: fancy1List[0].status,
-      }))
+    Array.isArray(fancy1List) && fancy1List.length > 0
+      ? fancy1List.flatMap((market) => {
+          if (Array.isArray(market.section) && market.section.length > 0) {
+            return market.section.map((sec) => mapFancySection(market, sec));
+          }
+          if (Array.isArray(market.runners) && market.runners.length > 0) {
+            return market.runners.map((runner) => mapFancyRunner(market, runner));
+          }
+          return [];
+        })
       : [];
     // console.log("fancy1 data",fancy1Data) oddeven
 //   const fancy1List = Array.isArray(dataSource)
@@ -1251,18 +1280,19 @@ const sportsbookData = Array.isArray(dataSource)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    const response = await fetch(mediaUrls.scorecardUrl, {
+    const response = await api.get(`/cricket/scorecard?gameid=${encodeURIComponent(gameid)}`, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
-    const json = await response.json();
+    const json = response.data;
 
     const iframeUrl = json?.iframe?.url;
     if (json?.success && iframeUrl) {
       setScorecardUrl(iframeUrl);
-      setScorecardHtml(
-        `<!doctype html><html><head><meta charset="utf-8" /></head><body style="margin:0;padding:0;"><iframe src="${iframeUrl}" style="border:0;width:100%;height:50vh;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen></iframe></body></html>`
-      );
+      if (json?.iframe?.allow) {
+        setScorecardAllow(json.iframe.allow);
+      }
+      setScorecardHtml(null);
     } else {
       throw new Error(json?.message || "Failed to fetch live score");
     }
@@ -1271,6 +1301,9 @@ const sportsbookData = Array.isArray(dataSource)
     if (isInitial) {
       setScorecardHtml(null);
       setScorecardUrl("");
+      setScorecardAllow(
+        "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+      );
     }
   } finally {
     if (isInitial) setScorecardLoading(false);
@@ -1285,6 +1318,9 @@ const sportsbookData = Array.isArray(dataSource)
       // Clear scorecard when switching to Live
       setScorecardHtml(null);
       setScorecardUrl("");
+      setScorecardAllow(
+        "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+      );
     }
 
     // Cleanup interval on unmount or when dependencies change
@@ -1293,7 +1329,7 @@ const sportsbookData = Array.isArray(dataSource)
         clearInterval(intervalId);
       }
     };
-  }, [isLive, gameid, mediaUrls.scorecardUrl]);
+  }, [isLive, gameid]);
 
   // Write HTML content to iframe when it changes
   useEffect(() => {
@@ -1335,9 +1371,19 @@ const sportsbookData = Array.isArray(dataSource)
 
   useEffect(() => {
     if (!gameid || !key) return;
-    setIsLoadingStream(true);
-    setLiveStreamUrl(mediaUrls.liveStreamUrl);
-    setIsLoadingStream(false);
+    let isCancelled = false;
+    const setStreamUrl = async () => {
+      setIsLoadingStream(true);
+      const tvUrl = await getBetfairTvLinkByEventId({ gameid, key });
+      if (!isCancelled) {
+        setLiveStreamUrl(tvUrl || mediaUrls.liveStreamUrl);
+        setIsLoadingStream(false);
+      }
+    };
+    setStreamUrl();
+    return () => {
+      isCancelled = true;
+    };
   }, [gameid, key, mediaUrls.liveStreamUrl]);
 
   // Reset live stream when switching away from Live
@@ -1422,7 +1468,7 @@ const sportsbookData = Array.isArray(dataSource)
   }, [fancy1Data, sportsbookData.length]);
 
   if (selected === "Fancybet") {
-    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} />;
+    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} sportSid={4} gameName="Cricket Game" />;
   } else if (selected === "Sportbook") {
     content = <Sportbook openBetSlip={openBetSlip} oddevenData={sportsbookData} gameid={gameid} match={match} />;
   }
@@ -1432,7 +1478,6 @@ const sportsbookData = Array.isArray(dataSource)
     Array.isArray(dataSource) &&
     dataSource.length > 0 &&
     (matchOddsList.length > 0 ||
-      tiedMatchList.length > 0 ||
       BookmakerList.length > 0 ||
       fancy1Data.length > 0 ||
       sportsbookData.length > 0);
@@ -1482,11 +1527,13 @@ const sportsbookData = Array.isArray(dataSource)
                <div className="w-full h-fit">
                 <iframe
                   src={scorecardUrl || undefined}
-                  title="Live Score"
-                  className="w-full h-[26vh]"
+                  title="Betfair Score"
+                  className="w-full border-0 rounded-lg"
+                  style={{ height: "300px" }}
                   scrolling="no"
                   loading="lazy"
-                  allow="autoplay;"
+                  allowFullScreen
+                  allow={scorecardAllow}
                 />
               </div>
               )}
@@ -1495,9 +1542,6 @@ const sportsbookData = Array.isArray(dataSource)
           {/* Match Odds Section */}
             {matchOddsList.length > 0 && (
               <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-            )}
-            {tiedMatchList.length > 0 && (
-              <TiedMatch openBetSlip={openBetSlip} matchOddsList={tiedMatchList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
             )}
             <div className='pb-5'>
               {/* Bookmaker Section */}

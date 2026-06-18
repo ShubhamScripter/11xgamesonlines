@@ -1,12 +1,11 @@
 import { formatAppDateTime } from './time';
 
-/** @typedef {'all'|'casino'|'match_odds'|'tied_match'|'bookmaker'|'fancy'} BetFilterKey */
+/** @typedef {'all'|'casino'|'match_odds'|'bookmaker'|'fancy'} BetFilterKey */
 
 export const BET_FILTER_OPTIONS = [
   { key: 'all', label: 'All' },
   { key: 'casino', label: 'Casino' },
   { key: 'match_odds', label: 'Match Odds' },
-  { key: 'tied_match', label: 'Tied Match' },
   { key: 'bookmaker', label: 'Bookmaker' },
   { key: 'fancy', label: 'Fancy' },
 ];
@@ -16,7 +15,6 @@ const FANCY_GAME_TYPES = new Set(['normal', 'meter', 'line', 'ball', 'khado']);
 export const BET_CATEGORY_LABELS = {
   casino: 'Casino',
   match_odds: 'Match Odds',
-  tied_match: 'Tied Match',
   bookmaker: 'Bookmaker',
   fancy: 'Fancy',
   other: 'Sports',
@@ -31,7 +29,7 @@ export function getSportsBetCategory(bet) {
   const gtLower = gameType.toLowerCase();
 
   if (gameType === 'Match Odds' || gtLower === 'match odds') return 'match_odds';
-  if (gameType === 'Tied Match' || gtLower === 'tied match') return 'tied_match';
+  if (gameType === 'Tied Match' || gtLower === 'tied match') return 'other';
   if (gtLower.includes('bookmaker')) return 'bookmaker';
   if (FANCY_GAME_TYPES.has(gtLower)) return 'fancy';
 
@@ -42,7 +40,7 @@ export function getSportsBetCategory(bet) {
 
   const market = String(bet?.marketName || '').toLowerCase();
   if (market.includes('match odds')) return 'match_odds';
-  if (market.includes('tied')) return 'tied_match';
+  if (market.includes('tied')) return 'other';
   if (market.includes('bookmaker')) return 'bookmaker';
 
   return 'other';

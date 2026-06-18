@@ -101,7 +101,6 @@ function Bets() {
       all: allBets.length,
       casino: 0,
       match_odds: 0,
-      tied_match: 0,
       bookmaker: 0,
       fancy: 0,
     };

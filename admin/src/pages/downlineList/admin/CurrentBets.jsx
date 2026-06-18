@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { geAllBetHistory, getBetPerents } from '../../../store/subadminSlice'
 import axiosInstance from '../../../utils/axiosInstance';
+import { getSportsBetTypeLabel } from '../../../utils/betHistoryLabels';
 
 const ExchangeData = [
   {
@@ -501,6 +502,7 @@ function CurrentBets() {
         stake: item?.price ?? item?.stake ?? "-",
         profitLoss:
           item?.betAmount ?? item?.resultAmount ?? item?.profitLoss ?? "-",
+        betType: getSportsBetTypeLabel(item),
       };
     });
     setbettingData(transformed);

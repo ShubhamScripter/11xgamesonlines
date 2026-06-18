@@ -125,7 +125,7 @@ const cricketSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCricketData.pending, (state) => {
-        state.loader = true;
+        if (!state.matches.length) state.loader = true;
         state.error = null;
       })
       .addCase(fetchCricketData.fulfilled, (state, action) => {

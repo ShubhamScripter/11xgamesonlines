@@ -236,7 +236,7 @@ import {
   blockingStatusLabel,
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
-function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
+function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameName = "Cricket Game" }) {
   const { pendingBet } = useSelector((state) => state.bet);
   
 
@@ -248,6 +248,11 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
 
       return {
         marketid: item.marketid,
+        selectionId:
+          item.sid ??
+          (item.marketid?.includes('_')
+            ? String(item.marketid).split('_').pop()
+            : null),
         event_id: item.event_id,
         title: item.team || "-",
         values: [
@@ -347,8 +352,11 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match }) {
                             marketName: market.title,
                             min: market.min ?? 0,
                             max: market.max ?? 0,
-                            sid: 4,
+                            sid: sportSid,
+                            sportSid,
+                            gameName,
                             marketId: market.marketid,
+                            selectionId: market.selectionId,
                             fancyScore: item.value,
                             isFancy: true,
                           

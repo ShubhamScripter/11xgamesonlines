@@ -78,17 +78,20 @@ function BettingTable({ bettingData }) {
             <th className="px-2 py-2">Bet placed</th>
             <th className="px-2 py-2">IP Address</th>
             <th className="px-2 py-2">Market</th>
+            <th className="px-2 py-2">Bet Type</th>
             <th className="px-2 py-2">Selection</th>
             <th className="px-2 py-2">Type</th>
             <th className="px-2 py-2">Odds req.</th>
             <th className="px-2 py-2">Stake</th>
+            <th className="px-2 py-2">Result</th>
+            <th className="px-2 py-2">Status</th>
             <th className="px-2 py-2">Profit/Loss</th>
           </tr>
         </thead>
         <tbody>
           {bettingData.length === 0 ? (
             <tr>
-              <td colSpan="10" className="text-center py-4 text-[#3b5160] bg-[#0000000d] border-y border-[#7e97a7]">
+              <td colSpan="13" className="text-center py-4 text-[#3b5160] bg-[#0000000d] border-y border-[#7e97a7]">
                 You have no bets in this time period.
               </td>
             </tr>
@@ -112,6 +115,11 @@ function BettingTable({ bettingData }) {
                   <strong>{bet.match}</strong>
                   <span> ▸ </span>
                 </td>
+                <td className="px-2 py-2">
+                  <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold bg-[#e8eef3] text-[#243a48]">
+                    {bet.betType || "—"}
+                  </span>
+                </td>
                 <td className="px-2 py-2">{bet.selection}</td>
                 <td className="px-2 py-2">
                   <div className="leading-tight">
@@ -125,6 +133,22 @@ function BettingTable({ bettingData }) {
                 </td>
                 <td className="px-2 py-2">{bet.odds}</td>
                 <td className="px-2 py-2">{bet.stake}</td>
+                <td className="px-2 py-2 font-medium">{bet.result ?? "—"}</td>
+                <td className="px-2 py-2">
+                  <span
+                    className={
+                      bet.statusLabel === "Won"
+                        ? "text-green-600 font-semibold"
+                        : bet.statusLabel === "Lost"
+                          ? "text-red-600 font-semibold"
+                          : bet.statusLabel === "Void"
+                            ? "text-orange-600 font-semibold"
+                            : "text-[#6b7280]"
+                    }
+                  >
+                    {bet.statusLabel ?? "—"}
+                  </span>
+                </td>
                 <td className="px-2 py-2">
                   <span className={getProfitLossClass(bet.profitLoss)}>
                     {formatTwoDecimals(bet.profitLoss)}

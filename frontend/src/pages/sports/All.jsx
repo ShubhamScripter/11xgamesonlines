@@ -251,9 +251,19 @@ function All() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-yellow-600 font-bold md:text-2xl">
-                    {/* {m.odds?.[0]?.home} - {m.odds?.[0]?.away} */}
-                    0-0
+                  <span className="text-yellow-600 font-bold text-xs md:text-base text-right leading-tight">
+                    <span className="block">
+                      {m.odds?.[0]?.home && m.odds[0].home !== '0'
+                        ? `${m.odds[0].home} / ${m.odds[0].away}`
+                        : '-'}
+                    </span>
+                    <span className="block text-[10px] md:text-xs opacity-80">
+                      {m.odds?.[2]?.home && m.odds[2].home !== '0'
+                        ? `${m.odds[2].home} / ${m.odds[2].away}`
+                        : m.odds?.[1]?.home && m.odds[1].home !== '0'
+                          ? `${m.odds[1].home} / ${m.odds[1].away}`
+                          : ''}
+                    </span>
                   </span>
                   <GoGraph />
                   <MdArrowForwardIos className="text-xl font-bold" />

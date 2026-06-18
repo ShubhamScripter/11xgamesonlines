@@ -336,10 +336,12 @@ import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
 import {
   getSportsMediaUrls,
+  getBetfairTvLinkByEventId,
   resolveBeventId,
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
+import api from '../../utils/axiosConfig';
 function Fullmarket2() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -523,18 +525,17 @@ function Fullmarket2() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const response = await fetch(mediaUrls.scorecardUrl, {
-          signal: controller.signal,
-        });
+        const response = await api.get(
+          `/tennis/scorecard?gameid=${encodeURIComponent(gameid)}`,
+          { signal: controller.signal }
+        );
         clearTimeout(timeoutId);
-        const json = await response.json();
+        const json = response.data;
 
         const iframeUrl = json?.iframe?.url;
         if (json?.success && iframeUrl) {
           setScorecardUrl(iframeUrl);
-          setScorecardHtml(
-            `<!doctype html><html><head><meta charset="utf-8" /></head><body style="margin:0;padding:0;"><iframe src="${iframeUrl}" style="border:0;width:100%;height:50vh;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen></iframe></body></html>`
-          );
+          setScorecardHtml(null);
         } else {
           throw new Error(json?.message || "Failed to fetch live score");
         }
@@ -555,7 +556,7 @@ function Fullmarket2() {
       setScorecardHtml(null);
       setScorecardUrl("");
     }
-  }, [isLive, gameid, mediaUrls.scorecardUrl]);
+  }, [isLive, gameid]);
 
   useEffect(() => {
     setLiveStreamHtml(null);
@@ -595,9 +596,19 @@ function Fullmarket2() {
 
   useEffect(() => {
     if (!gameid || !key) return;
-    setIsLoadingStream(true);
-    setLiveStreamUrl(mediaUrls.liveStreamUrl);
-    setIsLoadingStream(false);
+    let isCancelled = false;
+    const setStreamUrl = async () => {
+      setIsLoadingStream(true);
+      const tvUrl = await getBetfairTvLinkByEventId({ gameid, key });
+      if (!isCancelled) {
+        setLiveStreamUrl(tvUrl || mediaUrls.liveStreamUrl);
+        setIsLoadingStream(false);
+      }
+    };
+    setStreamUrl();
+    return () => {
+      isCancelled = true;
+    };
   }, [gameid, key, mediaUrls.liveStreamUrl]);
 
   // const matchOddsList = Array.isArray(bettingData)
@@ -678,13 +689,6 @@ function Fullmarket2() {
     }
 
     console.log("match odd list for tennis", matchOddsList);
-  const tiedMatchList = Array.isArray(dataSource)
-    ? dataSource.filter(
-      (item) =>
-        item?.mname === "Tied Match" || item?.mname === "Bookmaker IPL CUP"
-    )
-    : [];
-
 
   // const BookmakerList = Array.isArray(bettingData)
   //   ? bettingData.filter((item) => item.mname === "Bookmaker")
@@ -719,26 +723,51 @@ function Fullmarket2() {
     // console.log("fancy1 data",fancy1Data) oddeven
 
     const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter((item) => item.mtype === "INNINGS_RUNS")
+    ? dataSource.filter((item) => {
+        const name = String(item.mname || item.name || '').trim().toLowerCase();
+        const hasSections = Array.isArray(item.section) && item.section.length > 0;
+        const hasRunners = Array.isArray(item.runners) && item.runners.length > 0;
+        return (name === 'normal' || item.mtype === 'INNINGS_RUNS') && (hasSections || hasRunners);
+      })
     : [];
 
-  const fancy1Data = fancy1List.flatMap((market) =>
-    (market.runners || []).map((runner) => ({
+  const fancy1Data = fancy1List.flatMap((market) => {
+    if (Array.isArray(market.section) && market.section.length > 0) {
+      return market.section.map((sec) => ({
+        team: sec.nat,
+        sid: sec.sid,
+        odds: sec.odds,
+        max: getMarketMaxLimit({ ...market, ...sec }),
+        min: getMarketMinLimit({ ...market, ...sec }),
+        mname: market.mname,
+        gstatus: sec.gstatus,
+        marketStatus: market.status,
+        marketid:
+          gameid && sec.sid != null
+            ? `${gameid}_${sec.sid}`
+            : sec.marketId || sec.market_id || market.mid,
+      }));
+    }
+    return (market.runners || []).map((runner) => ({
       team: runner.name,
       sid: runner.id,
       odds: [
         ...(runner.back?.[0]
-          ? [{ oname: "back1", odds: runner.back[0].price, size: runner.back[0].size }]
+          ? [{ oname: 'back1', odds: runner.back[0].price, size: runner.back[0].size }]
           : []),
         ...(runner.lay?.[0]
-          ? [{ oname: "lay1", odds: runner.lay[0].price, size: runner.lay[0].size }]
+          ? [{ oname: 'lay1', odds: runner.lay[0].price, size: runner.lay[0].size }]
           : []),
       ],
       min: getMarketMinLimit(market) || null,
       max: getMarketMaxLimit(market) || null,
-      status: market.status ?? runner.status ?? "OPEN",
-    }))
-  );
+      status: market.status ?? runner.status ?? 'OPEN',
+      marketid:
+        gameid && runner.id != null
+          ? `${gameid}_${runner.id}`
+          : market.mid || market.id,
+    }));
+  });
 
   // const oddevenList = bettingData?.filter((item) => item.mname === "oddeven");
   // console.log("odd even list ",oddevenList)
@@ -831,7 +860,7 @@ function Fullmarket2() {
   let content;
 
   if (selected === "Fancybet") {
-    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} />;
+    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} sportSid={2} gameName="Tennis Game" />;
   } else if (selected === "Sportbook") {
     content = <Sportbook openBetSlip={openBetSlip} oddevenData={oddevenData} gameid={gameid} match={match}/>;
   }

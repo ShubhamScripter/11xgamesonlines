@@ -38,7 +38,8 @@ function ActivityLog() {
     }, [userId]);
 
   useEffect(() => {
-    if (userId) dispatch(fetchActivityLogs(userId));
+    if (!userId) return;
+    dispatch(fetchActivityLogs(userId));
   }, [userId, dispatch]);
 
   return (

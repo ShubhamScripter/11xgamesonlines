@@ -1,18 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import {
-  fetchCricketData,
-  fetchCricketBatingData,
-} from "../../features/sports/cricketSlice";
-import {
-  fetchSoccerData,
-  fetchSoccerBatingData,
-} from "../../features/sports/soccerSlice";
-import {
-  fetchTennisData,
-  fetchTannisBatingData,
-} from "../../features/sports/tennisSlice";
+import { fetchCricketBatingData } from "../../features/sports/cricketSlice";
+import { fetchSoccerBatingData } from "../../features/sports/soccerSlice";
+import { fetchTannisBatingData } from "../../features/sports/tennisSlice";
 import { GiCricketBat, GiSoccerBall, GiTennisBall } from "react-icons/gi";
 import "./Sports.css";
 
@@ -293,12 +284,6 @@ const Sports = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, []);
-
-  useEffect(() => {
-    dispatch(fetchCricketData());
-    dispatch(fetchSoccerData());
-    dispatch(fetchTennisData());
-  }, [dispatch]);
 
   const allMatches = useMemo(() => {
     const mapCricket = (m) => ({

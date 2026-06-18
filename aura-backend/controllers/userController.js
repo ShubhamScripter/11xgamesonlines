@@ -155,6 +155,14 @@ export const registerSelf = async (req, res) => {
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
+    await saveLoginHistory(
+      normalizedUserName,
+      newUser._id,
+      'Registration Successful',
+      req,
+      'user'
+    );
+
     res.status(201).json({
       success: true,
       message: 'Registration successful',
@@ -199,11 +207,10 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
     const formattedDateTime = formatLoginDateTime(new Date());
 
     const normalizedStatus =
-      status === 'Success'
+      status === 'Success' ||
+      (typeof status === 'string' && status.toLowerCase().includes('success'))
         ? 'Login Successful'
-        : typeof status === 'string' && status.toLowerCase().includes('success')
-          ? 'Login Successful'
-          : 'Login Failed';
+        : 'Login Failed';
 
     await LoginHistory.create({
       userName,

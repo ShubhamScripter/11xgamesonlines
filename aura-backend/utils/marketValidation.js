@@ -20,9 +20,63 @@ const SPORT_NAME_TO_APITYPE = {
 const API_MARKET_ALIASES = {
   'Match Odds': 'MATCH_ODDS',
   'Tied Match': 'TIED_MATCH',
+  Bookmaker: 'BOOKMAKER',
+  'Bookmaker IPL CUP': 'BOOKMAKER_IPL_CUP',
   MATCH_ODDS: 'Match Odds',
   TIED_MATCH: 'Tied Match',
+  BOOKMAKER: 'Bookmaker',
+  BOOKMAKER_IPL_CUP: 'Bookmaker IPL CUP',
 };
+
+function isBookmakerMarket(market) {
+  const key = String(
+    market?.mname || market?.name || market?.mtype || ''
+  ).toLowerCase();
+  return key.includes('bookmaker');
+}
+
+function isPlayableGstatus(gstatus) {
+  const s = String(gstatus ?? '')
+    .trim()
+    .toUpperCase();
+  return !s || s === 'ACTIVE' || s === 'OPEN';
+}
+
+/** Bookmaker feeds often set market.status=SUSPENDED while rows stay ACTIVE with live odds. */
+function isMarketSuspendedForBet(market, teamSection = null) {
+  if (isBookmakerMarket(market)) {
+    if (teamSection) {
+      return !isPlayableGstatus(teamSection.gstatus || teamSection.status);
+    }
+    const sections = market.section || [];
+    if (
+      sections.some(
+        (sec) =>
+          isPlayableGstatus(sec.gstatus || sec.status) &&
+          sec.odds?.some((o) => parseFloat(o.odds) > 0)
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return market.status === 'SUSPENDED' || market.gstatus === 'SUSPENDED';
+}
+
+function findMarketByName(markets, marketName) {
+  return markets.find((m) => {
+    const mname = m.mname || m.name || '';
+    const mtype = m.mtype || '';
+    return (
+      mname === marketName ||
+      mtype === marketName ||
+      mname === API_MARKET_ALIASES[marketName] ||
+      mtype === API_MARKET_ALIASES[marketName] ||
+      API_MARKET_ALIASES[mname] === marketName ||
+      API_MARKET_ALIASES[mtype] === marketName
+    );
+  });
+}
 
 const MAX_CACHE_AGE_MS = 1000;
 
@@ -137,24 +191,13 @@ export async function validateSportsMarket(
 
   const markets = freshResult.markets;
 
-  const market = markets.find((m) => {
-    const mname = m.mname || '';
-    return (
-      mname === marketName ||
-      mname === API_MARKET_ALIASES[marketName] ||
-      API_MARKET_ALIASES[mname] === marketName
-    );
-  });
+  const market = findMarketByName(markets, marketName);
 
   if (!market) {
     return {
       valid: false,
       reason: 'Market not found in live data. Please try again.',
     };
-  }
-
-  if (market.status === 'SUSPENDED' || market.gstatus === 'SUSPENDED') {
-    return { valid: false, reason: 'Market is suspended. Bet not accepted.' };
   }
 
   if (!market.section || !Array.isArray(market.section)) {
@@ -175,6 +218,10 @@ export async function validateSportsMarket(
       valid: false,
       reason: 'Selection not found in live data. Please try again.',
     };
+  }
+
+  if (isMarketSuspendedForBet(market, teamSection)) {
+    return { valid: false, reason: 'Market is suspended. Bet not accepted.' };
   }
 
   if (
@@ -362,12 +409,18 @@ export async function validateFancyMarket(
         };
       }
 
+      const fancyMarketId =
+        gameId != null && section.sid != null
+          ? `${String(gameId)}_${String(section.sid)}`
+          : section.marketId || section.market_id || null;
+
       return {
         valid: true,
         marketMeta: {
           mid: market.mid || null,
           gmid: market.gmid || null,
           fancyId: section.sid || null,
+          marketId: fancyMarketId,
         },
       };
     }

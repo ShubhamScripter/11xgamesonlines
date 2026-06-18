@@ -82,14 +82,17 @@ const activityLogSlice = createSlice({
     builder
       .addCase(fetchActivityLogs.pending, (state, action) => {
         const reqId = action.meta.arg;
-        if (state.userId !== reqId || state.fetchedAt == null) {
-          state.loading = true;
+        if (state.userId !== reqId) {
+          state.logs = [];
+          state.fetchedAt = null;
         }
+        state.loading = true;
         state.error = null;
       })
       .addCase(fetchActivityLogs.fulfilled, (state, action) => {
         state.loading = false;
         if (action.payload.fromCache) return;
+        if (state.userId && state.userId !== action.payload.userId) return;
         state.logs = action.payload.logs;
         state.userId = action.payload.userId;
         state.fetchedAt = Date.now();

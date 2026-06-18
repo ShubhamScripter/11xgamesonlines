@@ -616,17 +616,35 @@ const saveLoginHistory = async (userName, id, status, req, role = null) => {
       req.connection?.socket?.remoteAddress ||
       'IP not found';
 
-    //  Get geo details
-    const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-    const { city, region, country_name: country, org: isp } = response.data;
+    let city = null;
+    let region = null;
+    let country = null;
+    let isp = null;
+
+    try {
+      const response = await axios.get(`https://ipapi.co/${ip}/json/`, {
+        timeout: 4000,
+      });
+      city = response.data?.city ?? null;
+      region = response.data?.region ?? null;
+      country = response.data?.country_name ?? null;
+      isp = response.data?.org ?? null;
+    } catch {
+      // Still save login row when geo lookup fails (localhost, rate limit, etc.)
+    }
 
     const formattedDateTime = formatLoginDateTime(new Date());
+    const normalizedStatus =
+      status === 'Success' ||
+      (typeof status === 'string' && status.toLowerCase().includes('success'))
+        ? 'Login Successful'
+        : 'Login Failed';
 
     await LoginHistory.create({
       userName,
-      userId: id,
+      userId: String(id),
       role,
-      status: status === 'Success' ? 'Login Successful' : 'Login Failed',
+      status: normalizedStatus,
       dateTime: formattedDateTime,
       ip,
       isp,
@@ -894,15 +912,23 @@ export const forceLogoutUser = async (req, res) => {
 
 export const getLoginHistory = async (req, res) => {
   try {
-    const { userId } = req.params; // passed in route as /credit-ref-history/:userId
-    // console.log("userId", userId);
-    const user = await SubAdmin.findById(userId).select('role');
-    const data = await LoginHistory.find({ userId }).sort({ createdAt: -1 }); // optional: latest first
+    const userId = String(req.params.userId || '');
+    const user = await SubAdmin.findById(userId).select('role userName');
+
+    const orClauses = [{ userId }];
+    if (user?.userName) {
+      orClauses.push({ userName: user.userName });
+    }
+
+    const data = await LoginHistory.find({ $or: orClauses }).sort({
+      createdAt: -1,
+    });
+
     const normalizedData = data.map((entry) => ({
       ...entry.toObject(),
       role: entry.role || user?.role || '-',
     }));
-    // console.log("data", data);
+
     res.status(200).json({
       message: 'Login history fetched successfully',
       data: normalizedData,

@@ -8,6 +8,11 @@ import { geAllBetHistory } from '../../../store/subadminSlice'
 import axiosInstance from '../../../utils/axiosInstance'
 import { use } from 'react';
 import { formatIST } from '../../../utils/time';
+import {
+  getBetResultDisplay,
+  getBetStatusLabel,
+  getSportsBetTypeLabel,
+} from '../../../utils/betHistoryLabels';
 const ExchangeData =[]
 //  [
 //   {
@@ -516,7 +521,7 @@ function BettingHistory() {
   // Fetch bet history from API without changing UI (dates optional, omitted)
   useEffect(() => {
     if (userId) {
-      dispatch(geAllBetHistory({ id: userId, page: 1, limit: 50, selectedGame: "", selectedVoid: "" }));
+      dispatch(geAllBetHistory({ id: userId, page: 1, limit: 50, selectedGame: "", selectedVoid: "settel" }));
     }
   }, [userId, dispatch]);
 
@@ -554,7 +559,7 @@ function BettingHistory() {
       return {
         plId: item?.userName || item?.plId || "-",
         betId: item?.betId || item?._id || "-",
-        date: item?.createdAt || item?.date || "-",
+        date: item?.createdAt ? formatIST(item.createdAt) : item?.date || "-",
         ip: item?.ip || "-",
         market: item?.gameName || item?.marketName || "-",
         match: item?.eventName || item?.match || "-",
@@ -565,13 +570,19 @@ function BettingHistory() {
         odds: item?.xValue ?? item?.odds ?? "-",
         stake: item?.price ?? item?.stake ?? "-",
         profitLoss: item?.profitLossChange ?? item?.resultAmount ?? "-",
+        betType: getSportsBetTypeLabel(item),
+        result: getBetResultDisplay(item),
+        statusLabel: getBetStatusLabel(item?.status),
+        gameType: item?.gameType,
+        betResult: item?.betResult,
+        status: item?.status,
       };
     });
 
     const casinoMapped = (casinoBetHistoryData || []).map((item) => ({
       plId: item?.userName || item?.plId || "-",
       betId: item?.game_round || item?._id || "-",
-      date: item?.provider_timestamp || item?.createdAt || item?.date || "-",
+      date: formatIST(item?.provider_timestamp || item?.createdAt || item?.date),
       ip: item?.ip || "-",
       market: "Casino",
       match: item?.game_uid || item?.game_name || item?.match || "-",
@@ -585,6 +596,15 @@ function BettingHistory() {
         item?.winlose_amount ??
         item?.resultAmount ??
         "-",
+      betType: "Casino",
+      result:
+        item?.change != null && Number(item.change) !== 0
+          ? Number(item.change) >= Number(item?.bet_amount ?? 0)
+            ? "Won"
+            : "Lost"
+          : "—",
+      statusLabel:
+        item?.change != null && Number(item.change) !== 0 ? "Settled" : "—",
     }));
 
     const mergedMapped = [...sportsMapped, ...casinoMapped].sort(
