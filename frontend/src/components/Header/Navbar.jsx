@@ -13,6 +13,7 @@ import { getCurrentBetCount } from '../../features/sports/betReducer';
 import { fetchCricketData } from '../../features/sports/cricketSlice';
 import { fetchSoccerData } from '../../features/sports/soccerSlice';
 import { fetchTennisData } from '../../features/sports/tennisSlice';
+import { isMatchInPlay } from '../../utils/sportMatchFilters';
 import { BiSolidCricketBall, BiSolidTennisBall } from 'react-icons/bi';
 import { GiSoccerBall } from 'react-icons/gi';
 
@@ -46,13 +47,13 @@ function Navbar({ onClose = () => { }, sidebarOpen, setSidebarOpen }) {
     if (!sidebarOpen) return;
 
     if (!Array.isArray(cricketMatches) || cricketMatches.length === 0) {
-      dispatch(fetchCricketData());
+      dispatch(fetchCricketData({ withOdds: true, oddsScope: "eligible" }));
     }
     if (!Array.isArray(soccerMatches) || soccerMatches.length === 0) {
-      dispatch(fetchSoccerData());
+      dispatch(fetchSoccerData({ withOdds: true, oddsScope: "eligible" }));
     }
     if (!Array.isArray(tennisMatches) || tennisMatches.length === 0) {
-      dispatch(fetchTennisData());
+      dispatch(fetchTennisData({ withOdds: true, oddsScope: "eligible" }));
     }
   }, [dispatch, sidebarOpen, cricketMatches, soccerMatches, tennisMatches]);
 
@@ -83,9 +84,9 @@ function Navbar({ onClose = () => { }, sidebarOpen, setSidebarOpen }) {
   const soccerLeagues = getLeagues(soccerMatches);
   const tennisLeagues = getLeagues(tennisMatches);
 
-  const cricketInplayCount = Array.isArray(cricketMatches) ? cricketMatches.filter(m => m.inplay).length : 0;
-  const soccerInplayCount = Array.isArray(soccerMatches) ? soccerMatches.filter(m => m.inplay).length : 0;
-  const tennisInplayCount = Array.isArray(tennisMatches) ? tennisMatches.filter(m => m.inplay).length : 0;
+  const cricketInplayCount = Array.isArray(cricketMatches) ? cricketMatches.filter(m => isMatchInPlay(m, 'cricket')).length : 0;
+  const soccerInplayCount = Array.isArray(soccerMatches) ? soccerMatches.filter(m => isMatchInPlay(m, 'soccer')).length : 0;
+  const tennisInplayCount = Array.isArray(tennisMatches) ? tennisMatches.filter(m => isMatchInPlay(m, 'tennis')).length : 0;
 
   const data = [
     { label: "Cricket", icon: cricketColor, sportType: "Cricket", sportPath: "/cricket", subItems: cricketLeagues, badge: cricketInplayCount > 0 ? cricketInplayCount : undefined },

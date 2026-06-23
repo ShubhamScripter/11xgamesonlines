@@ -1,0 +1,62 @@
+# --- REQUIRED ---
+JWT_SECRET=makaz1408
+MONGO_URI=mongodb+srv://makazamritanshu_db_user:makazamritanshu@cluster0.kfdg2e3.mongodb.net/selfbaaji
+
+# --- SERVER ---
+
+
+
+
+
+NODE_ENV=production
+PORT=3000
+APP_TYPE=dashboard
+
+# Separate ports for different apps
+CLIENT_PORT=8000
+DASHBOARD_PORT=4000
+
+# --- SPORTS API (Provider A) ---
+API_PROVIDER=providerC
+# API_URL=https://81habibi.com/api/v1
+# API_KEY=gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52
+# RESULT_API_URL=https://81habibi.com/api/v1s
+# BASE_SCORE_URL=http://130.250.191.174:3009
+
+# # --- SPORTS API (Provider B — use when API_PROVIDER=providerB) ---
+# PROVIDER_B_API_URL=https://test.bulkapi.co.in/api/v1
+# PROVIDER_B_API_KEY=gk_4b8bf40e61c7828c64e1b1f684cc4eaa6a243cef3d4c622f
+
+# --- SPORTS API (Provider C — use when API_PROVIDER=providerC) ---
+PROVIDER_C_API_URL=https://81club.fun/api/v1
+PROVIDER_C_API_KEY=gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2
+
+# --- CASINO API ---
+CASINO_API_URL=https://bulkapi.org
+CASINO_API_KEY=6a2ec97d6cc84fe4958886facafe43
+CASINO_API_SECRET=294509c9d1ed37a64b1b697efcd4fd
+
+# --- IMAGE UPLOADS (Cloudinary free — fill from cloudinary.com dashboard) ---
+CLOUDINARY_CLOUD_NAME=dibkveyhe
+CLOUDINARY_API_KEY=467292792183453
+CLOUDINARY_API_SECRET=TAz-IyPDXcQq7OAmo32gqGCSiTg
+PUBLIC_UPLOADS_BASE_URL=http://localhost:3000
+ADMIN_UPLOADS_BASE_URL=http://ag.11xgames.online
+
+# --- OPTIONAL DEV FLAGS ---
+DEV_MOCK_API=0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

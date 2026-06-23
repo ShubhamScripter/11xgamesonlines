@@ -8,7 +8,7 @@
   --sb-text: #ffffff;
   --sb-muted: #b0b0b0;
   --sb-chip: #2a2a2a;
-  --sb-live: #22c55e;
+  --sb-live: #ef4444;
   --match-card-width: 300px;
   --match-card-height: 212px;
 
@@ -405,6 +405,43 @@
   margin: 0;
 }
 
+.sports-odds-hint {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  margin: 0;
+  font-size: 0.65rem;
+  color: #7eb6e2;
+  opacity: 0.85;
+}
+
+.sports-sidebar-btn {
+  position: relative;
+}
+
+.sports-sidebar-pulse {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2c5af2;
+  animation: sports-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sports-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .sports-underline {
   width: 60px;
   height: 3px;
@@ -421,6 +458,7 @@
   padding: 4px 2px 16px 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  position: relative;
 }
 
 .matches-scroll-container::-webkit-scrollbar {
@@ -680,6 +718,8 @@
 
 .live-tag--active {
   color: #ffffff;
+  background: #dc2626;
+  border-radius: 4px;
   animation: sports-live-pulse 1.5s ease-in-out infinite;
 }
 
@@ -690,9 +730,9 @@
   height: 6px;
   margin-right: 4px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #ffffff;
   vertical-align: middle;
-  box-shadow: 0 0 6px #22c55e;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
 @keyframes sports-live-pulse {

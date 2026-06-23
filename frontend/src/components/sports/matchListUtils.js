@@ -69,8 +69,10 @@ export function formatMatchSchedule(match) {
   return { date: fallback, time: fallback, combined: fallback };
 }
 
-export const isMatchLive = (match) =>
-  match?.inplay === true || match?.iplay === true;
+import { isMatchInPlay } from '../../utils/sportMatchFilters';
+
+export const isMatchLive = (match, sportType) =>
+  isMatchInPlay(match, sportType);
 
 export const formatOddsPrice = (v) => {
   if (v === null || v === undefined) return '-';

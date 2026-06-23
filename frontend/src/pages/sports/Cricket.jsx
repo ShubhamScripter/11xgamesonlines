@@ -1,63 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCricketData } from '../../features/sports/cricketSlice';
-import MatchListSection from '../../components/sports/MatchListSection';
 import SportsListLoading from '../../components/sports/SportsListLoading';
+import SportDateFilter from '../../components/sports/SportDateFilter';
+import SportListBody from '../../components/sports/SportListBody';
 import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
+import useProgressiveSportList from '../../hooks/useProgressiveSportList';
+import {
+  buildSportListSections,
+  filterMatchesByDateTab,
+  isValidListMatch,
+  resolveInitialDateTab,
+  SPORT_DATE_TABS,
+} from '../../utils/sportMatchFilters';
 
-function Cricket({ activeTab }) {
+const SPORT = 'cricket';
+
+function Cricket() {
   const dispatch = useDispatch();
   const location = useLocation();
 
   const { matches, loader } = useSelector((state) => state.cricket);
   const [openIndexes, setOpenIndexes] = useState([0]);
+  const [activeTab, setActiveTab] = useState(() =>
+    resolveInitialDateTab(location.state)
+  );
 
   const selectedLeague = location.state?.selectedLeague;
   const sourceMatches = matches || [];
 
-  const filteredMatches = sourceMatches.filter((match) => {
-    const isMatch =
-      match.match.toLowerCase().includes(' v ') ||
-      match.match.toLowerCase().includes(' vs ') ||
-      match.match.includes(' - ');
-
-    if (!isMatch) return false;
-
-    if (selectedLeague && match.title !== selectedLeague) {
-      return false;
+  useEffect(() => {
+    if (location.state?.active) {
+      setActiveTab(resolveInitialDateTab(location.state));
     }
+  }, [location.state?.active]);
 
-    const matchDate = new Date(match.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const tabCounts = useMemo(() => {
+    const base = sourceMatches.filter((m) => {
+      if (!isValidListMatch(m)) return false;
+      if (selectedLeague && m.title !== selectedLeague) return false;
+      return true;
+    });
+    return SPORT_DATE_TABS.reduce((acc, { id }) => {
+      acc[id] = filterMatchesByDateTab(base, id, SPORT).length;
+      return acc;
+    }, {});
+  }, [sourceMatches, selectedLeague]);
 
-    if (activeTab === 'InPlay') {
-      return match.inplay === true;
-    }
-    if (activeTab === 'Today') {
-      return matchDate.toDateString() === today.toDateString();
-    }
-    if (activeTab === 'Tomorrow') {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      return matchDate.toDateString() === tomorrow.toDateString();
-    }
-    return true;
-  });
+  const groupedArray = useMemo(() => {
+    const byTab = filterMatchesByDateTab(sourceMatches, activeTab, SPORT);
+    const scoped = selectedLeague
+      ? byTab.filter((match) => match.title === selectedLeague)
+      : byTab;
+    return buildSportListSections(scoped, { activeTab, sport: SPORT });
+  }, [sourceMatches, activeTab, selectedLeague]);
 
-  const groupedMatches = filteredMatches.reduce((acc, match) => {
-    if (!acc[match.title]) {
-      acc[match.title] = [];
-    }
-    acc[match.title].push(match);
-    return acc;
-  }, {});
-
-  const groupedArray = Object.keys(groupedMatches).map((title) => ({
-    title,
-    matches: groupedMatches[title],
-  }));
+  const { visibleSections, hasMore, shownRest, totalRest } =
+    useProgressiveSportList(groupedArray, activeTab);
 
   const handleToggle = (idx) => {
     setOpenIndexes((prev) =>
@@ -66,17 +66,19 @@ function Cricket({ activeTab }) {
   };
 
   useEffect(() => {
-    if (groupedArray.length > 0) {
-      setOpenIndexes(groupedArray.map((_, i) => i));
+    if (visibleSections.length > 0) {
+      setOpenIndexes(visibleSections.map((_, i) => i));
     }
-  }, [groupedArray.length]);
+  }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchCricketData());
+    dispatch(fetchCricketData({ withOdds: true, oddsScope: 'all' }));
   }, [dispatch]);
 
   const sportMeta = SPORT_LIST_META.cricket;
-  const showLeagueHeaders = groupedArray.length > 1;
+  const showLeagueHeaders =
+    visibleSections.length > 1 ||
+    (visibleSections.length === 1 && !visibleSections[0]?.isLiveSection);
 
   if (loader && sourceMatches.length === 0) {
     return <SportsListLoading message="Loading cricket matches..." />;
@@ -84,6 +86,11 @@ function Cricket({ activeTab }) {
 
   return (
     <div className="min-h-screen pb-6 w-full">
+      <SportDateFilter
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        counts={tabCounts}
+      />
       <div className="w-full">
         <div className="overflow-hidden rounded-none sm:rounded-lg border-y sm:border border-[#2a313a] bg-[#0b0e11] shadow-sm">
           {groupedArray.length === 0 ? (
@@ -91,23 +98,27 @@ function Cricket({ activeTab }) {
               {sportMeta.emptyMessage}
             </p>
           ) : (
-            groupedArray.map((comp, idx) => (
-              <MatchListSection
-                key={comp.title || idx}
-                title={comp.title}
-                matches={comp.matches}
-                sportType="cricket"
-                isOpen={openIndexes.includes(idx)}
-                onToggle={() => handleToggle(idx)}
-                showLeagueHeader={showLeagueHeaders}
-                hideOdds
-              />
-            ))
+            <SportListBody
+              sections={visibleSections}
+              sportType="cricket"
+              openIndexes={openIndexes}
+              onToggle={handleToggle}
+              showLeagueHeaders={showLeagueHeaders}
+              hasMore={hasMore}
+              shownRest={shownRest}
+              totalRest={totalRest}
+            />
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function sectionSignatureFrom(sections) {
+  return (sections || [])
+    .map((s) => `${s.title}:${s.matches?.length ?? 0}`)
+    .join('|');
 }
 
 export default Cricket;

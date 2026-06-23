@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { cronJobGame1p } from './controllers/cronJobs.js';
+import { initSportsCacheStore } from './services/sportsListCache/cacheStore.js';
+import { startSportsListCacheCron } from './services/sportsListCache/sportsListCacheCron.js';
 import downlineRoutes from './routes/admin/downlineRoutes.js';
 import manualResultRoutes from './routes/admin/manualResultRoutes.js';
 import marketAnalizeRoutes from './routes/admin/marketAnalizeRoutes.js';
@@ -112,11 +114,14 @@ if (APP_TYPE === 'dashboard') {
 
 setupWebSocket(server);
 
+initSportsCacheStore();
+
 // Only run settlement crons on the client backend process.
 // In production, TWO PM2 processes (agaura444 + aura444) run the same server.js.
 // If both run crons, bets get settled twice → bettingProfitLoss doubles.
 if (APP_TYPE !== 'dashboard') {
   cronJobGame1p();
+  startSportsListCacheCron();
   console.log('[CRON] Settlement crons started (client process)');
 } else {
   console.log('[CRON] Settlement crons SKIPPED (dashboard process)');

@@ -16,7 +16,12 @@ import { GoPlus } from "react-icons/go";
 import { TfiReload } from "react-icons/tfi";
 import { currencySymbol } from "../../utils/currency";
 
-function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
+function HeaderLogin({
+  setSidebarOpen = () => {},
+  closeMenu = () => {},
+  showActions = false,
+  setShowActions = () => {},
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -24,7 +29,6 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
   const { user } = useSelector((state) => state.auth);
   const socketRef = useRef(null);
   const currentUserId = user?._id || user?.id || null;
-  const [showActions, setShowActions] = useState(false);
   // 🔁 Refresh handler
   const handleRefresh = async () => {
     
@@ -101,6 +105,15 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
     };
   }, [currentUserId]);
 
+  useEffect(() => {
+    setShowActions(false);
+  }, [location.pathname, setShowActions]);
+
+  const toggleActions = () => {
+    closeMenu();
+    setShowActions((prev) => !prev);
+  };
+
   const handleClick = () => {
     navigate('/');
     closeMenu();
@@ -108,7 +121,7 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
 
   return (
       <>
-        <div className="bg-[#141515] fixed top-0 left-0 w-full shadow-sm h-[65px] z-20 flex justify-between items-center py-3 px-2 border-b border-gray-700">
+        <div className="bg-[#141515] fixed top-0 left-0 w-full shadow-sm h-[65px] z-50 flex justify-between items-center py-3 px-2 border-b border-gray-700">
             <div className="flex items-center justify-center h-[65px] py-2.5">
               <div className="bg-[#303232] p-3 rounded-[4px] mr-6 hidden md:block" onClick={() => setSidebarOpen(prev => !prev)}>
                 <GiHamburgerMenu className="text-yellow-200 text-[20px]" />
@@ -134,12 +147,15 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
                     <TfiReload className="text-white text-md cursor-pointer md:mr-3"
                         onClick={handleRefresh}
                     />
-                  <span
+                  <button
+                    type="button"
                     className="bg-[#14805e] text-white h-full w-[40px] flex md:hidden items-center justify-center rounded-r-sm"
-                    onClick={() => setShowActions(prev => !prev)}
+                    onClick={toggleActions}
+                    aria-expanded={showActions}
+                    aria-label="Deposit and withdrawal"
                   >
-                    <GoPlus size={30}/>
-                  </span>
+                    <GoPlus size={30} className={showActions ? "rotate-45 transition-transform" : "transition-transform"} />
+                  </button>
                 </div>
                 <div className="hidden md:flex items-center gap-2 h-full">
                   <button
@@ -168,43 +184,44 @@ function HeaderLogin({ setSidebarOpen = () => {}, closeMenu = () => {} }) {
 
 
         </div>
-        {showActions && (
-            <div
-                className="fixed inset-0 bg-black/50 bg-opacity-50 z-12"
-                onClick={() => setShowActions(false)}
-            />
-        )}
-        {showActions && (
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.2 }}
-            className='flex md:hidden bg-[#141515] items-center grid grid-cols-2 gap-2 w-full absolute top-[65px] left-0 z-12 p-4'
-          >
+        {showActions ? (
+          <>
             <button
               type="button"
-              onClick={() => {
-                navigate("/user/manual-deposit?type=withdraw");
-                setShowActions(false);
-              }}
-              className="h-14 justify-center text-white text-[20px] bg-[#303232] flex items-center rounded-[3px] font-bold"
+              aria-label="Close deposit menu"
+              className="fixed inset-0 top-[65px] bottom-0 bg-black/50 z-[45] md:hidden border-0 p-0"
+              onClick={() => setShowActions(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-[65px] left-0 right-0 z-[46] md:hidden bg-[#141515] border-b border-gray-700 p-3 grid grid-cols-2 gap-2 shadow-lg"
             >
-              Withdrawal
-            </button>
-
-            <button 
-              type="button"
-              onClick={() => {
-                navigate("/user/manual-deposit?type=deposit");
-                setShowActions(false);
-              }}
-              className="h-14 justify-center text-white text-[20px] bg-[#14805e] flex items-center rounded-[3px] font-bold"
-            >
-              Deposit
-            </button>
-          </motion.div>
-        )}
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/user/manual-deposit?type=withdraw");
+                  setShowActions(false);
+                }}
+                className="h-14 justify-center text-white text-[18px] bg-[#303232] flex items-center rounded-[3px] font-bold"
+              >
+                Withdrawal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/user/manual-deposit?type=deposit");
+                  setShowActions(false);
+                }}
+                className="h-14 justify-center text-white text-[18px] bg-[#14805e] flex items-center rounded-[3px] font-bold"
+              >
+                Deposit
+              </button>
+            </motion.div>
+          </>
+        ) : null}
 
       </>
   );

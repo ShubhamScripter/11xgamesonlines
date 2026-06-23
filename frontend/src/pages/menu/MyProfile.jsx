@@ -6,19 +6,38 @@ import { useSelector } from "react-redux";
 function MyProfile({ setProfileOpen }) {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const isMobileSheet = typeof setProfileOpen === "function";
+  const closeProfile = () => setProfileOpen?.(false);
+
   return (
-    <div className="md:mt-12">
-      <div className="flex items-center justify-between text-[18px] font-bold gap-2 h-[66px] px-4 bg-[#1a1a1a]">
-        <span className="text-white">Profile</span>
-        <button
-          onClick={() => setProfileOpen(false)}
-          className="text-2xl text-gray-400 hover:text-white transition-colors block md:hidden"
-          aria-label="Close profile"
-        >
-          <IoClose />
-        </button>
-      </div>
-      <div className="flex flex-col items-center ">
+    <div className={`flex flex-col min-h-full bg-[#141515] ${isMobileSheet ? "" : "md:mt-12"}`}>
+      {isMobileSheet ? (
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#1a1a1a]">
+          <button
+            type="button"
+            onClick={closeProfile}
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            aria-label="Close profile"
+          >
+            <MdArrowBackIos className="text-lg" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+          <span className="text-[17px] font-bold text-white">Profile</span>
+          <button
+            type="button"
+            onClick={closeProfile}
+            className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-[#303232] transition-colors"
+            aria-label="Close profile"
+          >
+            <IoClose className="text-2xl" />
+          </button>
+        </div>
+      ) : (
+        <div className="hidden md:flex items-center text-[18px] font-bold gap-2 h-[66px] px-4 bg-[#1a1a1a]">
+          <span className="text-white">Profile</span>
+        </div>
+      )}
+      <div className="flex flex-col items-center flex-1 px-2 pb-4">
         <table className="shadow-md rounded-lg md:mt-4 w-full">
           <tbody>
             <tr className="border-b border-gray-700">

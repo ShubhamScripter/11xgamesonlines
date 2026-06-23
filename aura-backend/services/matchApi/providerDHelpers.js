@@ -133,6 +133,28 @@ export function runnerExToOdds(runner) {
   return odds;
 }
 
+/** Homepage / featured cards: in-play + today/tomorrow + recently started (for live flag). */
+export function pickFeaturedOddsTargets(matches = []) {
+  const nowMs = Date.now();
+  const now = new Date();
+  const today = now.toDateString();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toDateString();
+  const startedWindowMs = 6 * 60 * 60 * 1000;
+
+  return matches.filter((m) => {
+    if (m?.iplay || m?.inplay) return true;
+    const d = new Date(m?.stime || 0);
+    if (Number.isNaN(d.getTime())) return false;
+    const startMs = d.getTime();
+    const ds = d.toDateString();
+    if (ds === today || ds === tomorrowStr) return true;
+    if (startMs <= nowMs && nowMs - startMs <= startedWindowMs) return true;
+    return false;
+  });
+}
+
 export function runnersToSection(runners = [], metaRunners = []) {
   const metaById = new Map(
     metaRunners.map((r) => [String(r.selectionId), r.runnerName || r.name])

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { BsEnvelopePaperHeartFill } from "react-icons/bs";
 import { MdSportsCricket } from "react-icons/md";
 import { FaListAlt } from "react-icons/fa";
@@ -12,7 +12,7 @@ import profileIcon from '../../assets/icon/icon-profile.png'
 import casinoIcon from '../../assets/icon/icon-casinoColor.png'
 import { useSelector } from 'react-redux';
 
-function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,setProfileOpen }) {
+function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,setProfileOpen, closeHeaderActions = () => {} }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useSelector((state) => state.auth);
@@ -33,6 +33,24 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
         ...(user ? [{ label: "Profile", icon: profileIcon }] : [])
     ];
 
+    useEffect(() => {
+        setMenuOpen(false);
+        setProfileOpen(false);
+        closeHeaderActions();
+    }, [location.pathname]);
+
+    const openMenu = () => {
+        closeHeaderActions();
+        setMenuOpen((prev) => !prev);
+        setProfileOpen(false);
+    };
+
+    const openProfile = () => {
+        closeHeaderActions();
+        setProfileOpen((prev) => !prev);
+        setMenuOpen(false);
+    };
+
     return (
         <>
             {/* Footer */}
@@ -43,20 +61,19 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
                             key={item.label}
                             onClick={() => {
                                 if (item.label === "Menu") {
-                                    setMenuOpen(!menuOpen);
-                                    setProfileOpen(false);
+                                    openMenu();
                                 } else if (item.label === "Profile") {
-                                    setProfileOpen(!profileOpen);
-                                    setMenuOpen(false);
+                                    openProfile();
                                 } else {
                                     setActiveTab(item.path);
                                     navigate(item.path);
                                     setMenuOpen(false);
                                     setProfileOpen(false);
+                                    closeHeaderActions();
                                 }
                             }}
                             className={`flex flex-col justify-center items-center cursor-pointer
-                                ${isItemActive(item) ? 'text-[#19A044]' : 'text-gray-400'}
+                                ${item.label === "Menu" && menuOpen ? 'text-[#19A044]' : item.label === "Profile" && profileOpen ? 'text-[#19A044]' : isItemActive(item) ? 'text-[#19A044]' : 'text-gray-400'}
                             `}
                         >
                             {item.homeIcon ? (
@@ -72,20 +89,40 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
                 </div>
             </div>
 
+            {/* Backdrop — tap outside to close menu */}
+            {menuOpen ? (
+                <button
+                    type="button"
+                    aria-label="Close menu"
+                    className="fixed inset-0 top-[65px] bottom-20 bg-black/60 z-20 md:hidden border-0 p-0 cursor-default"
+                    onClick={() => setMenuOpen(false)}
+                />
+            ) : null}
+
             {/* Sliding Menu */}
             <div
-                className={`fixed top-[65px] left-0 h-[calc(100vh-145px)] w-full bg-[#141515] z-30 transform transition-transform duration-300 ease-in-out overflow-y-auto no-scrollbar
+                className={`fixed top-[65px] left-0 bottom-20 w-full max-w-[300px] bg-[#141515] z-30 transform transition-transform duration-300 ease-in-out overflow-y-auto no-scrollbar shadow-xl border-r border-gray-700
                 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {menuOpen ? <MobNavbar closeMenu={() => setMenuOpen(false)} /> : null}
             </div>
                 
-             {/* Sliding profile top to bottom */}   
+            {/* Backdrop — tap to close profile */}
+            {profileOpen ? (
+                <button
+                    type="button"
+                    aria-label="Close profile"
+                    className="fixed inset-0 top-[65px] bottom-20 bg-black/60 z-20 md:hidden border-0 p-0 cursor-default"
+                    onClick={() => setProfileOpen(false)}
+                />
+            ) : null}
+
+             {/* Profile bottom sheet */}
             <div
-                className={`fixed w-full bottom-0 left-0 h-screen bg-[#141515] z-30 transform transition-transform duration-300 ease-in-out
-                ${profileOpen ? 'translate-y-0' : 'translate-y-full'}`}
+                className={`fixed left-0 right-0 bottom-20 z-30 max-h-[min(75vh,calc(100vh-145px))] rounded-t-2xl bg-[#141515] border-t border-gray-700 shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto no-scrollbar md:hidden
+                ${profileOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
             >
-                <MyProfile setProfileOpen={setProfileOpen}/>
+                {profileOpen ? <MyProfile setProfileOpen={setProfileOpen} /> : null}
             </div>
         </>
     );

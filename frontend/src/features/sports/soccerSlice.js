@@ -1,52 +1,111 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-// import axios from "axios";
-import api from "../../utils/axiosConfig"; // Adjust the import based on your project structure
+import api from "../../utils/axiosConfig";
+import { parseInPlayFlag } from "../../utils/sportMatchFilters";
+import {
+  applySportListPayload,
+  packSportFetchResult,
+} from "../../utils/sportListMerge";
+import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
 
 const normalizeSoccerMatches = (matches) => {
   if (!Array.isArray(matches)) return [];
   return matches.map((m) => ({
     ...m,
-    // League/group title for UI grouping (Soccer.jsx groups by `match.title`)
-    title: m?.title ?? m?.cname ?? m?.leagueName ?? m?.competition ?? "Unknown League",
+    title:
+      m?.title ??
+      m?.cname ??
+      m?.leagueName ??
+      m?.competition ??
+      "Unknown League",
     id: m?.id ?? m?.gmid ?? m?.eventId ?? m?.gameId,
     beventId: m?.beventId ?? m?.bevent_id ?? null,
     match: m?.match ?? m?.ename ?? m?.eventName ?? m?.name ?? "",
-    inplay: m?.inplay ?? m?.iplay ?? false,
+    inplay: parseInPlayFlag(m),
+    iplay: parseInPlayFlag(m),
     date: m?.date ?? m?.stime ?? m?.startTime ?? m?.start_date ?? null,
   }));
 };
 
-let soccerMatchesPromise = null;
+let soccerInFlight = new Map();
+
+const trackSoccerRequest = (requestKey, promise) => {
+  soccerInFlight.set(requestKey, promise);
+  promise.finally(() => {
+    if (soccerInFlight.get(requestKey) === promise) {
+      soccerInFlight.delete(requestKey);
+    }
+  });
+  return promise;
+};
 
 export const fetchSoccerData = createAsyncThunk(
   "soccer/fetchSoccerData",
-  async (_, { rejectWithValue, getState }) => {
+  async (arg, { rejectWithValue, getState }) => {
+    const force = arg?.force === true;
+    const withOdds = arg?.withOdds === true;
+    const oddsScope = arg?.oddsScope === "eligible" ? "eligible" : "all";
     try {
       const state = getState();
       const existing = state?.soccer?.soccerData;
-      if (Array.isArray(existing) && existing.length > 0) {
-        return existing;
+      const hasOdds = state?.soccer?.matchesHaveOdds === true;
+      const scopeOk = state?.soccer?.matchesOddsScope === oddsScope;
+
+      if (!force && Array.isArray(existing) && existing.length > 0) {
+        const needOddsFetch = withOdds && (!hasOdds || !scopeOk);
+        if (!needOddsFetch) {
+          return {
+            matches: existing,
+            matchesHaveOdds: hasOdds,
+            matchesOddsScope: state?.soccer?.matchesOddsScope || null,
+          };
+        }
       }
 
-      if (soccerMatchesPromise) {
-        return await soccerMatchesPromise;
+      const query = withOdds ? `?withOdds=true&oddsScope=${oddsScope}` : "";
+      const requestKey = withOdds ? `odds-${oddsScope}` : "list";
+
+      if (soccerInFlight.has(requestKey)) {
+        const result = await soccerInFlight.get(requestKey);
+        const matches = Array.isArray(result) ? result : result?.matches ?? [];
+        return packSportFetchResult(matches, withOdds ? oddsScope : null);
       }
 
-      soccerMatchesPromise = api
-        .get("/soccer")
-        .then((response) => normalizeSoccerMatches(response.data.matches ?? response.data.data ?? []));
+      const promise = api
+        .get(`/soccer${query}`)
+        .then((response) =>
+          normalizeSoccerMatches(
+            response.data.matches ?? response.data.data ?? []
+          )
+        );
+      trackSoccerRequest(requestKey, promise);
 
-      const result = await soccerMatchesPromise;
-      return result;
+      const result = await promise;
+      return packSportFetchResult(result, withOdds ? oddsScope : null);
     } catch (error) {
+      if (withOdds) {
+        try {
+          const response = await api.get("/soccer");
+          const matches = normalizeSoccerMatches(
+            response.data.matches ?? response.data.data ?? []
+          );
+          if (matches.length > 0) {
+            return {
+              matches,
+              matchesHaveOdds: false,
+              matchesOddsScope: null,
+            };
+          }
+        } catch {
+          // fall through
+        }
+      }
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch matches"
       );
-    } finally {
-      soccerMatchesPromise = null;
     }
   }
 );
+
 export const fetchSoccerInplayData = createAsyncThunk(
   "soccer/fetchSoccerInplayData",
   async (_, { rejectWithValue, getState }) => {
@@ -59,38 +118,42 @@ export const fetchSoccerInplayData = createAsyncThunk(
 
       const matchesExisting = state?.soccer?.soccerData;
       if (Array.isArray(matchesExisting) && matchesExisting.length > 0) {
-        return matchesExisting.filter((m) => m?.inplay === true || m?.iplay === true);
+        return matchesExisting.filter(
+          (m) => m?.inplay === true || m?.iplay === true
+        );
       }
 
-      if (soccerMatchesPromise) {
-        const matches = await soccerMatchesPromise;
-        return matches.filter((m) => m?.inplay === true || m?.iplay === true);
+      if (soccerInFlight.has('list')) {
+        const matches = await soccerInFlight.get('list');
+        const list = Array.isArray(matches) ? matches : matches?.matches ?? [];
+        return list.filter((m) => m?.inplay === true || m?.iplay === true);
       }
 
-      soccerMatchesPromise = api
+      const promise = api
         .get("/soccer")
-        .then((response) => normalizeSoccerMatches(response.data.matches ?? response.data.data ?? []));
+        .then((response) =>
+          normalizeSoccerMatches(
+            response.data.matches ?? response.data.data ?? []
+          )
+        );
+      trackSoccerRequest('list', promise);
 
-      const matches = await soccerMatchesPromise;
+      const matches = await promise;
       return matches.filter((m) => m?.inplay === true || m?.iplay === true);
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch in-play matches"
       );
-    } finally {
-      soccerMatchesPromise = null;
     }
   }
 );
+
 export const fetchSoccerBatingData = createAsyncThunk(
   "cricket/fetchSoccerBatingData",
   async (gameid, { rejectWithValue }) => {
     try {
       const response = await api.get(`/soccer/betting?gameid=${gameid}`);
-      const data = response.data?.data;
-      // API may return { data: [...] } or { data: { data: [...] } } or { data: { result: [...] } }
-      const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.result) ? data.result : [];
-      return list;
+      return parseBettingPayload(response.data);
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch matches"
@@ -99,8 +162,6 @@ export const fetchSoccerBatingData = createAsyncThunk(
   }
 );
 
-
-// Create the slice
 const soccerSlice = createSlice({
   name: "soccer",
   initialState: {
@@ -109,10 +170,23 @@ const soccerSlice = createSlice({
     soccerData: [],
     soccerInplayData: [],
     battingData: [],
+    premiumFancyData: [],
+    providerCGameId: null,
+    matchesHaveOdds: false,
+    matchesOddsScope: null,
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    hydrateSoccerList(state, action) {
+      const { matches, matchesHaveOdds, matchesOddsScope } = action.payload || {};
+      if (!Array.isArray(matches) || matches.length === 0) return;
+      state.soccerData = matches;
+      state.matchesHaveOdds = Boolean(matchesHaveOdds);
+      state.matchesOddsScope = matchesOddsScope ?? null;
+      state.soccerLoading = false;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchSoccerData.pending, (state) => {
@@ -121,7 +195,7 @@ const soccerSlice = createSlice({
       })
       .addCase(fetchSoccerData.fulfilled, (state, action) => {
         state.soccerLoading = false;
-        state.soccerData = Array.isArray(action.payload) ? action.payload : [];
+        applySportListPayload(state, action.payload, "soccerData");
       })
       .addCase(fetchSoccerData.rejected, (state, action) => {
         state.soccerLoading = false;
@@ -133,7 +207,9 @@ const soccerSlice = createSlice({
       })
       .addCase(fetchSoccerInplayData.fulfilled, (state, action) => {
         state.soccerLoading = false;
-        state.soccerInplayData = Array.isArray(action.payload) ? action.payload : [];
+        state.soccerInplayData = Array.isArray(action.payload)
+          ? action.payload
+          : [];
       })
       .addCase(fetchSoccerInplayData.rejected, (state, action) => {
         state.soccerLoading = false;
@@ -145,7 +221,9 @@ const soccerSlice = createSlice({
       })
       .addCase(fetchSoccerBatingData.fulfilled, (state, action) => {
         state.loading = false;
-        state.battingData = Array.isArray(action.payload) ? action.payload : [];
+        state.battingData = action.payload?.markets ?? [];
+        state.premiumFancyData = action.payload?.premiumFancy ?? [];
+        state.providerCGameId = action.payload?.providerCGameId ?? null;
       })
       .addCase(fetchSoccerBatingData.rejected, (state, action) => {
         state.loading = false;
@@ -155,3 +233,4 @@ const soccerSlice = createSlice({
 });
 
 export default soccerSlice.reducer;
+export const { hydrateSoccerList } = soccerSlice.actions;

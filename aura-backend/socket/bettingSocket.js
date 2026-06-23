@@ -15,17 +15,88 @@ import { getBestOddsForTeam } from '../controllers/cashoutController.js';
 
 import {
   fetchMatchData,
+  fetchProviderCPremiumFancy,
   fetchCasinoData as fetchCasinoDataApi,
 } from '../services/matchApi/index.js';
+import {
+  unwrapMatchMarkets,
+  unwrapPremiumFancy,
+  unwrapProviderCGameId,
+} from '../services/matchApi/hybridMatchData.js';
 
 dotenv.config();
 
 const API_URL = process.env.API_URL;
 const API_KEY = process.env.API_KEY;
 
+function sendBettingPayload(ws, { gameid, apitype, markets, premiumFancy, providerCGameId }) {
+  if (!ws || ws.readyState !== 1) return;
+  const payload = {
+    type: 'bettingData',
+    gameid,
+    apitype,
+    data: markets,
+  };
+  if (apitype === 'cricket') {
+    payload.premiumFancy = premiumFancy ?? [];
+    payload.providerCGameId = providerCGameId ?? String(gameid);
+  }
+  ws.send(JSON.stringify(payload));
+}
+
+/** Cricket: push Provider D markets immediately, premium follows in background. */
+async function pushCricketBettingFast(ws, gameid) {
+  const primary = await fetchMatchData(gameid, 4);
+  if (!primary?.success) return null;
+
+  const markets = unwrapMatchMarkets(primary);
+  const cacheKey = `${gameid}_cricket`;
+  const providerCGameId = String(gameid);
+
+  sendBettingPayload(ws, {
+    gameid,
+    apitype: 'cricket',
+    markets,
+    premiumFancy: cachedData[cacheKey]?.outbound?.premiumFancy ?? [],
+    providerCGameId:
+      cachedData[cacheKey]?.outbound?.providerCGameId ?? providerCGameId,
+  });
+
+  fetchProviderCPremiumFancy(gameid, 4)
+    .then((premium) => {
+      const outbound = {
+        markets,
+        premiumFancy: premium.premiumFancy ?? [],
+        providerCGameId: premium.providerCGameId ?? providerCGameId,
+      };
+      cachedData[cacheKey] = { raw: primary, outbound };
+      sendBettingPayload(ws, {
+        gameid,
+        apitype: 'cricket',
+        markets,
+        premiumFancy: outbound.premiumFancy,
+        providerCGameId: outbound.providerCGameId,
+      });
+    })
+    .catch(() => {});
+
+  cachedData[cacheKey] = {
+    raw: primary,
+    outbound: {
+      markets,
+      premiumFancy: cachedData[cacheKey]?.outbound?.premiumFancy ?? [],
+      providerCGameId,
+    },
+  };
+
+  return markets;
+}
+
 let wssInstance = null;
 
 // Global State
+const cricketPremiumPollAt = new Map();
+const CRICKET_PREMIUM_POLL_MS = 3000;
 // clients -> Array holding all connected clients each with
 // --> ws (the websocket connection)
 // --> gameid (the match they subscribed to)
@@ -233,12 +304,36 @@ const pollBettingData = async () => {
       // const response = await axios.get(endpoint);
       // const newData = response.data;
 
+      const isCricket = apitype === 'cricket';
       const newData = await fetchMatchData(gameid, sid);
 
       if (newData.success) {
         const cacheKey = `${gameid}_${apitype}`;
-        if (JSON.stringify(newData) !== JSON.stringify(cachedData[cacheKey])) {
-          cachedData[cacheKey] = newData;
+        const markets = unwrapMatchMarkets(newData);
+        let premiumFancy =
+          cachedData[cacheKey]?.outbound?.premiumFancy ?? [];
+        let providerCGameId =
+          cachedData[cacheKey]?.outbound?.providerCGameId ?? String(gameid);
+
+        if (isCricket) {
+          const now = Date.now();
+          const lastPremium = cricketPremiumPollAt.get(gameid) || 0;
+          if (now - lastPremium >= CRICKET_PREMIUM_POLL_MS) {
+            const premium = await fetchProviderCPremiumFancy(gameid, 4);
+            premiumFancy = premium.premiumFancy ?? [];
+            providerCGameId = premium.providerCGameId ?? String(gameid);
+            cricketPremiumPollAt.set(gameid, now);
+          }
+        }
+
+        const outbound = {
+          markets,
+          premiumFancy,
+          providerCGameId,
+        };
+
+        if (JSON.stringify(outbound) !== JSON.stringify(cachedData[cacheKey]?.outbound)) {
+          cachedData[cacheKey] = { ...newData, outbound };
 
           clients.forEach((client) => {
             if (
@@ -246,14 +341,13 @@ const pollBettingData = async () => {
               client.apitype === apitype &&
               client.ws.readyState === 1
             ) {
-              client.ws.send(
-                JSON.stringify({
-                  type: 'bettingData',
-                  gameid,
-                  apitype,
-                  data: newData.data,
-                })
-              );
+              sendBettingPayload(client.ws, {
+                gameid,
+                apitype,
+                markets,
+                premiumFancy: isCricket ? premiumFancy : undefined,
+                providerCGameId: isCricket ? providerCGameId : undefined,
+              });
             }
           });
 
@@ -405,20 +499,23 @@ export const setupWebSocket = (server) => {
               else if (client.apitype === 'horse-racing') sid = 10;
               if (client.apitype === 'casino') return;
 
+              if (client.apitype === 'cricket') {
+                await pushCricketBettingFast(client.ws, client.gameid);
+                return;
+              }
+
               const newData = await fetchMatchData(client.gameid, sid);
               if (!newData?.success || client.ws.readyState !== 1) return;
 
               const cacheKey = `${client.gameid}_${client.apitype}`;
-              cachedData[cacheKey] = newData;
+              const markets = unwrapMatchMarkets(newData);
+              cachedData[cacheKey] = { ...newData, outbound: { markets } };
 
-              client.ws.send(
-                JSON.stringify({
-                  type: 'bettingData',
-                  gameid: client.gameid,
-                  apitype: client.apitype,
-                  data: newData.data,
-                })
-              );
+              sendBettingPayload(client.ws, {
+                gameid: client.gameid,
+                apitype: client.apitype,
+                markets,
+              });
             } catch (err) {
               console.error(
                 `[WS] Immediate betting fetch failed for ${client.gameid}:`,

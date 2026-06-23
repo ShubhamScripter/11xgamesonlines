@@ -3,7 +3,14 @@ import dotenv from 'dotenv';
 import {
   fetchCasinoData as fetchCasinoDataApi,
   fetchMatchData,
+  fetchMatchDataWithPremium,
+  fetchProviderCMatchMarkets,
+  isProviderCPremiumFancyMarket,
 } from '../services/matchApi/index.js';
+import {
+  unwrapMatchMarkets,
+  unwrapPremiumFancy,
+} from '../services/matchApi/hybridMatchData.js';
 
 dotenv.config();
 
@@ -91,9 +98,13 @@ async function fetchFreshSportsData(cachedData, gameId, apitype, sid) {
   const cacheKey = `${gameId}_${apitype}`;
 
   try {
-    const newData = await fetchMatchData(gameId, sid);
+    const isCricket = Number(sid) === 4;
+    const newData = isCricket
+      ? await fetchMatchDataWithPremium(gameId, sid)
+      : await fetchMatchData(gameId, sid);
+    const markets = unwrapMatchMarkets(newData);
 
-    if (!newData?.success || !Array.isArray(newData.data)) {
+    if (!newData?.success || !Array.isArray(markets)) {
       return {
         ok: false,
         reason: 'Unable to verify live odds. Please try again.',
@@ -102,12 +113,16 @@ async function fetchFreshSportsData(cachedData, gameId, apitype, sid) {
 
     // Update the shared cache so polling benefits too
     cachedData[cacheKey] = {
-      data: newData.data,
+      data: markets,
+      premiumFancy: isCricket ? unwrapPremiumFancy(newData) : [],
+      providerCGameId: isCricket
+        ? (newData.providerCGameId ?? newData.data?.providerCGameId ?? null)
+        : null,
       raw: newData,
       lastUpdated: Date.now(),
     };
 
-    return { ok: true, markets: newData.data };
+    return { ok: true, markets };
   } catch (err) {
     // Fallback: use cache ONLY if very fresh (< 500ms) — half the poll interval
     const cacheEntry = cachedData[cacheKey];
@@ -431,6 +446,184 @@ export async function validateFancyMarket(
     valid: false,
     reason: 'Selection not found in live data. Please try again.',
   };
+}
+
+function validateFancyAgainstMarkets(
+  markets,
+  { gameId, teamName, xValue, otype, fancyScore, oname }
+) {
+  for (const market of markets) {
+    if (!market.section || !Array.isArray(market.section)) continue;
+
+    const section = market.section.find(
+      (sec) =>
+        (sec.nat || '').trim().toLowerCase() ===
+        (teamName || '').trim().toLowerCase()
+    );
+
+    if (!section) continue;
+
+    if (
+      section.gstatus === 'SUSPENDED' ||
+      section.gstatus === 'Ball Running' ||
+      section.status === 'SUSPENDED'
+    ) {
+      return {
+        valid: false,
+        reason: 'Market is suspended. Bet not accepted.',
+      };
+    }
+
+    if (market.status === 'SUSPENDED' || market.gstatus === 'SUSPENDED') {
+      return {
+        valid: false,
+        reason: 'Market is suspended. Bet not accepted.',
+      };
+    }
+
+    if (!section.odds || !Array.isArray(section.odds)) {
+      return {
+        valid: false,
+        reason: 'Odds data unavailable. Please try again.',
+      };
+    }
+
+    if (fancyScore == null) {
+      return {
+        valid: false,
+        reason: 'Fancy score is required. Please try again.',
+      };
+    }
+
+    const userFancyScore = parseFloat(fancyScore);
+    const liveOddsObj = oname
+      ? section.odds.find((o) => o.oname === oname)
+      : section.odds.find((o) => o.otype === otype && o.tno === 0);
+    const liveFancyScore = liveOddsObj ? parseFloat(liveOddsObj.odds) : null;
+
+    if (
+      liveFancyScore === null ||
+      isNaN(liveFancyScore) ||
+      liveFancyScore <= 0
+    ) {
+      return {
+        valid: false,
+        reason: 'Unable to verify current fancy score. Please try again.',
+      };
+    }
+
+    if (Math.abs(userFancyScore - liveFancyScore) > 0.01) {
+      return {
+        valid: false,
+        reason: `Fancy score changed. Current: ${liveFancyScore}. Please re-select.`,
+      };
+    }
+
+    if (!xValue) {
+      return {
+        valid: false,
+        reason: 'Odds size is required. Please try again.',
+      };
+    }
+
+    const userSize = parseFloat(xValue);
+    const liveSizeObj = oname
+      ? section.odds.find((o) => o.oname === oname)
+      : section.odds.find((o) => o.otype === otype && o.tno === 0);
+    const liveSize = liveSizeObj ? parseFloat(liveSizeObj.size) : null;
+
+    if (liveSize === null || isNaN(liveSize) || liveSize <= 0) {
+      return {
+        valid: false,
+        reason: 'Unable to verify current odds size. Please try again.',
+      };
+    }
+
+    if (Math.abs(userSize - liveSize) > 0.01) {
+      return {
+        valid: false,
+        reason: `Odds changed. Current: ${liveSize.toFixed(2)}. Please re-select.`,
+        currentOdds: liveSize,
+      };
+    }
+
+    const fancyMarketId =
+      gameId != null && section.sid != null
+        ? `${String(gameId)}_${String(section.sid)}`
+        : section.marketId || section.market_id || null;
+
+    return {
+      valid: true,
+      marketMeta: {
+        mid: market.mid || null,
+        gmid: market.gmid || gameId || null,
+        fancyId: section.sid || null,
+        marketId: fancyMarketId,
+      },
+    };
+  }
+
+  return {
+    valid: false,
+    reason: 'Selection not found in live data. Please try again.',
+  };
+}
+
+/**
+ * Validate premium fancy (Provider C — normal + ball/khado/fancy/line/meter) against live data.
+ */
+export async function validatePremiumFancyMarket(
+  cachedData,
+  {
+    gameId,
+    providerCGameId,
+    gameName,
+    teamName,
+    xValue,
+    otype,
+    sid,
+    fancyScore,
+    oname,
+  }
+) {
+  const apitype = SPORT_NAME_TO_APITYPE[gameName?.toLowerCase()] || 'cricket';
+  const cGameId = providerCGameId || gameId;
+
+  try {
+    const markets = await fetchProviderCMatchMarkets(cGameId, sid);
+    const premiumMarkets = markets.filter(isProviderCPremiumFancyMarket);
+
+    return validateFancyAgainstMarkets(premiumMarkets, {
+      gameId: cGameId,
+      teamName,
+      xValue,
+      otype,
+      fancyScore,
+      oname,
+    });
+  } catch (err) {
+    const cacheKey = `${gameId}_${apitype}`;
+    const cacheEntry = cachedData[cacheKey];
+    const premiumMarkets = Array.isArray(cacheEntry?.premiumFancy)
+      ? cacheEntry.premiumFancy
+      : [];
+
+    if (premiumMarkets.length) {
+      return validateFancyAgainstMarkets(premiumMarkets, {
+        gameId: cacheEntry?.providerCGameId || cGameId,
+        teamName,
+        xValue,
+        otype,
+        fancyScore,
+        oname,
+      });
+    }
+
+    return {
+      valid: false,
+      reason: 'Unable to verify premium fancy odds. Please try again.',
+    };
+  }
 }
 
 /**

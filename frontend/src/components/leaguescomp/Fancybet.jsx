@@ -275,6 +275,12 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
     return `${n / 1000}k`;
   };
 
+  if (!fancyMarkets.length) {
+    return (
+      <p className="text-gray-400 text-sm py-4 px-3">No fancy markets available</p>
+    );
+  }
+
   return (
     <div>
       {/* No / Yes Labels */}
@@ -301,11 +307,14 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
                 <div className="flex-1 text-[14px] font-bold">{market.title}
                 <p className="text-red-500">
                   {
-                    pendingBet
+                      pendingBet
                       ?.filter(
                         (item) =>
                           item.gameType ===
                           "Normal" &&
+                          (item.betSource === "providerD" ||
+                            !item.betSource ||
+                            item.betSource === "active") &&
                           item.teamName?.toLowerCase() ===
                           market.title?.toLowerCase()
                       )
@@ -359,6 +368,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
                             selectionId: market.selectionId,
                             fancyScore: item.value,
                             isFancy: true,
+                            isPremium: false,
                           
                           });
                         }

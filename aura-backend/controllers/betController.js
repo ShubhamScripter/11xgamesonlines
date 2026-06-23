@@ -7,9 +7,12 @@ import {
   fetchCricketFancyByEvent as apiFetchCricketFancyByEvent,
   fetchCricketFancyResult as apiFetchCricketFancyResult,
   fetchMatchList as apiFetchMatchList,
+  fetchProviderCFancyResult,
   getProviderName,
   getResult as apiGetResult,
+  isPremiumFancyEnabled,
   sendBetIncoming as apiSendBetIncoming,
+  sendProviderCBetIncoming,
 } from '../services/matchApi/index.js';
 
 dotenv.config();
@@ -50,6 +53,7 @@ import { validateBetWithNewBetOffset } from '../utils/marketCalculationUtils.js'
 import {
   validateCasinoMarket as _validateCasinoMarket,
   validateFancyMarket as _validateFancyMarket,
+  validatePremiumFancyMarket as _validatePremiumFancyMarket,
   validateSportsMarket as _validateSportsMarket,
 } from '../utils/marketValidation.js';
 import { generateFancyLadder } from '../utils/masterBookUtils.js';
@@ -86,8 +90,23 @@ async function validateFancyMarket(
   otype,
   sid,
   fancyScore,
-  oname
+  oname,
+  premiumOptions = {}
 ) {
+  if (premiumOptions.isPremium) {
+    return _validatePremiumFancyMarket(cachedData, {
+      gameId,
+      providerCGameId: premiumOptions.providerCGameId,
+      gameName,
+      teamName,
+      xValue,
+      otype,
+      sid,
+      fancyScore,
+      oname,
+    });
+  }
+
   return _validateFancyMarket(cachedData, {
     gameId,
     gameName,
@@ -99,6 +118,105 @@ async function validateFancyMarket(
     fancyScore,
     oname,
   });
+}
+
+/** Fancy tab = Provider D; Premium tab = Provider C (cricket hybrid). */
+function resolveFancyBetRouting(isPremiumBet, hybridCricketFancy) {
+  if (hybridCricketFancy) {
+    if (isPremiumBet) {
+      return {
+        section: 'PREMIUM',
+        betSource: 'providerC',
+        incomingProvider: 'providerC',
+        settleProvider: 'providerC',
+        incomingApi: 'Provider C POST /bet-incoming (81club)',
+        settleApi: 'Provider C GET /fancyresult (81club)',
+      };
+    }
+    return {
+      section: 'FANCY',
+      betSource: 'providerD',
+      incomingProvider: 'providerD',
+      settleProvider: 'providerD',
+      incomingApi: 'Provider D local DB (winkaro/bsettle)',
+      settleApi: 'Provider D POST /result/fancy (winkaro/bsettle)',
+    };
+  }
+
+  if (isPremiumBet) {
+    return {
+      section: 'PREMIUM',
+      betSource: 'providerC',
+      incomingProvider: 'providerC',
+      settleProvider: 'providerC',
+      incomingApi: 'Provider C POST /bet-incoming',
+      settleApi: 'Provider C GET /fancyresult',
+    };
+  }
+
+  return {
+    section: 'FANCY',
+    betSource: 'active',
+    incomingProvider: 'active',
+    settleProvider: 'active',
+    incomingApi: 'Active provider bet-incoming',
+    settleApi: 'Active provider fancy result',
+  };
+}
+
+async function fetchFancyResultForBet(bet) {
+  let source;
+  if (bet.betSource === 'providerC') {
+    source = 'providerC';
+  } else if (bet.betSource === 'providerD') {
+    source = 'providerD';
+  } else {
+    const activeProvider = (getProviderName() || '').toLowerCase();
+    source = activeProvider.includes('providerc') ? 'providerC' : 'providerD';
+  }
+  const section = source === 'providerC' ? 'PREMIUM' : 'FANCY';
+  const fancyId = bet.fancyId;
+  const gameId = bet.market_id?.includes('_')
+    ? bet.market_id.split('_')[0]
+    : bet.gameId;
+  const marketId = bet.market_id?.includes('_')
+    ? bet.market_id
+    : `${gameId}_${fancyId}`;
+
+  console.log('[SETTLE-FANCY] ─────────────────────────────────────');
+  console.log(`[SETTLE-FANCY] betId: ${bet._id}`);
+  console.log(`[SETTLE-FANCY] section: ${section}`);
+  console.log(`[SETTLE-FANCY] betSource: ${bet.betSource || 'active'}`);
+  console.log(`[SETTLE-FANCY] settleProvider: ${source}`);
+  console.log(`[SETTLE-FANCY] gameType: ${bet.gameType}`);
+  console.log(`[SETTLE-FANCY] gameId: ${gameId} | fancyId: ${fancyId}`);
+  console.log(`[SETTLE-FANCY] marketId: ${marketId}`);
+  console.log(`[SETTLE-FANCY] team: ${bet.teamName} | market: ${bet.marketName}`);
+
+  if (source === 'providerC') {
+    console.log(
+      '[SETTLE-FANCY] API → Provider C GET /fancyresult (+ fancybyevent fallback)'
+    );
+    const fancyResult = await fetchProviderCFancyResult(gameId, fancyId, {
+      teamName: bet.teamName,
+      gameType: bet.gameType,
+    });
+    console.log(
+      `[SETTLE-FANCY] Provider C normalized:`,
+      JSON.stringify(fancyResult)
+    );
+    return { fancyResult, section, source };
+  }
+
+  console.log(
+    '[SETTLE-FANCY] API → Provider D POST /result/fancy (winkaro/bsettle)'
+  );
+  const fancyResult = await apiFetchCricketFancyResult(gameId, fancyId);
+  console.log(
+    `[SETTLE-FANCY] Provider D response:`,
+    JSON.stringify(fancyResult)
+  );
+  return { fancyResult, section, source };
 }
 
 /** Fancy settlement id: always `${eventId}_${section.sid}` — never use API gmid prefix */
@@ -1286,7 +1404,17 @@ export const placeFancyBet = async (req, res) => {
       marketId: reqMarketId,
       selectionId: reqSelectionId,
       fancyId: reqFancyId,
+      isPremium,
+      providerCGameId: reqProviderCGameId,
     } = req.body;
+
+    const isPremiumBet = isPremium === true || isPremium === 'true';
+    const effectiveGameId = String(gameId);
+    const hybridCricketFancy =
+      isPremiumFancyEnabled(getProviderName()) && Number(sid) === 4;
+
+    const routing = resolveFancyBetRouting(isPremiumBet, hybridCricketFancy);
+    const { section, betSource, incomingProvider, incomingApi } = routing;
 
     // Validate required fields
     if (!gameId || !sid || !price || !xValue || !gameName || !teamName) {
@@ -1302,7 +1430,11 @@ export const placeFancyBet = async (req, res) => {
       otype,
       sid,
       fancyScore,
-      oname
+      oname,
+      {
+        isPremium: isPremiumBet,
+        providerCGameId: reqProviderCGameId,
+      }
     );
     if (!fancyCheck.valid) {
       console.warn(
@@ -1332,10 +1464,15 @@ export const placeFancyBet = async (req, res) => {
       return res.status(200).json({ message: 'created successfully' });
     }
 
-    const uniqueKey = { gameId, eventName, marketName };
+    const uniqueKey = { gameId: effectiveGameId, eventName, marketName };
     const existingExact = await betModel.findOne(uniqueKey);
 
     const fancyMeta = fancyCheck.marketMeta || {};
+    const premiumEventId =
+      isPremiumBet && reqProviderCGameId
+        ? String(reqProviderCGameId)
+        : effectiveGameId;
+    const fancyEventId = isPremiumBet ? premiumEventId : effectiveGameId;
     let market_id;
     let fancySelectionId = null;
 
@@ -1352,7 +1489,7 @@ export const placeFancyBet = async (req, res) => {
         reqMarketId
       );
 
-      market_id = resolveFancyMarketId(gameId, {
+      market_id = resolveFancyMarketId(fancyEventId, {
         marketId: reqMarketId,
         selectionId: fancySelectionId,
         fancyId: fancyMeta.fancyId,
@@ -1379,9 +1516,8 @@ export const placeFancyBet = async (req, res) => {
       const isProviderD =
         providerName === 'providerd' || providerName === 'provider_d';
 
-      // Provider D: gameId is already Betfair event id — skip slow full match list fetch
       let beventId = String(gameId);
-      if (!isProviderD) {
+      if (!isProviderD && betSource === 'providerC') {
         try {
           const matchListData = await apiFetchMatchList(Number(sid));
           if (matchListData?.success && matchListData.data) {
@@ -1406,16 +1542,35 @@ export const placeFancyBet = async (req, res) => {
       }
 
       try {
-        await apiSendBetIncoming({
+        const providerCFancyType =
+          String(gameType || 'Normal').toLowerCase() === 'normal'
+            ? 'Normal'
+            : String(gameType || '').charAt(0).toUpperCase() +
+              String(gameType || '').slice(1).toLowerCase();
+
+        const incomingPayload = {
           sport_id: sid,
           sportName: (gameName || '').replace(/\s*game\s*$/i, ''),
-          event_id: fancyMeta.gmid || gameId,
+          event_id: fancyMeta.gmid || fancyEventId,
           beventId,
           event_name: eventName,
           fancyId: fancySelectionId ? String(fancySelectionId) : null,
-          market_name: toApiMarketName(marketName),
-          fancyType: gameType,
-        });
+          market_name: teamName || toApiMarketName(marketName),
+          fancyType:
+            betSource === 'providerC' ? providerCFancyType : gameType,
+        };
+
+        if (betSource === 'providerC') {
+          console.log(
+            `[FANCY BET PLACE] section=${section} provider=${incomingProvider} → ${incomingApi}`
+          );
+          await sendProviderCBetIncoming(incomingPayload);
+        } else {
+          console.log(
+            `[FANCY BET PLACE] section=${section} provider=${incomingProvider} → ${incomingApi}`
+          );
+          await apiSendBetIncoming(incomingPayload);
+        }
       } catch (err) {
         console.error('Error fetching market_id:', err.message);
         return res.status(502).json({
@@ -1453,7 +1608,7 @@ export const placeFancyBet = async (req, res) => {
 
     const fancyMarketBets = await betModel.find({
       userId: id,
-      gameId,
+      gameId: effectiveGameId,
       teamName,
       gameType,
       status: 0,
@@ -1464,7 +1619,7 @@ export const placeFancyBet = async (req, res) => {
       user.avbalance,
       user.balance,
       fancyMarketBets,
-      { gameId, teamName, fancyScore, otype, betAmount, price: p }
+      { gameId: effectiveGameId, teamName, fancyScore, otype, betAmount, price: p }
     );
 
     if (!fancyValidation.allowed) {
@@ -1487,7 +1642,7 @@ export const placeFancyBet = async (req, res) => {
     });
     const simulatedNewBet = {
       gameType,
-      gameId,
+      gameId: effectiveGameId,
       teamName,
       fancyScore,
       otype,
@@ -1505,7 +1660,7 @@ export const placeFancyBet = async (req, res) => {
 
     const mergeBet = await betModel.findOne({
       userId: id,
-      gameId,
+      gameId: effectiveGameId,
       gameType,
       teamName,
       otype,
@@ -1518,7 +1673,7 @@ export const placeFancyBet = async (req, res) => {
       ? null
       : await betModel.findOne({
           userId: id,
-          gameId,
+          gameId: effectiveGameId,
           gameType,
           teamName,
           otype: otype === 'back' ? 'lay' : 'back',
@@ -1689,7 +1844,7 @@ export const placeFancyBet = async (req, res) => {
         const newBet = new betModel({
           userId: id,
           userName: user.userName,
-          gameId,
+          gameId: effectiveGameId,
           sid,
           price: p,
           betAmount,
@@ -1703,6 +1858,7 @@ export const placeFancyBet = async (req, res) => {
           gameName,
           teamName,
           fancyId: savedFancyId,
+          betSource,
           placementType: 'no_offset_separate',
         });
         await newBet.save();
@@ -1715,7 +1871,7 @@ export const placeFancyBet = async (req, res) => {
       const newBet = new betModel({
         userId: id,
         userName: user.userName,
-        gameId,
+        gameId: effectiveGameId,
         sid,
         price: p,
         betAmount,
@@ -1729,6 +1885,7 @@ export const placeFancyBet = async (req, res) => {
         gameName,
         teamName,
         fancyId: savedFancyId,
+        betSource,
         placementType: 'new',
         mergeCount: 1,
       });
@@ -1741,7 +1898,7 @@ export const placeFancyBet = async (req, res) => {
       betId: activeBetId ? activeBetId.toString() : null, // Link to parent bet for settlement
       userId: id,
       userName: user.userName,
-      gameId,
+      gameId: effectiveGameId,
       sid,
       price: p,
       betAmount,
@@ -2953,41 +3110,31 @@ export const updateFancyBetResult = async (req, res) => {
               score = '200';
               console.log(` [MOCK API] Using test score: ${score}`);
             } else if (
-              (isProviderB || isProviderC || isProviderD) &&
-              bet.fancyId
+              bet.fancyId &&
+              (bet.betSource === 'providerC' ||
+                bet.betSource === 'providerD' ||
+                isProviderB ||
+                isProviderC ||
+                isProviderD)
             ) {
               try {
-                const fancyMarketId =
-                  bet.market_id?.includes('_')
-                    ? bet.market_id
-                    : `${bet.gameId}_${bet.fancyId}`;
-                console.log('[RESULT-API] ── SETTLE-FANCY bet ──');
-                console.log('[RESULT-API] betId:', bet._id);
-                console.log('[RESULT-API] gameId (eventId):', bet.gameId);
-                console.log('[RESULT-API] fancyId (selectionId):', bet.fancyId);
-                console.log('[RESULT-API] marketIds:', [String(fancyMarketId)]);
-                console.log('[RESULT-API] routing → POST /result/fancy');
-                const fancyResult = await apiFetchCricketFancyResult(
-                  bet.gameId,
-                  bet.fancyId
-                );
-
-                console.log(
-                  `[SETTLE-FANCY] Bet ${bet._id} response:`,
-                  JSON.stringify(fancyResult)
-                );
+                const { fancyResult, section, source } =
+                  await fetchFancyResultForBet(bet);
 
                 if (!fancyResult || fancyResult.result == null) {
                   console.log(
-                    `[SETTLE-FANCY] Bet ${bet._id} No result yet for fancyId=${bet.fancyId}`
+                    `[SETTLE-FANCY] SKIPPED betId=${bet._id} section=${section} provider=${source} — no result yet`
                   );
                   continue;
                 }
 
                 score = fancyResult.result;
+                console.log(
+                  `[SETTLE-FANCY] SETTLED betId=${bet._id} section=${section} provider=${source} score=${score}`
+                );
               } catch (err) {
                 console.error(
-                  `[SETTLE-FANCY] Bet ${bet._id} fancy result API failed:`,
+                  `[SETTLE-FANCY] FAILED betId=${bet._id} betSource=${bet.betSource}:`,
                   err.message
                 );
                 continue;

@@ -15,7 +15,7 @@
 // import { useDispatch, useSelector } from "react-redux";
 // import BetCard from './BetCard';
 // import { host } from '../../utils/axiosConfig';
-// import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
+// import { fetchCricketBatingData, fetchCricketPremiumFancy } from '../../features/sports/cricketSlice';
 // function Fullmarkett() {
 //   const dispatch = useDispatch();
 //   const { gameid } = useParams() || {};
@@ -389,7 +389,7 @@
 // import { useDispatch, useSelector } from "react-redux";
 // import BetCard from './BetCard';
 // import { host } from '../../utils/axiosConfig';
-// import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
+// import { fetchCricketBatingData, fetchCricketPremiumFancy } from '../../features/sports/cricketSlice';
 // import Spinner from '../../components/Spinner'
 // function Fullmarkett() {
 //   const dispatch = useDispatch();
@@ -723,13 +723,14 @@ import { getUser } from '../../features/auth/authSlice';
 import Matchodds from '../../components/leaguescomp/Matchodds';
 import Bookmakers from '../../components/leaguescomp/Bookmakers';
 import Fancybet from '../../components/leaguescomp/Fancybet';
+import PremiumFancy from '../../components/leaguescomp/PremiumFancy';
 import Sportbook from '../../components/leaguescomp/Sportbook';
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {createBet,createfancyBet,getPendingBetAmo,messageClear} from '../../features/sports/betReducer'
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
-import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
+import { fetchCricketBatingData, fetchCricketPremiumFancy } from '../../features/sports/cricketSlice';
 import Spinner from '../../components/Spinner';
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
@@ -740,6 +741,10 @@ import {
 } from '../../utils/sportsMediaUrls';
 import api from '../../utils/axiosConfig';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
+import {
+  mapPremiumFancyData,
+  parseBettingPayload,
+} from '../../utils/bettingPayloadUtils';
 
 // Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
 let lastBetToastKey = null;
@@ -761,6 +766,8 @@ function Fullmarkett() {
   const hasCheckedRef = useRef(false); // ✅ run only once
   const [selected, setSelected] = useState("Fancybet");
   const[isFacncyActive, setIsFancyActive] = useState(true);
+  const [premiumFancyData, setPremiumFancyData] = useState([]);
+  const [providerCGameId, setProviderCGameId] = useState(null);
   const [isLive, setIsLive] = useState(false);
   const [TiedOddSelected, setTiedOddSelected] = useState("odds");
 
@@ -791,7 +798,11 @@ function Fullmarkett() {
   const { loading, successMessage, errorMessage } = useSelector(
     (state) => state.bet
   );
-  const { battingData } = useSelector((state) => state.cricket);
+  const {
+    battingData,
+    premiumFancyData: cachedPremiumFancy,
+    providerCGameId: cachedProviderCGameId,
+  } = useSelector((state) => state.cricket);
   // console.log("betting data....",battingData)
   // console.log(battingData[0].section[0].nat)
   const { userInfo, user } = useSelector((state) => state.auth);
@@ -845,23 +856,21 @@ function Fullmarkett() {
       ) {
         return;
       }
-      const raw = message.data;
-      const markets = Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw?.data)
-          ? raw.data
-          : Array.isArray(raw?.result)
-            ? raw.result
-            : [];
-      if (markets.length > 0) {
-        setBettingData(markets);
+      const parsed = parseBettingPayload(message);
+      if (parsed.markets.length > 0) {
+        setBettingData(parsed.markets);
         if (!cancelled) setLoader(false);
       }
+      setPremiumFancyData(
+        mapPremiumFancyData(parsed.premiumFancy, gameid, parsed.providerCGameId)
+      );
+      setProviderCGameId(parsed.providerCGameId || gameid);
     });
 
     dispatch(fetchCricketBatingData(gameid)).finally(() => {
       if (!cancelled) setLoader(false);
     });
+    dispatch(fetchCricketPremiumFancy(gameid));
 
     return () => {
       cancelled = true;
@@ -873,7 +882,15 @@ function Fullmarkett() {
     if (Array.isArray(battingData) && battingData.length > 0) {
       setBettingData(battingData);
     }
-  }, [battingData]);
+    if (Array.isArray(cachedPremiumFancy)) {
+      setPremiumFancyData(
+        mapPremiumFancyData(cachedPremiumFancy, gameid, cachedProviderCGameId)
+      );
+    }
+    if (cachedProviderCGameId) {
+      setProviderCGameId(cachedProviderCGameId || gameid);
+    }
+  }, [battingData, cachedPremiumFancy, cachedProviderCGameId, gameid]);
 
   // ✅ Use socket data for all lists
   useEffect(() => {
@@ -1455,22 +1472,65 @@ const sportsbookData = Array.isArray(dataSource)
     setSelectedBetData(betData);
   };
 
+  const hasFancyData = Array.isArray(fancy1Data) && fancy1Data.length > 0;
+  const hasPremiumData =
+    Array.isArray(premiumFancyData) && premiumFancyData.length > 0;
+  const hasSportsbookData =
+    Array.isArray(sportsbookData) && sportsbookData.length > 0;
+  const showFancyPremiumSection =
+    hasFancyData || hasPremiumData || hasSportsbookData;
+
   let content;
   useEffect(() => {
-    if (Array.isArray(fancy1Data) && fancy1Data.length === 0 && sportsbookData.length > 0) {
-      setSelected("Sportbook");
-      setIsFancyActive(false);}
-    // } else if (Array.isArray(fancy1Data) && fancy1Data.length > 0) {
-    //   // Revert to Fancybet when data becomes available again (optional)
-    //   setSelected("Fancybet");
-    //   setIsFancyActive(true);
-    // }
-  }, [fancy1Data, sportsbookData.length]);
+    if (selected === "Fancybet" && !hasFancyData) {
+      if (hasPremiumData) setSelected("Premium");
+      else if (hasSportsbookData) setSelected("Sportbook");
+    } else if (selected === "Premium" && !hasPremiumData) {
+      if (hasFancyData) setSelected("Fancybet");
+      else if (hasSportsbookData) setSelected("Sportbook");
+    } else if (selected === "Sportbook" && !hasSportsbookData) {
+      if (hasFancyData) setSelected("Fancybet");
+      else if (hasPremiumData) setSelected("Premium");
+    }
+  }, [
+    hasFancyData,
+    hasPremiumData,
+    hasSportsbookData,
+    selected,
+  ]);
 
-  if (selected === "Fancybet") {
-    content = <Fancybet openBetSlip={openBetSlip} fancy1Data={fancy1Data} gameid={gameid} match={match} sportSid={4} gameName="Cricket Game" />;
-  } else if (selected === "Sportbook") {
-    content = <Sportbook openBetSlip={openBetSlip} oddevenData={sportsbookData} gameid={gameid} match={match} />;
+  if (selected === "Fancybet" && hasFancyData) {
+    content = (
+      <Fancybet
+        openBetSlip={openBetSlip}
+        fancy1Data={fancy1Data}
+        gameid={gameid}
+        match={match}
+        sportSid={4}
+        gameName="Cricket Game"
+      />
+    );
+  } else if (selected === "Premium" && hasPremiumData) {
+    content = (
+      <PremiumFancy
+        openBetSlip={openBetSlip}
+        premiumFancyData={premiumFancyData}
+        gameid={gameid}
+        match={match}
+        sportSid={4}
+        gameName="Cricket Game"
+        providerCGameId={providerCGameId}
+      />
+    );
+  } else if (selected === "Sportbook" && hasSportsbookData) {
+    content = (
+      <Sportbook
+        openBetSlip={openBetSlip}
+        oddevenData={sportsbookData}
+        gameid={gameid}
+        match={match}
+      />
+    );
   }
   const team1 = dataSource?.[0]?.runners?.[0]?.name || "";
   const team2 = dataSource?.[0]?.runners?.[1]?.name || "";
@@ -1480,6 +1540,7 @@ const sportsbookData = Array.isArray(dataSource)
     (matchOddsList.length > 0 ||
       BookmakerList.length > 0 ||
       fancy1Data.length > 0 ||
+      premiumFancyData.length > 0 ||
       sportsbookData.length > 0);
   const showPageLoader = loader && !hasMarketData;
 
@@ -1548,30 +1609,53 @@ const sportsbookData = Array.isArray(dataSource)
               {BookmakerList.length > 0 && (
                 <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
               )}
-              {/* Fancybet & sportsbook Section */}
-              
-              {(fancy1Data.length > 0 || sportsbookData.length > 0) && (
-                <>
-                  <div className='bg-[#222424] p-2 flex  items-center'>
-                    {fancy1Data.length > 0 && (
-                      <div className={`rounded-sm p-1 text-white ${isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
-                        onClick={() => {
-                          setSelected("Fancybet");
-                          setIsFancyActive(true);
-                        }}
-                      >Fancybet</div>
-                    )}
-                    {sportsbookData.length > 0 && (
-                      <div className={`rounded-sm text-white ${!isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
-                        onClick={() => {
-                          setSelected("Sportbook");
-                          setIsFancyActive(false);
-                        }}
-                      >Sportbook</div>
-                    )}
+              {showFancyPremiumSection && (
+              <div className="pb-2">
+                <div className="bg-[#222424] p-2 flex items-center gap-2">
+                  {hasFancyData && (
+                  <div
+                    className={`rounded-sm p-1 text-white cursor-pointer ${
+                      selected === "Fancybet" ? "bg-[#17934e]" : "bg-transparent"
+                    }`}
+                    onClick={() => {
+                      setSelected("Fancybet");
+                      setIsFancyActive(true);
+                    }}
+                  >
+                    Fancybet
                   </div>
-                  {content}
-                </>
+                  )}
+                  {hasPremiumData && (
+                  <div
+                    className={`rounded-sm p-1 text-white cursor-pointer ${
+                      selected === "Premium" ? "bg-[#d4a017]" : "bg-transparent"
+                    }`}
+                    onClick={() => {
+                      setSelected("Premium");
+                      setIsFancyActive(false);
+                    }}
+                  >
+                    Premium
+                  </div>
+                  )}
+                  {hasSportsbookData && (
+                    <div
+                      className={`rounded-sm p-1 text-white cursor-pointer ${
+                        selected === "Sportbook"
+                          ? "bg-[#17934e]"
+                          : "bg-transparent"
+                      }`}
+                      onClick={() => {
+                        setSelected("Sportbook");
+                        setIsFancyActive(false);
+                      }}
+                    >
+                      Sportbook
+                    </div>
+                  )}
+                </div>
+                {content}
+              </div>
               )}
             </div>
           </div>

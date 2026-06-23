@@ -13,6 +13,7 @@ import { getCurrentBetCount } from '../../features/sports/betReducer';
 import { fetchCricketData } from '../../features/sports/cricketSlice';
 import { fetchSoccerData } from '../../features/sports/soccerSlice';
 import { fetchTennisData } from '../../features/sports/tennisSlice';
+import { isMatchInPlay } from '../../utils/sportMatchFilters';
 import { BiSolidCricketBall, BiSolidTennisBall } from 'react-icons/bi';
 import { GiSoccerBall } from 'react-icons/gi';
 import { casinoData } from '../casinocomp/data/CasinoData';
@@ -37,10 +38,16 @@ function MobNavbar({ closeMenu }) {
   const [openDropdown, setOpenDropdown] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchCricketData());
-    dispatch(fetchSoccerData());
-    dispatch(fetchTennisData());
-  }, [dispatch]);
+    if (!Array.isArray(cricketMatches) || cricketMatches.length === 0) {
+      dispatch(fetchCricketData({ withOdds: true, oddsScope: "eligible" }));
+    }
+    if (!Array.isArray(soccerMatches) || soccerMatches.length === 0) {
+      dispatch(fetchSoccerData({ withOdds: true, oddsScope: "eligible" }));
+    }
+    if (!Array.isArray(tennisMatches) || tennisMatches.length === 0) {
+      dispatch(fetchTennisData({ withOdds: true, oddsScope: "eligible" }));
+    }
+  }, [dispatch, cricketMatches, soccerMatches, tennisMatches]);
   const getProviders = (gameType) => {
     const providers = Object.entries(casinoData.providers)
       .filter(([_, games]) =>
@@ -61,9 +68,9 @@ function MobNavbar({ closeMenu }) {
   const soccerLeagues = getLeagues(soccerMatches);
   const tennisLeagues = getLeagues(tennisMatches);
 
-  const cricketInplayCount = Array.isArray(cricketMatches) ? cricketMatches.filter(m => m.inplay).length : 0;
-  const soccerInplayCount = Array.isArray(soccerMatches) ? soccerMatches.filter(m => m.inplay).length : 0;
-  const tennisInplayCount = Array.isArray(tennisMatches) ? tennisMatches.filter(m => m.inplay).length : 0;
+  const cricketInplayCount = Array.isArray(cricketMatches) ? cricketMatches.filter(m => isMatchInPlay(m, 'cricket')).length : 0;
+  const soccerInplayCount = Array.isArray(soccerMatches) ? soccerMatches.filter(m => isMatchInPlay(m, 'soccer')).length : 0;
+  const tennisInplayCount = Array.isArray(tennisMatches) ? tennisMatches.filter(m => isMatchInPlay(m, 'tennis')).length : 0;
 
   const data = [
     { label: "Cricket", icon: cricketColor, sportType: "Cricket", sportPath: "/cricket", subItems: cricketLeagues, badge: cricketInplayCount > 0 ? cricketInplayCount : undefined },
@@ -123,7 +130,19 @@ function MobNavbar({ closeMenu }) {
   };
 
   return (
-      <ul className="px-5 py-3 space-y-2">
+    <div className="flex flex-col h-full">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-[#141515]">
+        <span className="text-sm font-semibold text-white">Menu</span>
+        <button
+          type="button"
+          onClick={closeMenu}
+          aria-label="Close menu"
+          className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-[#303232] transition-colors"
+        >
+          <IoClose className="text-2xl" />
+        </button>
+      </div>
+      <ul className="px-5 py-3 space-y-2 flex-1">
         {data.map((item, i) => (
           <React.Fragment key={i}>
             <li
@@ -170,6 +189,7 @@ function MobNavbar({ closeMenu }) {
           </React.Fragment>
         ))}
       </ul>
+    </div>
   );
 }
 

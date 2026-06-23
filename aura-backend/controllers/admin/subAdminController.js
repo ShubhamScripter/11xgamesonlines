@@ -340,9 +340,9 @@ export const createSubAdmin = async (req, res) => {
     /**
      * Parent selection rules:
      * - admin can only create under self
-     * - superadmin can create:
-     *   - admin under self (top-level)
-     *   - user under ANY downline admin (so user attaches under that admin)
+     * - superadmin can only create end users:
+     *   - directly under self (top-level)
+     *   - or under an admin in superadmin's downline
      */
     if (req.role === 'admin' && String(req.id) !== String(id)) {
       return res.status(403).json({
@@ -350,24 +350,19 @@ export const createSubAdmin = async (req, res) => {
       });
     }
     if (req.role === 'superadmin') {
-      const creatingAdmin = accountType === 'admin';
-      const creatingUser = accountType === 'user';
-
-      if (creatingAdmin && String(req.id) !== String(id)) {
+      if (accountType !== 'user') {
         return res.status(403).json({
-          message: 'You can only create admin under your own profile.',
+          message: 'Superadmin can only create user accounts.',
         });
       }
 
-      if (creatingUser) {
-        // user must be created under an admin node (as requested)
-        if (parent.role !== 'admin') {
-          return res.status(403).json({
-            message: 'Superadmin can create user only under an admin node.',
-          });
+      const creatingUnderSelf = String(req.id) === String(id);
+      if (creatingUnderSelf) {
+        if (parent.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Unauthorized.' });
         }
-
-        const superSelf = await SubAdmin.findById(req.id).select('code role status');
+      } else if (parent.role === 'admin') {
+        const superSelf = await SubAdmin.findById(req.id);
         if (!superSelf || superSelf.role !== 'superadmin') {
           return res.status(403).json({ message: 'Unauthorized.' });
         }
@@ -377,13 +372,16 @@ export const createSubAdmin = async (req, res) => {
             message: 'Selected parent admin is not in your downline.',
           });
         }
+      } else {
+        return res.status(403).json({
+          message:
+            'Users must be created under superadmin or an admin in your downline.',
+        });
       }
     }
 
     const roleHierarchy = {
-      // Requested: superadmin can create both admin and user
-      superadmin: ['admin', 'user'],
-      // Requested: admin can create user
+      superadmin: ['user'],
       admin: ['user'],
       subadmin: ['seniorSuper'],
       seniorSuper: ['superAgent'],

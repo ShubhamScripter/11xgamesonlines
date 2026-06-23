@@ -2,36 +2,36 @@ import React from 'react';
 import SlickSlider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
-import Img1 from "../../assets/sliderimg/image_241615.jpg";
-import Img2 from "../../assets/sliderimg/image_241703.jpg";
+import Img1 from '../../assets/sliderimg/image_241615.jpg';
+import Img2 from '../../assets/sliderimg/image_241703.jpg';
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from 'react-icons/md';
+import './Slider.css';
 
-const banner = [
-  Img1,
-  Img2
-];
-const Slider = ({sidebarOpen}) =>{
-   const PrevArrow = ({ onClick }) => {
-    return (
-      <div
-        className={`absolute  ${sidebarOpen ? "left-[4%]":"left-[10%]"} top-1/2 z-1 transform -translate-y-1/2 bg-gray-800 text-white w-8 h-8 flex justify-center items-center rounded-[3px] cursor-pointer`}
-        onClick={onClick}
-      >
-        <MdKeyboardArrowLeft size={22}/>
-      </div>
-    );
-  };
-  const NextArrow = ({ onClick }) => {
-    return (
-      <div
-        className={`absolute ${sidebarOpen ? "right-[4%]":"right-[10%]"} top-1/2 transform -translate-y-1/2 bg-gray-800 text-white w-8 h-8 flex justify-center items-center rounded-[3px] cursor-pointer`}
-        onClick={onClick}
-      >
-        <MdKeyboardArrowRight size={22}/>
-      </div>
-    );
-  };
- 
+const banner = [Img1, Img2];
+
+const Slider = () => {
+  const PrevArrow = ({ onClick }) => (
+    <button
+      type="button"
+      aria-label="Previous slide"
+      className="home-slider-arrow home-slider-arrow--prev"
+      onClick={onClick}
+    >
+      <MdKeyboardArrowLeft size={22} />
+    </button>
+  );
+
+  const NextArrow = ({ onClick }) => (
+    <button
+      type="button"
+      aria-label="Next slide"
+      className="home-slider-arrow home-slider-arrow--next"
+      onClick={onClick}
+    >
+      <MdKeyboardArrowRight size={22} />
+    </button>
+  );
+
   const sliderSettings = {
     dots: false,
     infinite: true,
@@ -40,20 +40,27 @@ const Slider = ({sidebarOpen}) =>{
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 3000,
-    arrows: true, 
+    arrows: true,
     nextArrow: <NextArrow />,
     prevArrow: <PrevArrow />,
   };
 
   return (
-    <div className="w-full">
+    <div className="home-slider">
       <SlickSlider {...sliderSettings}>
         {banner.map((item, i) => (
-          <img key={i} src={item} alt="banner" className="object-cover h-[200px] w-full block" />
+          <div key={i} className="home-slider-slide">
+            <img
+              src={item}
+              alt=""
+              className="home-slider-image"
+              draggable={false}
+            />
+          </div>
         ))}
       </SlickSlider>
     </div>
-  )
-}
+  );
+};
 
 export default Slider;

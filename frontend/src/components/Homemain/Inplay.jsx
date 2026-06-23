@@ -9,17 +9,24 @@ const bannerImages = {
   All: banner1,
   Cricket: banner2,
   Soccer: banner3,
-  Tennis: banner4
+  Tennis: banner4,
+};
+
+const SPORT_PATHS = {
+  All: '/cricket',
+  Cricket: '/cricket',
+  Soccer: '/football',
+  Tennis: '/tennis',
 };
 
 function Inplay({ data }) {
   const navigate = useNavigate();
 
   const banners = [
-    { name: "All", total: data.all.length },
-    { name: "Cricket", total: data.cricket.length },
-    { name: "Soccer", total: data.soccer.length },
-    { name: "Tennis", total: data.tennis.length },
+    { name: 'All', total: data.all.length },
+    { name: 'Cricket', total: data.cricket.length },
+    { name: 'Soccer', total: data.soccer.length },
+    { name: 'Tennis', total: data.tennis.length },
   ];
 
   return (
@@ -30,7 +37,7 @@ function Inplay({ data }) {
           className="w-full h-30 bg-cover bg-center rounded-xl mb-3 relative overflow-hidden shadow-2xl"
           style={{ backgroundImage: `url(${bannerImages[banner.name]})` }}
           onClick={() =>
-            navigate('/sports', { state: { filter: banner.name, active: "InPlay" } })
+            navigate(SPORT_PATHS[banner.name], { state: { active: 'All' } })
           }
         >
           <div className="flex flex-col p-3">

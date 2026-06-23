@@ -1,65 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchTennisData } from '../../features/sports/tennisSlice';
-import MatchListSection from '../../components/sports/MatchListSection';
+import { useLocation } from 'react-router-dom';
 import SportsListLoading from '../../components/sports/SportsListLoading';
+import SportDateFilter from '../../components/sports/SportDateFilter';
+import SportListBody from '../../components/sports/SportListBody';
 import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
+import useProgressiveSportList from '../../hooks/useProgressiveSportList';
+import {
+  buildSportListSections,
+  filterMatchesByDateTab,
+  isValidListMatch,
+  resolveInitialDateTab,
+  SPORT_DATE_TABS,
+} from '../../utils/sportMatchFilters';
 
-function Tennis({ activeTab }) {
+const SPORT = 'tennis';
+
+function Tennis() {
   const dispatch = useDispatch();
   const location = useLocation();
 
-  const { data, loading } = useSelector((state) => state.tennis);
+  const { data: tennisData, loading: tennisLoading } = useSelector(
+    (state) => state.tennis || {}
+  );
   const [openIndexes, setOpenIndexes] = useState([0]);
-
-  const selectedLeague = location.state?.selectedLeague;
-  const sourceMatches = data ?? [];
-
-  const filteredMatches = (Array.isArray(sourceMatches) ? sourceMatches : []).filter(
-    (match) => {
-      const isMatch =
-        match.match.toLowerCase().includes(' v ') ||
-        match.match.toLowerCase().includes(' vs ') ||
-        match.match.includes(' - ');
-
-      if (!isMatch) return false;
-
-      if (selectedLeague && match.title !== selectedLeague) {
-        return false;
-      }
-
-      const matchDate = new Date(match.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const isInplay = match.inplay === true || match.iplay === true;
-
-      if (activeTab === 'InPlay') {
-        return isInplay;
-      }
-      if (activeTab === 'Today') {
-        return matchDate.toDateString() === today.toDateString();
-      }
-      if (activeTab === 'Tomorrow') {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        return matchDate.toDateString() === tomorrow.toDateString();
-      }
-      return true;
-    }
+  const [activeTab, setActiveTab] = useState(() =>
+    resolveInitialDateTab(location.state)
   );
 
-  const groupedMatches = filteredMatches.reduce((acc, match) => {
-    const title = match.title || 'Tennis';
-    if (!acc[title]) acc[title] = [];
-    acc[title].push(match);
-    return acc;
-  }, {});
+  const selectedLeague = location.state?.selectedLeague;
+  const sourceMatches = tennisData ?? [];
 
-  const groupedArray = Object.keys(groupedMatches).map((title) => ({
-    title,
-    matches: groupedMatches[title],
-  }));
+  useEffect(() => {
+    if (location.state?.active) {
+      setActiveTab(resolveInitialDateTab(location.state));
+    }
+  }, [location.state?.active]);
+
+  const tabCounts = useMemo(() => {
+    const base = sourceMatches.filter((m) => {
+      if (!isValidListMatch(m)) return false;
+      if (selectedLeague && m.title !== selectedLeague) return false;
+      return true;
+    });
+    return SPORT_DATE_TABS.reduce((acc, { id }) => {
+      acc[id] = filterMatchesByDateTab(base, id, SPORT).length;
+      return acc;
+    }, {});
+  }, [sourceMatches, selectedLeague]);
+
+  const groupedArray = useMemo(() => {
+    const byTab = filterMatchesByDateTab(sourceMatches, activeTab, SPORT);
+    const scoped = selectedLeague
+      ? byTab.filter((match) => match.title === selectedLeague)
+      : byTab;
+    return buildSportListSections(scoped, { activeTab, sport: SPORT });
+  }, [sourceMatches, activeTab, selectedLeague]);
+
+  const { visibleSections, hasMore, shownRest, totalRest } =
+    useProgressiveSportList(groupedArray, activeTab);
 
   const handleToggle = (idx) => {
     setOpenIndexes((prev) =>
@@ -68,24 +68,31 @@ function Tennis({ activeTab }) {
   };
 
   useEffect(() => {
-    if (groupedArray.length > 0) {
-      setOpenIndexes(groupedArray.map((_, i) => i));
+    if (visibleSections.length > 0) {
+      setOpenIndexes(visibleSections.map((_, i) => i));
     }
-  }, [groupedArray.length]);
+  }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchTennisData());
+    dispatch(fetchTennisData({ withOdds: true, oddsScope: 'all' }));
   }, [dispatch]);
 
   const sportMeta = SPORT_LIST_META.tennis;
-  const showLeagueHeaders = groupedArray.length > 1;
+  const showLeagueHeaders =
+    visibleSections.length > 1 ||
+    (visibleSections.length === 1 && !visibleSections[0]?.isLiveSection);
 
-  if (loading && sourceMatches.length === 0) {
+  if (tennisLoading && sourceMatches.length === 0) {
     return <SportsListLoading message="Loading tennis matches..." />;
   }
 
   return (
     <div className="min-h-screen pb-6 w-full">
+      <SportDateFilter
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        counts={tabCounts}
+      />
       <div className="w-full">
         <div className="overflow-hidden rounded-none sm:rounded-lg border-y sm:border border-[#2a313a] bg-[#0b0e11] shadow-sm">
           {groupedArray.length === 0 ? (
@@ -93,23 +100,27 @@ function Tennis({ activeTab }) {
               {sportMeta.emptyMessage}
             </p>
           ) : (
-            groupedArray.map((comp, idx) => (
-              <MatchListSection
-                key={comp.title || idx}
-                title={comp.title}
-                matches={comp.matches}
-                sportType="tennis"
-                isOpen={openIndexes.includes(idx)}
-                onToggle={() => handleToggle(idx)}
-                showLeagueHeader={showLeagueHeaders}
-                hideOdds
-              />
-            ))
+            <SportListBody
+              sections={visibleSections}
+              sportType="tennis"
+              openIndexes={openIndexes}
+              onToggle={handleToggle}
+              showLeagueHeaders={showLeagueHeaders}
+              hasMore={hasMore}
+              shownRest={shownRest}
+              totalRest={totalRest}
+            />
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function sectionSignatureFrom(sections) {
+  return (sections || [])
+    .map((s) => `${s.title}:${s.matches?.length ?? 0}`)
+    .join('|');
 }
 
 export default Tennis;

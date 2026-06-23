@@ -95,6 +95,10 @@ const betSchema = new mongoose.Schema(
     market_id: {
       type: String,
     },
+    betSource: {
+      type: String,
+      default: 'active',
+    },
     // True if this bet was auto-placed as a cashout hedge (counter-bet)
     isCashoutHedge: {
       type: Boolean,

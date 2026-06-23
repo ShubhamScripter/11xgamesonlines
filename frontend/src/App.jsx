@@ -83,9 +83,9 @@ function App() {
 
               <Route path="/sports/fullmarket1" element={<Fullmarket1 />} />
               <Route path="/fullmarket" element={<Fullmarket />} /> */}
-              <Route path="/cricket" element={<Cricket activeTab="All" />} />
-              <Route path="/football" element={<Soccer activeTab="All" />} />
-              <Route path="/tennis" element={<Tennis activeTab="All" />} />
+              <Route path="/cricket" element={<Cricket />} />
+              <Route path="/football" element={<Soccer />} />
+              <Route path="/tennis" element={<Tennis />} />
               <Route path="/casino/:category/:provider" element={<CasinoProvider key={location.pathname} />} />
               <Route path="/sponsorships" element={<Sponsorships />} />
               <Route path="/sponsorships/:slug" element={<SponsorshipDetail />} />

@@ -13,6 +13,7 @@ import {
 } from '../bsettleResultService.js';
 import {
   applyDefaultMarketLimits,
+  applyMatchOddsToListMatch,
   chunkArray,
   collectResultMarketIds,
   enrichFancyMarketsWithEventId,
@@ -25,6 +26,7 @@ import {
   normalizeMarketResultResponse,
   normalizeMatchName,
   parseFancyBookmakerPayload,
+  pickFeaturedOddsTargets,
 } from './providerDHelpers.js';
 
 dotenv.config();
@@ -147,13 +149,17 @@ export function createProviderD() {
     const books = new Map();
 
     for (const chunk of chunkArray(ids, LIST_MARKET_BOOK_MAX)) {
-      const res = await betfairPost('/betfair/listMarketBook', {
-        marketIds: chunk,
-      });
-      const normalized = normalizeBetfairStatusResponse(res);
-      const list = extractBetfairArray(normalized.data ?? normalized);
-      for (const book of list) {
-        if (book?.marketId) books.set(String(book.marketId), book);
+      try {
+        const res = await betfairPost('/betfair/listMarketBook', {
+          marketIds: chunk,
+        });
+        const normalized = normalizeBetfairStatusResponse(res);
+        const list = extractBetfairArray(normalized.data ?? normalized);
+        for (const book of list) {
+          if (book?.marketId) books.set(String(book.marketId), book);
+        }
+      } catch (err) {
+        console.warn('[ProviderD] listMarketBook chunk failed:', err.message);
       }
     }
 
@@ -217,6 +223,131 @@ export function createProviderD() {
     ]).map(applyDefaultMarketLimits);
 
     return { success: true, data: merged };
+  };
+
+  /** Started matches only — listMarketBook inplay flag (no odds on list page). */
+  const enrichListMatchesWithInplay = async (matches) => {
+    const now = Date.now();
+    const startedWindowMs = 6 * 60 * 60 * 1000;
+
+    const candidates = matches.filter((m) => {
+      const startMs = new Date(m.stime || 0).getTime();
+      if (!Number.isFinite(startMs) || !startMs) return false;
+      return startMs <= now && now - startMs <= startedWindowMs;
+    });
+
+    if (!candidates.length) return matches;
+
+    const eventToMarketId = new Map();
+
+    await mapPool(
+      candidates,
+      async (match) => {
+        try {
+          const eventId = String(match.gmid);
+          const metaList = extractBetfairArray(
+            await betfairGet(`/betfair/market-all-list/${eventId}`)
+          );
+          const matchOddsMeta = metaList.find((m) =>
+            String(m.marketName || '')
+              .toLowerCase()
+              .includes('match odds')
+          );
+          if (matchOddsMeta?.marketId) {
+            eventToMarketId.set(eventId, String(matchOddsMeta.marketId));
+          }
+        } catch {
+          // keep default inplay false
+        }
+      },
+      2
+    );
+
+    const marketIds = [...new Set(eventToMarketId.values())];
+    if (!marketIds.length) return matches;
+
+    const books = await fetchMarketBooksBulk(marketIds);
+    const inplayByEvent = new Map();
+
+    for (const [eventId, marketId] of eventToMarketId) {
+      const book = books.get(marketId);
+      if (!book) continue;
+      inplayByEvent.set(eventId, {
+        iplay: Boolean(book.inplay),
+        inplay: Boolean(book.inplay),
+        status: book.status || 'OPEN',
+      });
+    }
+
+    return matches.map((m) => {
+      const patch = inplayByEvent.get(String(m.gmid));
+      return patch ? { ...m, ...patch } : m;
+    });
+  };
+
+  const mergeInplayAndOddsLists = (baseList, inplayList, oddsList) => {
+    const byId = new Map(inplayList.map((m) => [String(m.gmid), m]));
+    for (const m of oddsList) {
+      const id = String(m.gmid);
+      const base = byId.get(id) || {};
+      byId.set(id, {
+        ...base,
+        ...m,
+        inplay: Boolean(m.inplay ?? m.iplay ?? base.inplay ?? base.iplay),
+        iplay: Boolean(m.iplay ?? m.inplay ?? base.iplay ?? base.inplay),
+      });
+    }
+    return baseList.map((m) => byId.get(String(m.gmid)) || m);
+  };
+
+  /** Match Odds back/lay preview for list pages (batched listMarketBook). */
+  const enrichListMatchesWithOdds = async (matches) => {
+    const eventMeta = new Map();
+
+    await mapPool(
+      matches,
+      async (match) => {
+        try {
+          const eventId = String(match.gmid);
+          const metaList = extractBetfairArray(
+            await betfairGet(`/betfair/market-all-list/${eventId}`)
+          );
+          const matchOddsMeta = metaList.find((m) =>
+            String(m.marketName || '')
+              .toLowerCase()
+              .includes('match odds')
+          );
+          if (matchOddsMeta?.marketId) {
+            eventMeta.set(eventId, {
+              marketId: String(matchOddsMeta.marketId),
+              runners: matchOddsMeta.runners || [],
+            });
+          }
+        } catch {
+          // keep match without odds
+        }
+      },
+      5
+    );
+
+    const marketIds = [...eventMeta.values()].map((v) => v.marketId);
+    if (!marketIds.length) return matches;
+
+    let books;
+    try {
+      books = await fetchMarketBooksBulk(marketIds);
+    } catch (err) {
+      console.warn('[ProviderD] listMarketBook bulk failed:', err.message);
+      return matches;
+    }
+
+    return matches.map((m) => {
+      const meta = eventMeta.get(String(m.gmid));
+      if (!meta) return m;
+      const book = books.get(meta.marketId);
+      if (!book) return m;
+      return applyMatchOddsToListMatch(m, book, meta.runners);
+    });
   };
 
   const resolveMarketIdForResult = async (payload, sportId) => {
@@ -290,9 +421,10 @@ export function createProviderD() {
       return normalizeBetfairStatusResponse(data);
     },
 
-    /** Match list via competition-list → event-list (odds load on full market page only) */
-    async fetchMatchList(sportId) {
+    /** Match list via competition-list → event-list (+ optional Match Odds preview) */
+    async fetchMatchList(sportId, options = {}) {
       ensureConfig();
+      const includeOdds = options?.includeOdds === true;
       const events = await fetchAllEventsForSport(sportId);
       let matches = events.map(({ event, competitionName }) =>
         normalizeEventToListMatch({ event }, competitionName)
@@ -302,6 +434,31 @@ export function createProviderD() {
       matches.sort(
         (a, b) => new Date(a.stime || 0) - new Date(b.stime || 0)
       );
+
+      if (includeOdds) {
+        try {
+          const oddsScope =
+            options?.oddsScope === 'eligible' ? 'eligible' : 'all';
+          const targets =
+            oddsScope === 'eligible'
+              ? pickFeaturedOddsTargets(matches)
+              : matches;
+          const [withInplay, withOdds] = await Promise.all([
+            enrichListMatchesWithInplay(matches),
+            enrichListMatchesWithOdds(targets),
+          ]);
+
+          matches = mergeInplayAndOddsLists(matches, withInplay, withOdds);
+        } catch (err) {
+          console.warn(
+            '[ProviderD] odds enrichment failed, returning list only:',
+            err.message
+          );
+          matches = await enrichListMatchesWithInplay(matches);
+        }
+      } else {
+        matches = await enrichListMatchesWithInplay(matches);
+      }
 
       return {
         success: true,

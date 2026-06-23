@@ -1,21 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
 import api from "../../utils/axiosConfig";
-
-// Async thunk to fetch cricket data
+import {
+  applySportListPayload,
+  packSportFetchResult,
+} from "../../utils/sportListMerge";
+import { parseInPlayFlag } from "../../utils/sportMatchFilters";
+import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
 
 const normalizeCricketMatches = (matches) => {
   if (!Array.isArray(matches)) return [];
   return matches.map((m) => ({
     ...m,
-    // League/group title for UI grouping (Cricket.jsx groups by `match.title`)
-    title: m?.title ?? m?.cname ?? m?.leagueName ?? m?.competition ?? "Unknown League",
-    // Ensure the UI has a stable id/match name (Cricket.jsx uses `match.id` and `match.match`)
+    title:
+      m?.title ?? m?.cname ?? m?.leagueName ?? m?.competition ?? "Unknown League",
     id: m?.id ?? m?.gmid ?? m?.eventId ?? m?.gameId,
     match: m?.match ?? m?.ename ?? m?.eventName ?? m?.name ?? "",
-    // Normalize inplay flag naming
-    inplay: m?.inplay ?? m?.iplay ?? false,
-    // Normalize date string field for Today/Tomorrow filtering (Cricket.jsx uses `match.date`)
+    inplay: parseInPlayFlag(m),
+    iplay: parseInPlayFlag(m),
     date: m?.date ?? m?.stime ?? m?.startTime ?? m?.start_date ?? null,
   }));
 };
@@ -24,25 +25,61 @@ let cricketMatchesPromise = null;
 
 export const fetchCricketData = createAsyncThunk(
   "cricket/fetchCricketData",
-  async (_, { rejectWithValue, getState }) => {
+  async (arg, { rejectWithValue, getState }) => {
+    const force = arg?.force === true;
+    const withOdds = arg?.withOdds === true;
+    const oddsScope = arg?.oddsScope === "eligible" ? "eligible" : "all";
     try {
       const state = getState();
       const existing = state?.cricket?.matches;
-      if (Array.isArray(existing) && existing.length > 0) {
-        return existing;
+      const hasOdds = state?.cricket?.matchesHaveOdds === true;
+      const scopeOk = state?.cricket?.matchesOddsScope === oddsScope;
+
+      if (!force && Array.isArray(existing) && existing.length > 0) {
+        const needOddsFetch = withOdds && (!hasOdds || !scopeOk);
+        if (!needOddsFetch) {
+          return {
+            matches: existing,
+            matchesHaveOdds: hasOdds,
+            matchesOddsScope: state?.cricket?.matchesOddsScope || null,
+          };
+        }
       }
 
-      if (cricketMatchesPromise) {
-        return await cricketMatchesPromise;
+      const query = withOdds ? `?withOdds=true&oddsScope=${oddsScope}` : "";
+      const requestKey = withOdds ? `odds-${oddsScope}` : "list";
+
+      if (cricketMatchesPromise?.key === requestKey) {
+        const result = await cricketMatchesPromise.promise;
+        const matches = Array.isArray(result) ? result : result?.matches ?? [];
+        return packSportFetchResult(matches, withOdds ? oddsScope : null);
       }
 
-      cricketMatchesPromise = api
-        .get("/cricket/matches")
-        .then((response) => normalizeCricketMatches(response.data.matches));
+      cricketMatchesPromise = {
+        key: requestKey,
+        promise: api
+          .get(`/cricket/matches${query}`)
+          .then((response) => normalizeCricketMatches(response.data.matches)),
+      };
 
-      const result = await cricketMatchesPromise;
-      return result;
+      const result = await cricketMatchesPromise.promise;
+      return packSportFetchResult(result, withOdds ? oddsScope : null);
     } catch (error) {
+      if (withOdds) {
+        try {
+          const response = await api.get("/cricket/matches");
+          const matches = normalizeCricketMatches(response.data.matches);
+          if (matches.length > 0) {
+            return {
+              matches,
+              matchesHaveOdds: false,
+              matchesOddsScope: null,
+            };
+          }
+        } catch {
+          // fall through
+        }
+      }
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch matches"
       );
@@ -67,17 +104,20 @@ export const fetchCricketInplayData = createAsyncThunk(
         return matchesExisting.filter((m) => m?.inplay === true);
       }
 
-      // If another component already started the cricket fetch, reuse it.
-      if (cricketMatchesPromise) {
-        const matches = await cricketMatchesPromise;
-        return matches.filter((m) => m?.inplay === true);
+      if (cricketMatchesPromise?.promise) {
+        const matches = await cricketMatchesPromise.promise;
+        const list = Array.isArray(matches) ? matches : matches?.matches ?? [];
+        return list.filter((m) => m?.inplay === true);
       }
 
-      cricketMatchesPromise = api
-        .get("/cricket/matches")
-        .then((response) => normalizeCricketMatches(response.data.matches));
+      cricketMatchesPromise = {
+        key: "list",
+        promise: api
+          .get("/cricket/matches")
+          .then((response) => normalizeCricketMatches(response.data.matches)),
+      };
 
-      const matches = await cricketMatchesPromise;
+      const matches = await cricketMatchesPromise.promise;
       return matches.filter((m) => m?.inplay === true);
     } catch (error) {
       return rejectWithValue(
@@ -90,11 +130,8 @@ export const fetchCricketInplayData = createAsyncThunk(
 );
 
 const normalizeBettingMarkets = (payload) => {
-  const data = payload?.data ?? payload;
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.result)) return data.result;
-  return [];
+  const parsed = parseBettingPayload(payload);
+  return parsed.markets ?? [];
 };
 
 export const fetchCricketBatingData = createAsyncThunk(
@@ -111,17 +148,49 @@ export const fetchCricketBatingData = createAsyncThunk(
   }
 );
 
-// Slice
+export const fetchCricketPremiumFancy = createAsyncThunk(
+  "cricket/fetchCricketPremiumFancy",
+  async (gameid, { rejectWithValue }) => {
+    try {
+      const response = await api.get(
+        `/cricket/premium-fancy?gameid=${gameid}`
+      );
+      const data = response.data?.data ?? response.data ?? {};
+      return {
+        premiumFancy: Array.isArray(data.premiumFancy) ? data.premiumFancy : [],
+        providerCGameId: data.providerCGameId ?? String(gameid),
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch premium fancy"
+      );
+    }
+  }
+);
+
 const cricketSlice = createSlice({
   name: "cricket",
   initialState: {
     matches: [],
     inplayMatches: [],
     battingData: [],
+    premiumFancyData: [],
+    providerCGameId: null,
+    matchesHaveOdds: false,
+    matchesOddsScope: null,
     loader: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    hydrateCricketList(state, action) {
+      const { matches, matchesHaveOdds, matchesOddsScope } = action.payload || {};
+      if (!Array.isArray(matches) || matches.length === 0) return;
+      state.matches = matches;
+      state.matchesHaveOdds = Boolean(matchesHaveOdds);
+      state.matchesOddsScope = matchesOddsScope ?? null;
+      state.loader = false;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCricketData.pending, (state) => {
@@ -130,7 +199,7 @@ const cricketSlice = createSlice({
       })
       .addCase(fetchCricketData.fulfilled, (state, action) => {
         state.loader = false;
-        state.matches = action.payload;
+        applySportListPayload(state, action.payload, "matches");
       })
       .addCase(fetchCricketData.rejected, (state, action) => {
         state.loader = false;
@@ -149,13 +218,18 @@ const cricketSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(fetchCricketBatingData.fulfilled, (state, action) => {
-        state.battingData = action.payload;
+        state.battingData = Array.isArray(action.payload) ? action.payload : [];
         state.error = null;
       })
       .addCase(fetchCricketBatingData.rejected, (state, action) => {
         state.error = action.payload;
+      })
+      .addCase(fetchCricketPremiumFancy.fulfilled, (state, action) => {
+        state.premiumFancyData = action.payload?.premiumFancy ?? [];
+        state.providerCGameId = action.payload?.providerCGameId ?? null;
       });
   },
 });
 
 export default cricketSlice.reducer;
+export const { hydrateCricketList } = cricketSlice.actions;

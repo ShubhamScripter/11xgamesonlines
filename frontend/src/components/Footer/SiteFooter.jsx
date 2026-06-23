@@ -30,7 +30,6 @@ const FOOTER_COLUMNS = [
       { label: "Balance Overview", path: "/user/balance-overview" },
       { label: "Account Statement", path: "/user/account-statement" },
       { label: "Change Password", path: "/user/change-password" },
-      { label: "Settings", path: "/user/setting" },
       { label: "Active Log", path: "/user/active-log" },
     ],
   },

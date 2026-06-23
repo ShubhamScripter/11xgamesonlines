@@ -64,7 +64,7 @@ const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
   };
 
   const { date, time } = formatMatchSchedule(match);
-  const live = isMatchLive(match);
+  const live = isMatchLive(match, sportType);
   const columns = buildOddsColumns(match, sportType);
   const colCount = columnLabels?.length || columns.length;
   const oddsStyle = getOddsBlockStyle(colCount);
@@ -90,7 +90,7 @@ const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
             </p>
             {live && (
               <span className="bg-red-600 text-white text-[9px] leading-none px-1.5 py-1 rounded-sm font-bold shrink-0 uppercase tracking-wide">
-                Live
+                In Play
               </span>
             )}
           </div>
@@ -119,7 +119,7 @@ const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
           {live && (
             <span className="shrink-0 inline-flex items-center gap-0.5 rounded px-1 py-0.5 bg-red-600/90 text-white text-[7px] font-bold uppercase">
               <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              Live
+              In Play
             </span>
           )}
         </div>

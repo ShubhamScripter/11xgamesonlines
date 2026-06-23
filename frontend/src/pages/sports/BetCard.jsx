@@ -373,6 +373,8 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
       marketId: odds?.marketId,
       selectionId: odds?.selectionId,
       fancyScore: isFancyBet ? parseFloat(betOdds) : odds?.fancyScore,
+      isPremium: odds?.isPremium === true,
+      providerCGameId: odds?.providerCGameId,
     };
 
     try {

@@ -96,8 +96,21 @@ export const fetchFancyAllBookmakerOddsV3 = (eventId) => {
   return activeProvider.fetchFancyAllBookmakerOddsV3(eventId);
 };
 
-export const fetchMatchList = (sportId) =>
-  activeProvider.fetchMatchList(sportId);
+export const fetchMatchList = (sportId, options) =>
+  activeProvider.fetchMatchList(sportId, options);
+
+export async function fetchMatchDataWithPremium(gameId, sportId) {
+  const sid = Number(sportId);
+  if (sid === 4) {
+    const { fetchCricketBettingPayload } = await import('./hybridMatchData.js');
+    return fetchCricketBettingPayload(activeProvider, gameId, PROVIDER);
+  }
+
+  const primary = await activeProvider.fetchMatchData(gameId, sportId);
+  const { enrichMatchDataWithPremium } = await import('./hybridMatchData.js');
+  return enrichMatchDataWithPremium(primary, gameId, sportId, PROVIDER);
+}
+
 export const fetchMatchData = (gameId, sportId) =>
   activeProvider.fetchMatchData(gameId, sportId);
 
@@ -131,5 +144,21 @@ export const fetchScore = (gmid, sid) => activeProvider.fetchScore(gmid, sid);
 export const fetchAllIframes = (gmid) => activeProvider.fetchAllIframes(gmid);
 
 export const getProviderName = () => PROVIDER;
+
+export {
+  fetchProviderCPremiumFancy,
+  fetchProviderCMatchMarkets,
+  sendProviderCBetIncoming,
+  fetchProviderCFancyResult,
+  isPremiumFancyEnabled,
+  extractProviderCPremiumFancy,
+  isProviderCPremiumFancyMarket,
+} from './providerCHybrid.js';
+
+export {
+  unwrapMatchMarkets,
+  unwrapPremiumFancy,
+  unwrapProviderCGameId,
+} from './hybridMatchData.js';
 
 export default activeProvider;
