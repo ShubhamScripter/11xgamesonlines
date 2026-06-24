@@ -339,6 +339,8 @@ import { toast } from 'react-hot-toast';
 import {
   getSportsMediaUrls,
   getBetfairTvLinkByEventId,
+  getBetfairTvLinkSync,
+  DEFAULT_BULKAPI_KEY,
   resolveBeventId,
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
@@ -349,7 +351,7 @@ function Fullmarket1() {
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
   const { soccerData: soccerMatches = [] } = useSelector((state) => state.soccer);
-  const key = "gk_5db268ed77db3fe9577d7085eb75c2d23467093541ab3ac2";
+  const key = DEFAULT_BULKAPI_KEY;
   const beventId = useMemo(
     () =>
       resolveBeventId({
@@ -683,11 +685,22 @@ function Fullmarket1() {
   useEffect(() => {
     if (!gameid || !key) return;
     let isCancelled = false;
+    const altEventIds = beventId ? [beventId] : [];
+
+    const cachedTv = getBetfairTvLinkSync({ gameid, key, altEventIds });
+    if (cachedTv) {
+      setLiveStreamUrl(cachedTv);
+      setIsLive(true);
+      setIsLoadingStream(false);
+      return;
+    }
+
     const setStreamUrl = async () => {
       setIsLoadingStream(true);
-      const tvUrl = await getBetfairTvLinkByEventId({ gameid, key });
+      const tvUrl = await getBetfairTvLinkByEventId({ gameid, key, altEventIds });
       if (!isCancelled) {
-        setLiveStreamUrl(tvUrl || mediaUrls.liveStreamUrl);
+        setLiveStreamUrl(tvUrl || "");
+        if (tvUrl) setIsLive(true);
         setIsLoadingStream(false);
       }
     };
@@ -695,7 +708,7 @@ function Fullmarket1() {
     return () => {
       isCancelled = true;
     };
-  }, [gameid, key, mediaUrls.liveStreamUrl]);
+  }, [gameid, key, beventId]);
 
   // Reset live stream when switching away from Live
   useEffect(() => {
@@ -1054,17 +1067,21 @@ const oddevenData =
               <div className='flex w-full items-center justify-center'>
                 <span>Loading stream...</span>
               </div>
-            ) : (
+            ) : liveStreamUrl ? (
               <div className='aspect-video w-full'>
               <iframe
-                src={liveStreamUrl || mediaUrls.liveStreamUrl}
+                src={liveStreamUrl}
                 title='Watch Live'
                 className='h-full w-full'
                 allowFullScreen
                 scrolling="no"
-                loading='lazy'
+                loading='eager'
                 allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
               />
+              </div>
+            ) : (
+              <div className='flex aspect-video w-full items-center justify-center bg-[#1e1e1e] text-white'>
+                <span>Live stream not available</span>
               </div>
             )
           ) : scorecardLoading ? (

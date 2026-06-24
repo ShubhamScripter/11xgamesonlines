@@ -737,6 +737,8 @@ import { toast } from 'react-hot-toast';
 import {
   getSportsMediaUrls,
   getBetfairTvLinkByEventId,
+  getBetfairTvLinkSync,
+  DEFAULT_BULKAPI_KEY,
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
 import api from '../../utils/axiosConfig';
@@ -755,9 +757,7 @@ function Fullmarkett() {
   const dispatch = useDispatch();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
-  const key =
-    import.meta.env.VITE_BULKAPI_KEY ||
-    "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
+  const key = DEFAULT_BULKAPI_KEY;
   const mediaUrls = getSportsMediaUrls({
     sport: SPORTS_MEDIA_TYPE.CRICKET,
     gameid,
@@ -1389,11 +1389,21 @@ const sportsbookData = Array.isArray(dataSource)
   useEffect(() => {
     if (!gameid || !key) return;
     let isCancelled = false;
+
+    const cachedTv = getBetfairTvLinkSync({ gameid, key });
+    if (cachedTv) {
+      setLiveStreamUrl(cachedTv);
+      setIsLive(true);
+      setIsLoadingStream(false);
+      return;
+    }
+
     const setStreamUrl = async () => {
       setIsLoadingStream(true);
       const tvUrl = await getBetfairTvLinkByEventId({ gameid, key });
       if (!isCancelled) {
-        setLiveStreamUrl(tvUrl || mediaUrls.liveStreamUrl);
+        setLiveStreamUrl(tvUrl || "");
+        if (tvUrl) setIsLive(true);
         setIsLoadingStream(false);
       }
     };
@@ -1401,7 +1411,7 @@ const sportsbookData = Array.isArray(dataSource)
     return () => {
       isCancelled = true;
     };
-  }, [gameid, key, mediaUrls.liveStreamUrl]);
+  }, [gameid, key]);
 
   // Reset live stream when switching away from Live
   useEffect(() => {
@@ -1567,17 +1577,21 @@ const sportsbookData = Array.isArray(dataSource)
                   <div className='flex w-full items-center justify-center'>
                     <span>Loading stream...</span>
                   </div>
-                ) : (
+                ) : liveStreamUrl ? (
                   <div className='aspect-video w-full'>
                   <iframe
-                    src={liveStreamUrl || mediaUrls.liveStreamUrl}
+                    src={liveStreamUrl}
                     title='Watch Live'
                     className='h-full w-full'
                     allowFullScreen
                     scrolling="no"
-                    loading='lazy'
+                    loading='eager'
                     allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
                   />
+                  </div>
+                ) : (
+                  <div className='flex aspect-video w-full items-center justify-center bg-[#1e1e1e] text-white'>
+                    <span>Live stream not available</span>
                   </div>
                 )
               ) : scorecardLoading ? (

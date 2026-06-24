@@ -14,6 +14,7 @@ import {
   resolveInitialDateTab,
   SPORT_DATE_TABS,
 } from '../../utils/sportMatchFilters';
+import { prefetchBetfairTvList } from '../../utils/sportsMediaUrls';
 
 const SPORT = 'soccer';
 
@@ -73,6 +74,7 @@ function Soccer() {
 
   useEffect(() => {
     dispatch(fetchSoccerData({ withOdds: true, oddsScope: 'all' }));
+    prefetchBetfairTvList();
   }, [dispatch]);
 
   const sportMeta = SPORT_LIST_META.soccer;

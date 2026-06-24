@@ -14,6 +14,7 @@ import {
   resolveInitialDateTab,
   SPORT_DATE_TABS,
 } from '../../utils/sportMatchFilters';
+import { prefetchBetfairTvList } from '../../utils/sportsMediaUrls';
 
 const SPORT = 'cricket';
 
@@ -73,6 +74,7 @@ function Cricket() {
 
   useEffect(() => {
     dispatch(fetchCricketData({ withOdds: true, oddsScope: 'all' }));
+    prefetchBetfairTvList();
   }, [dispatch]);
 
   const sportMeta = SPORT_LIST_META.cricket;

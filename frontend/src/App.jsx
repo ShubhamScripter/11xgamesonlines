@@ -64,7 +64,7 @@ function App() {
   }, [location.pathname]);
   return (
     <div className="relative flex justify-center items-center">
-      <div className="w-full flex flex-col shadow-lg bg-[#f0f8ff] relative">
+      <div className="w-full flex flex-col shadow-lg bg-[#141515] relative">
         <Toaster position="top-right" reverseOrder={false} />
         <main className='flex-grow no-scrollbar fixed w-full'>
           <Routes>
