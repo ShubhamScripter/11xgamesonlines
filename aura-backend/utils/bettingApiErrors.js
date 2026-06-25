@@ -19,15 +19,19 @@ export function sendBettingProviderFailure(res, json, gameid) {
   };
 
   const httpStatus =
-    json.status === 404 ? 404 : clientHttpStatusForWinkaro(winkaro.httpStatus);
+    json.status === 404 || json.eventNotFound ? 404 : clientHttpStatusForWinkaro(winkaro.httpStatus);
+
+  const message = json.eventNotFound
+    ? `Event ${eventId} is not found`
+    : json.msg ||
+      json.message ||
+      'Winkaro API returned no betting markets for this event';
 
   return res.status(httpStatus).json({
     success: false,
     source: json.source || 'winkaro',
-    message:
-      json.msg ||
-      json.message ||
-      'Winkaro API returned no betting markets for this event',
+    message,
+    eventNotFound: Boolean(json.eventNotFound),
     gameid: eventId,
     winkaro,
   });

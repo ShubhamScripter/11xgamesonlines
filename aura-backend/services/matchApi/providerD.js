@@ -373,6 +373,7 @@ export function createProviderD() {
         data: [],
         message: 'Winkaro API returned no markets for this event',
         source: 'winkaro',
+        eventNotFound: true,
         winkaroPath,
         winkaro: {
           httpStatus: 200,
@@ -402,6 +403,25 @@ export function createProviderD() {
       ...exchangeMarkets,
       ...fancyMarkets,
     ]).map(applyDefaultMarketLimits);
+
+    if (!merged.length) {
+      const winkaroPath = `/betfair/fancy-all-bookmaker-odds-v3/${eventId}`;
+      return {
+        success: false,
+        data: [],
+        message: `Event ${eventId} is not found`,
+        source: 'winkaro',
+        eventNotFound: true,
+        winkaroPath,
+        winkaro: {
+          httpStatus: 200,
+          method: 'GET',
+          path: winkaroPath,
+          detail:
+            'Winkaro fancy-all-bookmaker-odds-v3 returned an empty body and no exchange markets are available',
+        },
+      };
+    }
 
     return { success: true, data: merged };
   };
@@ -698,6 +718,7 @@ export function createProviderD() {
         source: result.source,
         winkaro: result.winkaro,
         winkaroPath: result.winkaroPath,
+        eventNotFound: result.eventNotFound,
       };
     },
 

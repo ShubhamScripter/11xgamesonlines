@@ -6,6 +6,7 @@ import {
 } from "../../utils/sportListMerge";
 import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
+import { normalizeBettingThunkError } from "../../utils/bettingApiErrors";
 import { parseInPlayFlag } from "../../utils/sportMatchFilters";
 
 const normalizeTennisMatches = (matches) => {
@@ -156,9 +157,7 @@ export const fetchTannisBatingData = createAsyncThunk(
       const response = await api.get(`/tannis/betting?gameid=${gameid}`);
       return parseBettingPayload(response.data);
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch matches"
-      );
+      return rejectWithValue(normalizeBettingThunkError(error, gameid));
     }
   }
 );

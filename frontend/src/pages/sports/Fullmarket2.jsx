@@ -335,6 +335,9 @@ import { getUser } from '../../features/auth/authSlice';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
 import {
+  showBettingEventErrorToast,
+} from '../../utils/bettingApiErrors';
+import {
   getSportsMediaUrls,
   getBetfairTvLinkByEventId,
   getBetfairTvLinkSync,
@@ -421,12 +424,33 @@ function Fullmarket2() {
 
   // ✅ Fetch once before using socket (optional) - Match cricket pattern
   useEffect(() => {
-    if (gameid) {
-      setLoader(true);
-      dispatch(fetchTannisBatingData(gameid)).finally(() => {
-        setLoader(false);
+    if (!gameid) return;
+
+    let cancelled = false;
+    setLoader(true);
+    dispatch(fetchTannisBatingData(gameid))
+      .unwrap()
+      .then((payload) => {
+        if (
+          !cancelled &&
+          (!Array.isArray(payload?.markets) || payload.markets.length === 0)
+        ) {
+          showBettingEventErrorToast(
+            { eventNotFound: true, message: `Event ${gameid} is not found` },
+            gameid
+          );
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) showBettingEventErrorToast(err, gameid);
+      })
+      .finally(() => {
+        if (!cancelled) setLoader(false);
       });
-    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch, gameid]);
 
   // ✅ WebSocket setup - Match cricket pattern

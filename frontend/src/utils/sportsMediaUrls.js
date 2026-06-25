@@ -7,16 +7,22 @@ export const SPORTS_MEDIA_TYPE = {
 const BASE_URL =
   import.meta.env.VITE_PROVIDER_D_API_URL || "https://winkaro.online/api/v1";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+const GET_ALL_TV_URL =
+  import.meta.env.VITE_GET_ALL_TV_URL || `${API_BASE_URL}/get-all-tv`;
+
 export const DEFAULT_BULKAPI_KEY =
   import.meta.env.VITE_BULKAPI_KEY ||
   "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
 
-const BETFAIR_TV_TTL_MS = 3 * 60 * 1000;
+const TV_LIST_TTL_MS = 3 * 60 * 1000;
 
-/** @type {Map<string, { map: Map<string, string>, at: number }>} */
-const betfairTvCacheByKey = new Map();
-/** @type {Map<string, Promise<Map<string, string> | null>>} */
-const betfairTvInflightByKey = new Map();
+/** @type {{ map: Map<string, string> | null, at: number }} */
+let tvCache = { map: null, at: 0 };
+/** @type {Promise<Map<string, string> | null> | null} */
+let tvInflight = null;
 
 /** Resolve beventId from navigation state or match list (soccer/tennis). */
 export function resolveBeventId({ locationState, matches, gameid }) {
@@ -32,7 +38,7 @@ export function resolveBeventId({ locationState, matches, gameid }) {
     : null;
 }
 
-function indexBetfairTvList(payload) {
+function indexTvList(payload) {
   const map = new Map();
   for (const item of payload) {
     const eventId = item?.eventId;
@@ -54,70 +60,64 @@ function lookupTvUrl(map, gameid, altEventIds = []) {
   return null;
 }
 
-function getCacheEntry(key) {
-  const entry = betfairTvCacheByKey.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.at >= BETFAIR_TV_TTL_MS) return null;
-  return entry;
+function getTvCacheEntry() {
+  if (!tvCache.map || Date.now() - tvCache.at >= TV_LIST_TTL_MS) return null;
+  return tvCache;
 }
 
-async function fetchBetfairTvList(key) {
-  const cached = getCacheEntry(key);
-  if (cached) return cached.map;
+async function fetchTvList() {
+  const cached = getTvCacheEntry();
+  if (cached?.map) return cached.map;
 
-  const inflight = betfairTvInflightByKey.get(key);
-  if (inflight) return inflight;
+  if (tvInflight) return tvInflight;
 
-  const request = (async () => {
+  tvInflight = (async () => {
     try {
-      const encodedKey = encodeURIComponent(key);
-      const response = await fetch(`${BASE_URL}/betfair-tv?key=${encodedKey}`);
-      if (!response.ok) return getCacheEntry(key)?.map ?? null;
+      const response = await fetch(GET_ALL_TV_URL, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) return getTvCacheEntry()?.map ?? null;
 
       const payload = await response.json();
-      if (!Array.isArray(payload)) return getCacheEntry(key)?.map ?? null;
+      if (!Array.isArray(payload)) return getTvCacheEntry()?.map ?? null;
 
-      const map = indexBetfairTvList(payload);
-      betfairTvCacheByKey.set(key, { map, at: Date.now() });
+      const map = indexTvList(payload);
+      tvCache = { map, at: Date.now() };
       return map;
     } catch {
-      return getCacheEntry(key)?.map ?? null;
+      return getTvCacheEntry()?.map ?? null;
     } finally {
-      betfairTvInflightByKey.delete(key);
+      tvInflight = null;
     }
   })();
 
-  betfairTvInflightByKey.set(key, request);
-  return request;
+  return tvInflight;
 }
 
 /** Warm cache while user browses match list (non-blocking). */
-export function prefetchBetfairTvList(key = DEFAULT_BULKAPI_KEY) {
-  if (!key) return;
-  fetchBetfairTvList(key);
+export function prefetchBetfairTvList(_key = DEFAULT_BULKAPI_KEY) {
+  fetchTvList();
 }
 
 /** Instant lookup when cache is already warm. */
-export function getBetfairTvLinkSync({ gameid, key, altEventIds = [] }) {
-  if (!key) return null;
-  const entry = getCacheEntry(key);
+export function getBetfairTvLinkSync({ gameid, key: _key, altEventIds = [] }) {
+  const entry = getTvCacheEntry();
   return lookupTvUrl(entry?.map, gameid, altEventIds);
 }
 
 /**
- * betfair-tv: [{ eventId, tv, ... }]
+ * get-all-tv: [{ eventId, tv, sportName, ... }]
  * Returns the `tv` URL for the matching eventId.
  */
 export async function getBetfairTvLinkByEventId({
   gameid,
-  key = DEFAULT_BULKAPI_KEY,
+  key: _key = DEFAULT_BULKAPI_KEY,
   altEventIds = [],
 }) {
-  if (!key) return null;
-  const cached = getBetfairTvLinkSync({ gameid, key, altEventIds });
+  const cached = getBetfairTvLinkSync({ gameid, altEventIds });
   if (cached) return cached;
 
-  const map = await fetchBetfairTvList(key);
+  const map = await fetchTvList();
   return lookupTvUrl(map, gameid, altEventIds);
 }
 

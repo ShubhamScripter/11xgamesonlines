@@ -7,6 +7,7 @@ import {
 } from "../../utils/sportListMerge";
 import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
+import { normalizeBettingThunkError } from "../../utils/bettingApiErrors";
 
 const normalizeSoccerMatches = (matches) => {
   if (!Array.isArray(matches)) return [];
@@ -156,9 +157,7 @@ export const fetchSoccerBatingData = createAsyncThunk(
       const response = await api.get(`/soccer/betting?gameid=${gameid}`);
       return parseBettingPayload(response.data);
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch matches"
-      );
+      return rejectWithValue(normalizeBettingThunkError(error, gameid));
     }
   }
 );

@@ -7,6 +7,7 @@ import {
 import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseInPlayFlag } from "../../utils/sportMatchFilters";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
+import { normalizeBettingThunkError } from "../../utils/bettingApiErrors";
 
 const normalizeCricketMatches = (matches) => {
   if (!Array.isArray(matches)) return [];
@@ -145,9 +146,7 @@ export const fetchCricketBatingData = createAsyncThunk(
         markets: normalizeBettingMarkets(response.data),
       };
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch matches"
-      );
+      return rejectWithValue(normalizeBettingThunkError(error, gameid));
     }
   }
 );

@@ -30,6 +30,8 @@ import userRoutes from './routes/userRoutes.js';
 import cashoutRoute from './routes/cashoutRoute.js';
 import { setupWebSocket } from './socket/bettingSocket.js';
 import casinoRoutesNew from './routes/casinoRoutesNew.js';
+import tvRoutes from './routes/tvRoutes.js';
+import { startGetAllTvCron } from './services/tvApi/getAllTvCron.js';
 
 connectDB();
 
@@ -88,6 +90,7 @@ app.use('/api', manualResultRoutes);
 app.use('/api', cashoutRoute);
 app.use('/api', manualDepositRoutes);
 app.use("/api/casino", casinoRoutesNew);
+app.use('/api', tvRoutes);
 // Static file serving
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,6 +122,7 @@ if (APP_TYPE !== 'dashboard') {
   startMarketCatalogCron();
   startOddsSyncCron();
   startSportsListCacheCron();
+  startGetAllTvCron();
 } else {
   // dashboard process — settlement/caches crons skipped
 }

@@ -336,6 +336,7 @@ import { getUser } from '../../features/auth/authSlice';
 import { div } from 'motion/react-client';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
+import { showBettingEventErrorToast } from '../../utils/bettingApiErrors';
 import {
   getSportsMediaUrls,
   getBetfairTvLinkByEventId,
@@ -447,29 +448,36 @@ function Fullmarket1() {
   }, [gameid]);
 
     useEffect(() => {
-    let intervalId;
+    let cancelled = false;
 
     if (gameid) {
-      // Set loader true before initial fetch
       setLoader(true);
 
-      const fetchData = async () => {
-        await dispatch(fetchSoccerBatingData(gameid));
-        setLoader(false); // Stop loader after first successful fetch
-      };
-
-      fetchData();
-
-      // intervalId = setInterval(() => {
-      //   dispatch(fetchCricketBatingData(gameid));
-      // }, 2000);
+      dispatch(fetchSoccerBatingData(gameid))
+        .unwrap()
+        .then((payload) => {
+          if (
+            !cancelled &&
+            (!Array.isArray(payload?.markets) || payload.markets.length === 0)
+          ) {
+            showBettingEventErrorToast(
+              { eventNotFound: true, message: `Event ${gameid} is not found` },
+              gameid
+            );
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) showBettingEventErrorToast(err, gameid);
+        })
+        .finally(() => {
+          if (!cancelled) setLoader(false);
+        });
     }
 
-
     return () => {
-      clearInterval(intervalId);
+      cancelled = true;
     };
-  }, [gameid]);
+  }, [dispatch, gameid]);
 
   useEffect(() => {
     setBettingData(battingData);

@@ -734,6 +734,9 @@ import { fetchCricketBatingData, fetchCricketPremiumFancy } from '../../features
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
 import {
+  showBettingEventErrorToast,
+} from '../../utils/bettingApiErrors';
+import {
   getSportsMediaUrls,
   getBetfairTvLinkByEventId,
   getBetfairTvLinkSync,
@@ -872,9 +875,25 @@ function Fullmarkett() {
       setProviderCGameId(parsed.providerCGameId || gameid);
     });
 
-    dispatch(fetchCricketBatingData(gameid)).finally(() => {
-      if (!cancelled) setLoader(false);
-    });
+    dispatch(fetchCricketBatingData(gameid))
+      .unwrap()
+      .then((payload) => {
+        if (
+          !cancelled &&
+          (!Array.isArray(payload?.markets) || payload.markets.length === 0)
+        ) {
+          showBettingEventErrorToast(
+            { eventNotFound: true, message: `Event ${gameid} is not found` },
+            gameid
+          );
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) showBettingEventErrorToast(err, gameid);
+      })
+      .finally(() => {
+        if (!cancelled) setLoader(false);
+      });
     dispatch(fetchCricketPremiumFancy(gameid));
 
     return () => {
