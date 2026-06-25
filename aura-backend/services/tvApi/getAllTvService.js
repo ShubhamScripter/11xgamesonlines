@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 import TvEvent from '../../models/tvEventModel.js';
 import { bootLog } from '../../config/silenceConsole.js';
 
@@ -5,7 +7,11 @@ const GET_ALL_TV_URL =
   process.env.GET_ALL_TV_URL || 'http://139.59.102.137:5102/api/get-all-tv';
 
 const TV_CACHE_TTL_MS = Number(process.env.GET_ALL_TV_CACHE_MS) || 60 * 1000;
-
+const TV_FETCH_TIMEOUT_MS =
+  Number(process.env.GET_ALL_TV_FETCH_TIMEOUT_MS) || 30_000;
+const TV_FETCH_RETRIES = Number(process.env.GET_ALL_TV_FETCH_RETRIES) || 3;
+const TV_FETCH_RETRY_DELAY_MS =
+  Number(process.env.GET_ALL_TV_FETCH_RETRY_DELAY_MS) || 2000;
 /** @type {{ list: unknown[] | null, map: Map<string, string> | null, at: number }} */
 let cache = { list: null, map: null, at: 0 };
 /** @type {Promise<unknown[] | null> | null} */
@@ -50,30 +56,111 @@ function setMemoryCache(payload) {
   };
 }
 
+function formatTvFetchError(err) {
+  const parts = [err?.message || String(err)];
+  if (err?.code) parts.push(`code=${err.code}`);
+  if (err?.cause) {
+    const c = err.cause;
+    parts.push(
+      `cause=${c?.message || c}${c?.code ? ` (${c.code})` : ''}`
+    );
+  }
+  if (err?.errno != null) parts.push(`errno=${err.errno}`);
+  if (err?.syscall) parts.push(`syscall=${err.syscall}`);
+  if (err?.address) parts.push(`address=${err.address}`);
+  if (err?.port) parts.push(`port=${err.port}`);
+  return parts.join(' | ');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatAxiosTvError(err) {
+  if (err?.response) {
+    const status = err.response.status;
+    const body =
+      typeof err.response.data === 'string'
+        ? err.response.data.slice(0, 200)
+        : JSON.stringify(err.response.data ?? '').slice(0, 200);
+    return `HTTP ${status}${body ? ` — body: ${body}` : ''}`;
+  }
+  return formatTvFetchError(err);
+}
+
+/** Log public egress IP so TV API provider can whitelist the server. */
+async function logServerEgressIpForWhitelist() {
+  try {
+    const { data } = await axios.get('https://api.ipify.org?format=json', {
+      timeout: 5000,
+    });
+    if (data?.ip) {
+      bootLog(
+        `[getAllTv] whitelist this server IP on TV API: ${data.ip}`
+      );
+    }
+  } catch {
+    bootLog('[getAllTv] could not detect server outbound IP for whitelist');
+  }
+}
+
+async function fetchRemoteTvListOnce() {
+  const response = await axios.get(GET_ALL_TV_URL, {
+    timeout: TV_FETCH_TIMEOUT_MS,
+    headers: { Accept: 'application/json' },
+    validateStatus: () => true,
+  });
+
+  if (response.status < 200 || response.status >= 300) {
+    const err = new Error(`get-all-tv HTTP ${response.status}`);
+    err.response = response;
+    throw err;
+  }
+
+  const data = response.data;
+  if (data == null || typeof data !== 'object') {
+    throw new Error('get-all-tv response is empty or invalid');
+  }
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data?.data)) {
+    return data.data;
+  }
+
+  throw new Error('get-all-tv response is not an array');
+}
+
 async function fetchRemoteTvList() {
   const startedAt = Date.now();
-  bootLog(`[getAllTv] calling ${GET_ALL_TV_URL}`);
-
-  const response = await fetch(GET_ALL_TV_URL, {
-    headers: { Accept: 'application/json' },
-  });
-  if (!response.ok) {
-    bootLog(
-      `[getAllTv] ${GET_ALL_TV_URL} failed — HTTP ${response.status}`
-    );
-    throw new Error(`get-all-tv HTTP ${response.status}`);
-  }
-
-  const payload = await response.json();
-  if (!Array.isArray(payload)) {
-    bootLog(`[getAllTv] ${GET_ALL_TV_URL} — response is not an array`);
-    throw new Error('get-all-tv response is not an array');
-  }
-
   bootLog(
-    `[getAllTv] ${GET_ALL_TV_URL} OK — ${payload.length} events (${Date.now() - startedAt}ms)`
+    `[getAllTv] calling ${GET_ALL_TV_URL} (timeout=${TV_FETCH_TIMEOUT_MS}ms, retries=${TV_FETCH_RETRIES})`
   );
-  return payload;
+
+  let lastErr;
+  for (let attempt = 1; attempt <= TV_FETCH_RETRIES; attempt++) {
+    try {
+      const payload = await fetchRemoteTvListOnce();
+      bootLog(
+        `[getAllTv] ${GET_ALL_TV_URL} OK — ${payload.length} events (${Date.now() - startedAt}ms, attempt ${attempt})`
+      );
+      return payload;
+    } catch (err) {
+      lastErr = err;
+      const detail = formatAxiosTvError(err);
+      bootLog(
+        `[getAllTv] attempt ${attempt}/${TV_FETCH_RETRIES} failed: ${detail}`
+      );
+      if (attempt < TV_FETCH_RETRIES) {
+        await sleep(TV_FETCH_RETRY_DELAY_MS * attempt);
+      }
+    }
+  }
+
+  await logServerEgressIpForWhitelist();
+  throw lastErr ?? new Error('get-all-tv fetch failed');
 }
 
 async function persistTvList(payload) {
@@ -129,7 +216,7 @@ export async function syncAllTvFromRemoteSafe() {
     bootLog(`[getAllTv] synced ${payload.length} events to DB`);
     return payload;
   } catch (err) {
-    bootLog(`[getAllTv] sync failed: ${err.message}`);
+    bootLog(`[getAllTv] sync failed: ${formatAxiosTvError(err)}`);
     const stale = getFreshCache()?.list ?? (await loadTvListFromDb());
     if (stale.length > 0) setMemoryCache(stale);
     return stale;
