@@ -42,17 +42,21 @@ const hasActiveOdds = (match, sport) => {
 
   const startMs = getMatchStartMs(match);
   const now = Date.now();
-  const requireStarted = sport === 'tennis';
 
   return odds.some((o) => {
     const status = String(o?.gstatus ?? o?.status ?? '').toUpperCase();
-    if (status === 'CLOSED' || status === 'COMPLETE') return false;
+    if (status === 'CLOSED' || status === 'COMPLETE' || status === 'SUSPENDED') {
+      return false;
+    }
     const h = parseFloat(o?.home);
     const a = parseFloat(o?.away);
     if (!((Number.isFinite(h) && h > 1.01) || (Number.isFinite(a) && a > 1.01))) {
       return false;
     }
-    if (requireStarted && (startMs == null || startMs > now)) return false;
+    // Tennis/soccer: must have started; cricket can show live inference wider
+    if (sport === 'tennis' || sport === 'soccer') {
+      if (startMs == null || startMs > now) return false;
+    }
     return true;
   });
 };

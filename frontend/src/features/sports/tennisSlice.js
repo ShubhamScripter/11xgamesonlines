@@ -4,6 +4,7 @@ import {
   applySportListPayload,
   packSportFetchResult,
 } from "../../utils/sportListMerge";
+import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
 import { parseInPlayFlag } from "../../utils/sportMatchFilters";
 
@@ -185,6 +186,14 @@ const tennisSlice = createSlice({
       state.matchesOddsScope = matchesOddsScope ?? null;
       state.loading = false;
     },
+    patchTennisListOdds(state, action) {
+      const updates = action.payload;
+      if (!Array.isArray(updates) || !updates.length || !state.data.length) {
+        return;
+      }
+      state.data = patchMatchesWithOddsUpdates(state.data, updates, 'tennis');
+      state.matchesHaveOdds = true;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -230,4 +239,4 @@ const tennisSlice = createSlice({
 });
 
 export default tennisSlice.reducer;
-export const { hydrateTennisList } = tennisSlice.actions;
+export const { hydrateTennisList, patchTennisListOdds } = tennisSlice.actions;

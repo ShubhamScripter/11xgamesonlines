@@ -1,5 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
+import { fetchSoccerBatingData } from '../../features/sports/soccerSlice';
+import { fetchTannisBatingData } from '../../features/sports/tennisSlice';
 import { SPORT_ICONS } from './sportSidebarAssets';
 import {
   buildOddsColumns,
@@ -57,9 +61,17 @@ function OddsColumn({ column }) {
 
 const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleClick = () => {
     const route = sportType === 'cricket' ? 'fullmarket' : sportType;
+    if (sportType === 'cricket') {
+      dispatch(fetchCricketBatingData(match.id));
+    } else if (sportType === 'soccer') {
+      dispatch(fetchSoccerBatingData(match.id));
+    } else if (sportType === 'tennis') {
+      dispatch(fetchTannisBatingData(match.id));
+    }
     navigate(`/sports/${route}/${encodeURIComponent(match.match)}/${match.id}`);
   };
 

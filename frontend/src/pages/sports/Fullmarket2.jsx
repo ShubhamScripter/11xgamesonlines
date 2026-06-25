@@ -344,6 +344,11 @@ import {
 } from '../../utils/sportsMediaUrls';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 import api from '../../utils/axiosConfig';
+import {
+  isProviderDFancyMarket,
+  mapProviderDFancyGameType,
+  normalizeFancySectionOdds,
+} from '../../utils/bettingPayloadUtils';
 function Fullmarket2() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -734,23 +739,20 @@ function Fullmarket2() {
     // console.log("fancy1 data",fancy1Data) oddeven
 
     const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter((item) => {
-        const name = String(item.mname || item.name || '').trim().toLowerCase();
-        const hasSections = Array.isArray(item.section) && item.section.length > 0;
-        const hasRunners = Array.isArray(item.runners) && item.runners.length > 0;
-        return (name === 'normal' || item.mtype === 'INNINGS_RUNS') && (hasSections || hasRunners);
-      })
+    ? dataSource.filter(isProviderDFancyMarket)
     : [];
 
   const fancy1Data = fancy1List.flatMap((market) => {
+    const mname = String(market.mname || '').toLowerCase();
     if (Array.isArray(market.section) && market.section.length > 0) {
       return market.section.map((sec) => ({
         team: sec.nat,
         sid: sec.sid,
-        odds: sec.odds,
+        odds: normalizeFancySectionOdds(sec, market),
         max: getMarketMaxLimit({ ...market, ...sec }),
         min: getMarketMinLimit({ ...market, ...sec }),
         mname: market.mname,
+        gameType: mapProviderDFancyGameType(market.mname || market.mtype),
         gstatus: sec.gstatus,
         marketStatus: market.status,
         marketid:
@@ -759,7 +761,15 @@ function Fullmarket2() {
             : sec.marketId || sec.market_id || market.mid,
       }));
     }
-    return (market.runners || []).map((runner) => ({
+    if (
+      mname === 'fancy1' ||
+      mname === 'normal' ||
+      !Array.isArray(market.runners) ||
+      !market.runners.length
+    ) {
+      return [];
+    }
+    return market.runners.map((runner) => ({
       team: runner.name,
       sid: runner.id,
       odds: [
@@ -772,6 +782,8 @@ function Fullmarket2() {
       ],
       min: getMarketMinLimit(market) || null,
       max: getMarketMaxLimit(market) || null,
+      mname: market.mname || market.mtype,
+      gameType: mapProviderDFancyGameType(market.mname || market.mtype),
       status: market.status ?? runner.status ?? 'OPEN',
       marketid:
         gameid && runner.id != null

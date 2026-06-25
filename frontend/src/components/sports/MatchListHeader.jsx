@@ -1,13 +1,13 @@
 import React from 'react';
 import { getOddsBlockStyle } from './matchListUtils';
 
-function MatchListHeader({ columnLabels = ['1', '2'] }) {
+function MatchListHeader({ columnLabels = ['1', '2'], leftLabel = 'Event' }) {
   const oddsStyle = getOddsBlockStyle(columnLabels.length);
 
   return (
     <div className="sticky top-0 z-10 flex items-end gap-2 px-2 sm:px-3 py-2 bg-[#14181c] border-b border-[#2a313a]">
-      <span className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-[#6b7280]">
-        Event
+      <span className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-wider text-[#6b7280] truncate">
+        {leftLabel}
       </span>
       <div className="grid shrink-0" style={oddsStyle}>
         {columnLabels.map((label) => (

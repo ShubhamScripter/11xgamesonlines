@@ -4,11 +4,14 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import http from 'http';
-import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import { cronJobGame1p } from './controllers/cronJobs.js';
+import { startCompetitionCatalogCron } from './services/betfairCatalog/competitionCatalogCron.js';
+import { startEventCatalogCron } from './services/betfairCatalog/eventCatalogCron.js';
+import { startMarketCatalogCron } from './services/betfairCatalog/marketCatalogCron.js';
+import { startOddsSyncCron } from './services/betfairCatalog/oddsSyncCron.js';
 import { initSportsCacheStore } from './services/sportsListCache/cacheStore.js';
 import { startSportsListCacheCron } from './services/sportsListCache/sportsListCacheCron.js';
 import downlineRoutes from './routes/admin/downlineRoutes.js';
@@ -27,17 +30,8 @@ import userRoutes from './routes/userRoutes.js';
 import cashoutRoute from './routes/cashoutRoute.js';
 import { setupWebSocket } from './socket/bettingSocket.js';
 import casinoRoutesNew from './routes/casinoRoutesNew.js';
-import { isCloudinaryEnabled } from './services/cloudinaryService.js';
 
 connectDB();
-
-if (isCloudinaryEnabled()) {
-  console.log('[Uploads] Cloudinary enabled — images use public CDN URLs');
-} else {
-  console.warn(
-    '[Uploads] Cloudinary not configured — using local /uploads (set CLOUDINARY_* in .env)'
-  );
-}
 
 const app = express();
 const server = http.createServer(app);
@@ -69,7 +63,6 @@ app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set('trust proxy', true);
-app.use(morgan('dev'));
 
 // Additional settlement tracking middleware
 app.use((req, res, next) => {
@@ -121,10 +114,13 @@ initSportsCacheStore();
 // If both run crons, bets get settled twice → bettingProfitLoss doubles.
 if (APP_TYPE !== 'dashboard') {
   cronJobGame1p();
+  startCompetitionCatalogCron();
+  startEventCatalogCron();
+  startMarketCatalogCron();
+  startOddsSyncCron();
   startSportsListCacheCron();
-  console.log('[CRON] Settlement crons started (client process)');
 } else {
-  console.log('[CRON] Settlement crons SKIPPED (dashboard process)');
+  // dashboard process — settlement/caches crons skipped
 }
 
 const isLocal = process.env.NODE_ENV !== 'production';

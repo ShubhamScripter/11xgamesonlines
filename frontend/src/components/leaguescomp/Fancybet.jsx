@@ -236,6 +236,7 @@ import {
   blockingStatusLabel,
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
+import { pickFancyOdd } from "../../utils/bettingPayloadUtils";
 function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameName = "Cricket Game" }) {
   const { pendingBet } = useSelector((state) => state.bet);
   
@@ -243,8 +244,8 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
   // Transform backend fancy data
   const fancyMarkets = Array.isArray(fancy1Data)
     ? fancy1Data.map((item) => {
-      const back1 = item.odds?.find((o) => o.oname === "back1");
-      const lay1 = item.odds?.find((o) => o.oname === "lay1");
+      const back1 = pickFancyOdd(item.odds, 'back');
+      const lay1 = pickFancyOdd(item.odds, 'lay');
 
       return {
         marketid: item.marketid,
@@ -255,6 +256,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
             : null),
         event_id: item.event_id,
         title: item.team || "-",
+        gameType: item.gameType || "Normal",
         values: [
           { value: lay1?.odds ?? 0, odds: lay1?.size ?? 0 },
           { value: back1?.odds ?? 0, odds: back1?.size ?? 0 },
@@ -310,8 +312,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
                       pendingBet
                       ?.filter(
                         (item) =>
-                          item.gameType ===
-                          "Normal" &&
+                          item.gameType === market.gameType &&
                           (item.betSource === "providerD" ||
                             !item.betSource ||
                             item.betSource === "active") &&
@@ -357,7 +358,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
                             otype: i === 0 ? "lay" : "back", // No = lay, Yes = back
                             gameId: gameid,
                             eventName: match,
-                            gameType: "Normal",
+                            gameType: market.gameType || "Normal",
                             marketName: market.title,
                             min: market.min ?? 0,
                             max: market.max ?? 0,

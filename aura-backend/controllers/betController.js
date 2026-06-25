@@ -1545,8 +1545,10 @@ export const placeFancyBet = async (req, res) => {
         const providerCFancyType =
           String(gameType || 'Normal').toLowerCase() === 'normal'
             ? 'Normal'
-            : String(gameType || '').charAt(0).toUpperCase() +
-              String(gameType || '').slice(1).toLowerCase();
+            : String(gameType || '').toLowerCase() === 'fancy1'
+              ? 'fancy1'
+              : String(gameType || '').charAt(0).toUpperCase() +
+                String(gameType || '').slice(1).toLowerCase();
 
         const incomingPayload = {
           sport_id: sid,
@@ -1592,6 +1594,7 @@ export const placeFancyBet = async (req, res) => {
     // Calculate bet amount based on game type and otype
     switch (gameType) {
       case 'Normal':
+      case 'fancy1':
       case 'meter':
       case 'line':
       case 'ball':
@@ -3780,7 +3783,14 @@ export const updateFancyBetHistory = async (req, res) => {
 };
 
 export const reconcileOrphanedBetHistory = async () => {
-  const FANCY_GAME_TYPES = ['Normal', 'meter', 'line', 'ball', 'khado'];
+  const FANCY_GAME_TYPES = [
+    'Normal',
+    'fancy1',
+    'meter',
+    'line',
+    'ball',
+    'khado',
+  ];
   let totalReconciled = 0;
 
   try {

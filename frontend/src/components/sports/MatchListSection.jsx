@@ -43,7 +43,9 @@ function MatchListSection({
 
       {isOpen && (
         <>
-          {!hideOdds && <MatchListHeader columnLabels={columnLabels} />}
+          {!hideOdds && (
+            <MatchListHeader columnLabels={columnLabels} leftLabel={title || 'Event'} />
+          )}
           <div>
             {matches.map((match, i) => (
               <MatchRow

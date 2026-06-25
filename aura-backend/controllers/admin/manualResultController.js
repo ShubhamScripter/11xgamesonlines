@@ -24,7 +24,14 @@ import {
 import { updateAllUplines } from './subAdminController.js';
 
 // Fancy game types that require score-based settlement
-const FANCY_GAME_TYPES = ['Normal', 'meter', 'line', 'ball', 'khado'];
+const FANCY_GAME_TYPES = [
+  'Normal',
+  'fancy1',
+  'meter',
+  'line',
+  'ball',
+  'khado',
+];
 
 // Helper to determine settlement type
 const getSettlementType = (gameType) => {

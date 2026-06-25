@@ -718,7 +718,7 @@ import graph from '../../assets/graph.png'
 import Live from '../../assets/icon/live.webp'
 import { GrStarOutline } from "react-icons/gr";
 import { IoInformationCircle } from "react-icons/io5";
-import { useState,useEffect,useRef} from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { getUser } from '../../features/auth/authSlice';
 import Matchodds from '../../components/leaguescomp/Matchodds';
 import Bookmakers from '../../components/leaguescomp/Bookmakers';
@@ -731,7 +731,6 @@ import {createBet,createfancyBet,getPendingBetAmo,messageClear} from '../../feat
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
 import { fetchCricketBatingData, fetchCricketPremiumFancy } from '../../features/sports/cricketSlice';
-import Spinner from '../../components/Spinner';
 import { div } from 'motion/react-client';
 import { toast } from 'react-hot-toast';
 import {
@@ -744,7 +743,10 @@ import {
 import api from '../../utils/axiosConfig';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 import {
+  isProviderDFancyMarket,
   mapPremiumFancyData,
+  mapProviderDFancyGameType,
+  normalizeFancySectionOdds,
   parseBettingPayload,
 } from '../../utils/bettingPayloadUtils';
 
@@ -800,6 +802,7 @@ function Fullmarkett() {
   );
   const {
     battingData,
+    battingGameId,
     premiumFancyData: cachedPremiumFancy,
     providerCGameId: cachedProviderCGameId,
   } = useSelector((state) => state.cricket);
@@ -838,7 +841,9 @@ function Fullmarkett() {
 
     let cancelled = false;
     const hasCachedMarkets =
-      Array.isArray(battingData) && battingData.length > 0;
+      String(battingGameId) === String(gameid) &&
+      Array.isArray(battingData) &&
+      battingData.length > 0;
     if (hasCachedMarkets) {
       setBettingData(battingData);
       setLoader(false);
@@ -879,6 +884,8 @@ function Fullmarkett() {
   }, [dispatch, gameid]);
 
   useEffect(() => {
+    if (String(battingGameId) !== String(gameid)) return;
+
     if (Array.isArray(battingData) && battingData.length > 0) {
       setBettingData(battingData);
     }
@@ -890,7 +897,7 @@ function Fullmarkett() {
     if (cachedProviderCGameId) {
       setProviderCGameId(cachedProviderCGameId || gameid);
     }
-  }, [battingData, cachedPremiumFancy, cachedProviderCGameId, gameid]);
+  }, [battingData, battingGameId, cachedPremiumFancy, cachedProviderCGameId, gameid]);
 
   // ✅ Use socket data for all lists
   useEffect(() => {
@@ -979,8 +986,15 @@ function Fullmarkett() {
   //   : [];
 //  console.log("match odd list",matchOddsList)
 
-  const dataSource =
-    Array.isArray(bettingData) && bettingData.length > 0 ? bettingData : battingData;
+  const reduxMarketsForGame = useMemo(() => {
+    if (String(battingGameId) !== String(gameid)) return null;
+    return Array.isArray(battingData) && battingData.length > 0 ? battingData : null;
+  }, [battingData, battingGameId, gameid]);
+
+  const dataSource = useMemo(() => {
+    if (Array.isArray(bettingData) && bettingData.length > 0) return bettingData;
+    return reduxMarketsForGame || [];
+  }, [bettingData, reduxMarketsForGame]);
 
   const normalizeRunnersToSection = (market) => {
     // Provider sometimes sends `section` (with nat/odds), sometimes `runners` (with back/lay).
@@ -1003,17 +1017,30 @@ function Fullmarkett() {
     }));
   };
 
-  // Match Odds List
+  const isMatchOddsItem = (item) =>
+    item?.name === "Match Odds" ||
+    item?.mtype === "MATCH_ODDS" ||
+    item?.mname === "Match Odds" ||
+    item?.mname === "MATCH_ODDS";
+
+  const isFancyApiMatchOddsDup = (item) => {
+    if (!isMatchOddsItem(item)) return false;
+    const gtype = String(item?.gtype || "").toLowerCase();
+    const marketId = String(item?.marketId || item?.id || item?.mid || "");
+    return gtype === "match" && !marketId.startsWith("1.");
+  };
+
+  // Match Odds List — prefer Betfair exchange market (1.x id), skip fancy API duplicate
   const matchOddsList = Array.isArray(dataSource)
-    ? dataSource
-        .filter(
-          (item) =>
-            item?.name === "Match Odds" ||
-            item?.mtype === "MATCH_ODDS" ||
-            item?.mname === "Match Odds" ||
-            item?.mname === "MATCH_ODDS"
-        )
-        .map((market) => ({
+    ? (() => {
+        const candidates = dataSource.filter(
+          (item) => isMatchOddsItem(item) && !isFancyApiMatchOddsDup(item)
+        );
+        const exchange = candidates.find((m) =>
+          String(m?.marketId || m?.id || m?.mid || "").startsWith("1.")
+        );
+        return exchange ? [exchange] : candidates.slice(0, 1);
+      })().map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),
           max: getMarketMaxLimit(market),
@@ -1022,12 +1049,6 @@ function Fullmarkett() {
           status: market.status,
         }))
     : [];
-  console.log("match odd list", matchOddsList);
-
-  // const BookmakerList = Array.isArray(bettingData)
-  //   ? bettingData.filter((item) => item.mname === "Bookmaker")
-  //   : [];
-
   const BookmakerList = Array.isArray(dataSource)
     ? dataSource
         .filter((item) => item?.name === "BOOKMAKER" || item?.mname === "Bookmaker")
@@ -1039,7 +1060,6 @@ function Fullmarkett() {
           status: market.status,
         }))
     : [];
-  console.log("bookmaker list",BookmakerList)
   useEffect(() => {
     if (successMessage) {
       const now = Date.now();
@@ -1077,26 +1097,14 @@ function Fullmarkett() {
 
   
  
-  const isFancyNormalMarket = (item) => {
-    if (!item || typeof item !== 'object') return false;
-    const name = String(item.mname || item.name || '').trim().toLowerCase();
-    const hasSections =
-      Array.isArray(item.section) && item.section.length > 0;
-    const hasRunners =
-      Array.isArray(item.runners) && item.runners.length > 0;
-    return (
-      (name === 'normal' || item.mtype === 'INNINGS_RUNS') &&
-      (hasSections || hasRunners)
-    );
-  };
-
   const mapFancySection = (market, sec) => ({
     team: sec.nat,
     sid: sec.sid,
-    odds: sec.odds,
+    odds: normalizeFancySectionOdds(sec, market),
     max: getMarketMaxLimit({ ...market, ...sec }),
     min: getMarketMinLimit({ ...market, ...sec }),
     mname: market.mname,
+    gameType: mapProviderDFancyGameType(market.mname || market.mtype),
     gstatus: sec.gstatus,
     marketStatus: market.status,
     marketid:
@@ -1119,6 +1127,7 @@ function Fullmarkett() {
     max: getMarketMaxLimit(market),
     min: getMarketMinLimit(market),
     mname: market.mname || market.mtype,
+    gameType: mapProviderDFancyGameType(market.mname || market.mtype),
     gstatus: runner.status,
     marketStatus: market.status,
     marketid:
@@ -1128,16 +1137,22 @@ function Fullmarkett() {
   });
 
   const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter(isFancyNormalMarket)
+    ? dataSource.filter(isProviderDFancyMarket)
     : [];
 
   const fancy1Data =
     Array.isArray(fancy1List) && fancy1List.length > 0
       ? fancy1List.flatMap((market) => {
+          const mname = String(market.mname || '').toLowerCase();
           if (Array.isArray(market.section) && market.section.length > 0) {
             return market.section.map((sec) => mapFancySection(market, sec));
           }
-          if (Array.isArray(market.runners) && market.runners.length > 0) {
+          if (
+            mname !== 'fancy1' &&
+            mname !== 'normal' &&
+            Array.isArray(market.runners) &&
+            market.runners.length > 0
+          ) {
             return market.runners.map((runner) => mapFancyRunner(market, runner));
           }
           return [];
@@ -1552,15 +1567,10 @@ const sportsbookData = Array.isArray(dataSource)
       fancy1Data.length > 0 ||
       premiumFancyData.length > 0 ||
       sportsbookData.length > 0);
-  const showPageLoader = loader && !hasMarketData;
+  const oddsLoading = loader && !hasMarketData;
 
   return (
     <div>
-      {showPageLoader && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 bg-opacity-40">
-          <Spinner />
-        </div>
-      )}
         <div className="flex flex-col md:flex-row gap-4 mb-20 md:mx-4 md:mt-4 md:mb-4">
           <div className="w-full md:w-[60%]">
             <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
@@ -1615,13 +1625,22 @@ const sportsbookData = Array.isArray(dataSource)
             </div>
         <div>
           {/* Match Odds Section */}
-            {matchOddsList.length > 0 && (
+            {matchOddsList.length > 0 ? (
               <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-            )}
+            ) : oddsLoading ? (
+              <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
+                Loading match odds...
+              </div>
+            ) : null}
             <div className='pb-5'>
               {/* Bookmaker Section */}
               {BookmakerList.length > 0 && (
                 <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
+              )}
+              {oddsLoading && !hasFancyData && !hasPremiumData && !hasSportsbookData && (
+                <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
+                  Loading fancy markets...
+                </div>
               )}
               {showFancyPremiumSection && (
               <div className="pb-2">

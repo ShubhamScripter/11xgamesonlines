@@ -1,4 +1,11 @@
-const FANCY_GAME_TYPES = new Set(['normal', 'meter', 'line', 'ball', 'khado']);
+const FANCY_GAME_TYPES = new Set([
+  'normal',
+  'fancy1',
+  'meter',
+  'line',
+  'ball',
+  'khado',
+]);
 
 export function getSportsBetTypeLabel(item = {}) {
   const gameType = String(item.gameType || '').trim();

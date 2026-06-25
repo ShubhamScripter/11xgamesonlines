@@ -5,6 +5,7 @@ import {
   applySportListPayload,
   packSportFetchResult,
 } from "../../utils/sportListMerge";
+import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
 
 const normalizeSoccerMatches = (matches) => {
@@ -186,6 +187,18 @@ const soccerSlice = createSlice({
       state.matchesOddsScope = matchesOddsScope ?? null;
       state.soccerLoading = false;
     },
+    patchSoccerListOdds(state, action) {
+      const updates = action.payload;
+      if (!Array.isArray(updates) || !updates.length || !state.soccerData.length) {
+        return;
+      }
+      state.soccerData = patchMatchesWithOddsUpdates(
+        state.soccerData,
+        updates,
+        'soccer'
+      );
+      state.matchesHaveOdds = true;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -233,4 +246,4 @@ const soccerSlice = createSlice({
 });
 
 export default soccerSlice.reducer;
-export const { hydrateSoccerList } = soccerSlice.actions;
+export const { hydrateSoccerList, patchSoccerListOdds } = soccerSlice.actions;

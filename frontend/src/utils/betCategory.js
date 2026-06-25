@@ -10,7 +10,14 @@ export const BET_FILTER_OPTIONS = [
   { key: 'fancy', label: 'Fancy' },
 ];
 
-const FANCY_GAME_TYPES = new Set(['normal', 'meter', 'line', 'ball', 'khado']);
+const FANCY_GAME_TYPES = new Set([
+  'normal',
+  'fancy1',
+  'meter',
+  'line',
+  'ball',
+  'khado',
+]);
 
 export const BET_CATEGORY_LABELS = {
   casino: 'Casino',

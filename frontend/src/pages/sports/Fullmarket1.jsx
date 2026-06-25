@@ -345,6 +345,11 @@ import {
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
+import {
+  isProviderDFancyMarket,
+  mapProviderDFancyGameType,
+  normalizeFancySectionOdds,
+} from '../../utils/bettingPayloadUtils';
 function Fullmarket1() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -907,26 +912,14 @@ function Fullmarket1() {
   //     : [];
     // console.log("fancy1 data",fancy1Data) oddeven
   // Fancybet List/Data (legacy Normal sections + exchange INNINGS_RUNS runners)
-  const isFancyNormalMarket = (item) => {
-    if (!item || typeof item !== 'object') return false;
-    const name = String(item.mname || item.name || '').trim().toLowerCase();
-    const hasSections =
-      Array.isArray(item.section) && item.section.length > 0;
-    const hasRunners =
-      Array.isArray(item.runners) && item.runners.length > 0;
-    return (
-      (name === 'normal' || item.mtype === 'INNINGS_RUNS') &&
-      (hasSections || hasRunners)
-    );
-  };
-
   const mapFancySection = (market, sec) => ({
     team: sec.nat,
     sid: sec.sid,
-    odds: sec.odds,
+    odds: normalizeFancySectionOdds(sec, market),
     max: getMarketMaxLimit({ ...market, ...sec }),
     min: getMarketMinLimit({ ...market, ...sec }),
     mname: market.mname,
+    gameType: mapProviderDFancyGameType(market.mname || market.mtype),
     gstatus: sec.gstatus,
     marketStatus: market.status,
     marketid:
@@ -949,6 +942,7 @@ function Fullmarket1() {
     max: getMarketMaxLimit(market),
     min: getMarketMinLimit(market),
     mname: market.mname || market.mtype,
+    gameType: mapProviderDFancyGameType(market.mname || market.mtype),
     gstatus: runner.status,
     marketStatus: market.status,
     marketid:
@@ -958,16 +952,22 @@ function Fullmarket1() {
   });
 
   const fancy1List = Array.isArray(dataSource)
-    ? dataSource.filter(isFancyNormalMarket)
+    ? dataSource.filter(isProviderDFancyMarket)
     : [];
 
   const fancy1Data =
     Array.isArray(fancy1List) && fancy1List.length > 0
       ? fancy1List.flatMap((market) => {
+          const mname = String(market.mname || '').toLowerCase();
           if (Array.isArray(market.section) && market.section.length > 0) {
             return market.section.map((sec) => mapFancySection(market, sec));
           }
-          if (Array.isArray(market.runners) && market.runners.length > 0) {
+          if (
+            mname !== 'fancy1' &&
+            mname !== 'normal' &&
+            Array.isArray(market.runners) &&
+            market.runners.length > 0
+          ) {
             return market.runners.map((runner) => mapFancyRunner(market, runner));
           }
           return [];

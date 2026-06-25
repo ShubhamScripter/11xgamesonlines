@@ -4,6 +4,7 @@ import {
   applySportListPayload,
   packSportFetchResult,
 } from "../../utils/sportListMerge";
+import { patchMatchesWithOddsUpdates } from "../../utils/listOddsSocketPatch";
 import { parseInPlayFlag } from "../../utils/sportMatchFilters";
 import { parseBettingPayload } from "../../utils/bettingPayloadUtils";
 
@@ -139,7 +140,10 @@ export const fetchCricketBatingData = createAsyncThunk(
   async (gameid, { rejectWithValue }) => {
     try {
       const response = await api.get(`/cricket/betting?gameid=${gameid}`);
-      return normalizeBettingMarkets(response.data);
+      return {
+        gameid: String(gameid),
+        markets: normalizeBettingMarkets(response.data),
+      };
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch matches"
@@ -174,6 +178,7 @@ const cricketSlice = createSlice({
     matches: [],
     inplayMatches: [],
     battingData: [],
+    battingGameId: null,
     premiumFancyData: [],
     providerCGameId: null,
     matchesHaveOdds: false,
@@ -189,6 +194,18 @@ const cricketSlice = createSlice({
       state.matchesHaveOdds = Boolean(matchesHaveOdds);
       state.matchesOddsScope = matchesOddsScope ?? null;
       state.loader = false;
+    },
+    patchCricketListOdds(state, action) {
+      const updates = action.payload;
+      if (!Array.isArray(updates) || !updates.length || !state.matches.length) {
+        return;
+      }
+      state.matches = patchMatchesWithOddsUpdates(
+        state.matches,
+        updates,
+        'cricket'
+      );
+      state.matchesHaveOdds = true;
     },
   },
   extraReducers: (builder) => {
@@ -218,7 +235,16 @@ const cricketSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(fetchCricketBatingData.fulfilled, (state, action) => {
-        state.battingData = Array.isArray(action.payload) ? action.payload : [];
+        state.battingData = Array.isArray(action.payload?.markets)
+          ? action.payload.markets
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.battingGameId = action.payload?.gameid
+          ? String(action.payload.gameid)
+          : action.meta?.arg != null
+            ? String(action.meta.arg)
+            : state.battingGameId;
         state.error = null;
       })
       .addCase(fetchCricketBatingData.rejected, (state, action) => {
@@ -232,4 +258,4 @@ const cricketSlice = createSlice({
 });
 
 export default cricketSlice.reducer;
-export const { hydrateCricketList } = cricketSlice.actions;
+export const { hydrateCricketList, patchCricketListOdds } = cricketSlice.actions;

@@ -4,7 +4,14 @@ import {
   groupBetsByMarket,
 } from './marketCalculationUtils.js';
 
-export const FANCY_GAME_TYPES = ['Normal', 'meter', 'line', 'ball', 'khado'];
+export const FANCY_GAME_TYPES = [
+  'Normal',
+  'fancy1',
+  'meter',
+  'line',
+  'ball',
+  'khado',
+];
 
 export function isFancyBet(bet) {
   return FANCY_GAME_TYPES.includes(bet.gameType);

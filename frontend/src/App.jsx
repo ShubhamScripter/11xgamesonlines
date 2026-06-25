@@ -15,7 +15,7 @@ import SupportWhatsAppFab from './components/Header/SupportWhatsAppFab'
 import Cricket from './pages/sports/Cricket'
 import Soccer from './pages/sports/Soccer'
 import Tennis from './pages/sports/Tennis'
-import { Routes, Route,useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, useParams } from 'react-router-dom'
 import TransferLog from './pages/menu/TransferLog'
 import UplineWhatsapp from './pages/menu/UplineWhatsapp'
 import BalanceOverview from './pages/menu/BalanceOverview'
@@ -54,6 +54,21 @@ const ACCOUNT_ROUTES = [
   { path: 'setting', element: <Settings /> },
   { path: 'change-password', element: <ChangePassword /> },
 ];
+
+function FullmarkettRoute() {
+  const { gameid } = useParams();
+  return <Fullmarkett key={gameid} />;
+}
+
+function Fullmarket1Route() {
+  const { gameid } = useParams();
+  return <Fullmarket1 key={gameid} />;
+}
+
+function Fullmarket2Route() {
+  const { gameid } = useParams();
+  return <Fullmarket2 key={gameid} />;
+}
 
 function App() {
   const location = useLocation();
@@ -96,15 +111,15 @@ function App() {
                 <Route path="/mybets" element={<Bets />} />
                 <Route 
                   path="/sports/fullmarket/:match/:gameid"
-                  element={<Fullmarkett />} 
+                  element={<FullmarkettRoute />} 
                 />
                 <Route 
                   path="/sports/soccer/:match/:gameid"
-                  element={<Fullmarket1 />} 
+                  element={<Fullmarket1Route />} 
                 />
                 <Route 
                   path="/sports/tennis/:match/:gameid"
-                  element={<Fullmarket2 />} 
+                  element={<Fullmarket2Route />} 
                 />
                 {ACCOUNT_ROUTES.map((r) => (
                   <Route key={r.path} path={`/user/${r.path}`} element={r.element} />

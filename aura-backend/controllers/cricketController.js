@@ -65,7 +65,7 @@ export const getCricketScorecard = async (req, res) => {
 
 const cricketBettingCache = new Map();
 const cricketPremiumCache = new Map();
-const CRICKET_BETTING_CACHE_MS = 3000;
+const CRICKET_BETTING_CACHE_MS = 5000;
 const CRICKET_PREMIUM_CACHE_MS = 4000;
 
 export const fetchCrirketBettingData = async (req, res) => {

@@ -10,7 +10,17 @@
     "test:ui": "vitest --ui",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "server": "nodemon server.js"
+    "server": "nodemon server.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:start:prod": "pm2 start ecosystem.config.cjs --env production",
+    "pm2:stop": "pm2 stop aura-backend",
+    "pm2:restart": "pm2 restart aura-backend",
+    "pm2:reload": "pm2 reload ecosystem.config.cjs",
+    "pm2:delete": "pm2 delete aura-backend",
+    "pm2:logs": "pm2 logs aura-backend",
+    "pm2:status": "pm2 status",
+    "pm2:save": "pm2 save",
+    "prod": "npm run pm2:start:prod"
   },
   "keywords": [],
   "author": "",
@@ -41,6 +51,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.3",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "pm2": "^6.0.14"
   }
 }

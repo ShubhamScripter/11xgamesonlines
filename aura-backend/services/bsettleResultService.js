@@ -14,6 +14,7 @@ const API_KEY = String(
 
 const FANCY_GAME_TYPES = new Set([
   'normal',
+  'fancy1',
   'meter',
   'line',
   'ball',

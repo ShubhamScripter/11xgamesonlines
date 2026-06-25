@@ -13,6 +13,7 @@ import {
 } from '../utils/prefetchSportsListings';
 import { hydrateHomeSportsFromCache } from '../utils/homeSportsHydrate';
 import { useSportsOddsRefresh } from '../hooks/useSportsOddsRefresh';
+import { useListOddsSocket } from '../hooks/useListOddsSocket';
 
 function MainLayout() {
   const dispatch = useDispatch();
@@ -59,6 +60,8 @@ function MainLayout() {
   useSportsOddsRefresh(pollSports, oddsScope, {
     skipInitial: isHomePath(location.pathname),
   });
+
+  useListOddsSocket(pollSports);
 
   return (
     <>

@@ -443,6 +443,7 @@ export const setupWebSocket = (server) => {
       apitype: null,
       roundId: null,
       userId: null,
+      listOddsSports: null,
     };
     clients.push(client);
 
@@ -462,6 +463,18 @@ export const setupWebSocket = (server) => {
             pendingUserMessages.delete(data.userId);
             console.log(`[WS] Delivered queued message to userId: ${data.userId}`);
           }
+        }
+
+        if (data.type === 'subscribe_list_odds') {
+          const sports = Array.isArray(data.sports)
+            ? data.sports
+            : ['cricket', 'soccer', 'tennis'];
+          client.listOddsSports = new Set(
+            sports.map((s) => String(s).toLowerCase())
+          );
+          console.log(
+            `[WS] List odds subscribe: ${[...client.listOddsSports].join(', ')}`
+          );
         }
 
         if (data.type === 'subscribe' && data.gameid) {
@@ -500,7 +513,22 @@ export const setupWebSocket = (server) => {
               if (client.apitype === 'casino') return;
 
               if (client.apitype === 'cricket') {
-                await pushCricketBettingFast(client.ws, client.gameid);
+                const cacheKey = `${client.gameid}_cricket`;
+                const cachedOutbound = cachedData[cacheKey]?.outbound;
+                if (
+                  cachedOutbound?.markets?.length &&
+                  client.ws.readyState === 1
+                ) {
+                  sendBettingPayload(client.ws, {
+                    gameid: client.gameid,
+                    apitype: 'cricket',
+                    markets: cachedOutbound.markets,
+                    premiumFancy: cachedOutbound.premiumFancy ?? [],
+                    providerCGameId:
+                      cachedOutbound.providerCGameId ?? String(client.gameid),
+                  });
+                }
+                void pushCricketBettingFast(client.ws, client.gameid);
                 return;
               }
 

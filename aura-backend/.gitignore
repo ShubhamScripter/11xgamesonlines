@@ -8,3 +8,7 @@
 #Ignore all package-lock.json files
 **/package-lock.json
 
+# PM2 logs
+logs/
+.pm2/
+

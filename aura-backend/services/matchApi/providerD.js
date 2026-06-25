@@ -12,13 +12,41 @@ import {
   normalizeBsettleSportsResult,
 } from '../bsettleResultService.js';
 import {
+  getCompetitionsForProvider,
+  hasCatalogEntries,
+  isCatalogFresh,
+} from '../betfairCatalog/competitionStore.js';
+import { syncCompetitionsForSport } from '../betfairCatalog/competitionSync.js';
+import {
+  getEventsForProvider,
+  hasEventCatalogEntries,
+  isEventCatalogFresh,
+} from '../betfairCatalog/eventStore.js';
+import { syncEventsForSport } from '../betfairCatalog/eventSync.js';
+import {
+  findMatchOddsMarket,
+  getMarketsForEvent,
+  getMatchOddsMetaByEventIds,
+  getSportIdForEvent,
+  hasMarketsForEvent,
+  isEventMarketsFresh,
+} from '../betfairCatalog/marketStore.js';
+import { syncMarketsForEvent } from '../betfairCatalog/marketSync.js';
+import { normalizeMarketOddsToBook } from '../betfairCatalog/oddsHelpers.js';
+import {
+  getOddsBookForEvent,
+  getOddsBooksByEventIds,
+  isOddsFreshInMemory,
+} from '../betfairCatalog/oddsStore.js';
+import { fetchAndStoreMarketOdds } from '../betfairCatalog/oddsSync.js';
+import {
   applyDefaultMarketLimits,
   applyMatchOddsToListMatch,
   chunkArray,
   collectResultMarketIds,
   enrichFancyMarketsWithEventId,
-  excludeTiedMatchMarkets,
   extractBetfairArray,
+  filterProviderDFullMarketMarkets,
   findMarketIdByName,
   mapPool,
   mergeMarketMetaWithBook,
@@ -32,6 +60,9 @@ import {
 dotenv.config();
 
 const LIST_MARKET_BOOK_MAX = 10;
+const EVENT_MARKETS_CACHE_MS =
+  Number(process.env.BETFAIR_EVENT_MARKETS_CACHE_MS) || 1500;
+const eventMarketsCache = new Map();
 
 /**
  * Provider D — Winkaro Betfair APIs
@@ -91,9 +122,32 @@ export function createProviderD() {
     };
   };
 
-  const fetchAllEventsForSport = async (sportId) => {
-    const compData = await betfairGet(`/betfair/competition-list/${sportId}`);
+  const resolveCompetitionsForSport = async (sportId) => {
+    const sid = Number(sportId);
+    const hasDb = await hasCatalogEntries(sid);
+    const fresh = hasDb ? await isCatalogFresh(sid) : false;
+
+    if (hasDb && fresh) {
+      const fromDb = await getCompetitionsForProvider(sid);
+      if (fromDb.length > 0) {
+        return fromDb;
+      }
+    }
+
+    const compData = await betfairGet(`/betfair/competition-list/${sid}`);
     const competitions = extractBetfairArray(compData);
+
+    syncCompetitionsForSport(sid, { preloaded: competitions }).catch((err) => {
+      console.warn(
+        `[ProviderD] competition catalog sync failed for sport ${sid}:`,
+        err.message
+      );
+    });
+
+    return competitions;
+  };
+
+  const fetchEventsLiveForSport = async (sportId, competitions) => {
     const events = [];
 
     await mapPool(
@@ -125,13 +179,73 @@ export function createProviderD() {
     return events;
   };
 
+  const resolveEventsForSport = async (sportId, competitions) => {
+    const sid = Number(sportId);
+    const hasDb = await hasEventCatalogEntries(sid);
+    const fresh = hasDb ? await isEventCatalogFresh(sid) : false;
+
+    if (hasDb && fresh) {
+      const fromDb = await getEventsForProvider(sid);
+      if (fromDb.length > 0) {
+        return fromDb;
+      }
+    }
+
+    const events = await fetchEventsLiveForSport(sid, competitions);
+
+    syncEventsForSport(sid).catch((err) => {
+      console.warn(
+        `[ProviderD] event catalog sync failed for sport ${sid}:`,
+        err.message
+      );
+    });
+
+    return events;
+  };
+
+  const fetchAllEventsForSport = async (sportId) => {
+    const competitions = await resolveCompetitionsForSport(sportId);
+    return resolveEventsForSport(sportId, competitions);
+  };
+
+  const resolveMarketListForEvent = async (eventId, sportIdHint = null) => {
+    const eid = String(eventId);
+    const hasDb = await hasMarketsForEvent(eid);
+    const fresh = hasDb ? await isEventMarketsFresh(eid) : false;
+
+    if (hasDb && fresh) {
+      const fromDb = await getMarketsForEvent(eid);
+      if (fromDb.length > 0) {
+        return fromDb;
+      }
+    }
+
+    const data = await betfairGet(`/betfair/market-all-list/${eid}`);
+    const metaList = extractBetfairArray(data);
+    const sid =
+      sportIdHint != null ? Number(sportIdHint) : await getSportIdForEvent(eid);
+
+    if (sid != null && metaList.length > 0) {
+      syncMarketsForEvent(eid, sid, { preloaded: metaList }).catch((err) => {
+        console.warn(
+          `[ProviderD] market catalog sync failed for event ${eid}:`,
+          err.message
+        );
+      });
+    }
+
+    return metaList;
+  };
+
   const resolveEventId = async (gameId, sportId) => {
     const id = String(gameId);
 
+    if (await hasMarketsForEvent(id)) {
+      return id;
+    }
+
     try {
-      const probe = extractBetfairArray(
-        await betfairGet(`/betfair/market-all-list/${id}`)
-      );
+      const probe = await resolveMarketListForEvent(id, sportId);
       if (probe.length > 0) return id;
     } catch {
       // not a direct event id — search competitions
@@ -194,35 +308,76 @@ export function createProviderD() {
     );
   };
 
+  /** Match Odds book: in-memory sync cache → single market-odds GET → listMarketBook fallback. */
+  const resolveMatchOddsBookForEvent = async (eventId, matchOddsMeta) => {
+    if (!matchOddsMeta?.marketId) return null;
+
+    const eid = String(eventId);
+    const marketId = String(matchOddsMeta.marketId);
+
+    const cached = getOddsBookForEvent(eid, marketId);
+    if (cached?.runners?.length) return cached;
+
+    try {
+      const raw = await betfairGet(`/betfair/market-odds/${eid}/${marketId}`);
+      const book = normalizeMarketOddsToBook(raw, marketId);
+      if (book.runners?.length) return book;
+    } catch (err) {
+      console.warn('[ProviderD] market-odds:', err.message);
+    }
+
+    try {
+      const books = await fetchMarketBooksBulk([marketId]);
+      return books.get(marketId) || null;
+    } catch (err) {
+      console.warn('[ProviderD] match-odds listMarketBook:', err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Full-market page: Match Odds + Fancy only (no tied match / bookmaker / other exchange).
+   */
   const buildMarketsForEvent = async (eventId) => {
-    const metaList = extractBetfairArray(
-      await betfairGet(`/betfair/market-all-list/${eventId}`)
-    );
+    const metaList = await resolveMarketListForEvent(eventId);
     if (!metaList.length) {
       return { success: false, data: [], message: 'No markets for event' };
     }
 
-    const marketIds = metaList.map((m) => m.marketId).filter(Boolean);
-    const books = await fetchMarketBooksBulk(marketIds);
+    const matchOddsMeta = findMatchOddsMarket(metaList);
 
-    const exchangeMarkets = metaList.map((meta) => {
-      const book = books.get(String(meta.marketId)) || null;
-      return mergeMarketMetaWithBook(meta, book);
-    });
+    const [fancyMarkets, matchOddsBook] = await Promise.all([
+      fetchFancyMarketsForEventId(eventId),
+      resolveMatchOddsBookForEvent(eventId, matchOddsMeta),
+    ]);
 
-    let fancyMarkets = await fetchFancyMarketsForEventId(eventId);
+    const exchangeMarkets = [];
+    if (matchOddsMeta) {
+      exchangeMarkets.push(
+        mergeMarketMetaWithBook(matchOddsMeta, matchOddsBook)
+      );
+    }
 
-    const fancyIds = new Set(
-      fancyMarkets.map((m) => String(m.mid || m.marketId || m.id))
-    );
-    const merged = excludeTiedMatchMarkets([
-      ...exchangeMarkets.filter(
-        (m) => !fancyIds.has(String(m.marketId))
-      ),
+    const merged = filterProviderDFullMarketMarkets([
+      ...exchangeMarkets,
       ...fancyMarkets,
     ]).map(applyDefaultMarketLimits);
 
     return { success: true, data: merged };
+  };
+
+  const buildMarketsForEventCached = async (eventId) => {
+    const key = String(eventId);
+    const hit = eventMarketsCache.get(key);
+    if (hit && Date.now() - hit.ts < EVENT_MARKETS_CACHE_MS) {
+      return hit.result;
+    }
+
+    const result = await buildMarketsForEvent(eventId);
+    if (result.success) {
+      eventMarketsCache.set(key, { ts: Date.now(), result });
+    }
+    return result;
   };
 
   /** Started matches only — listMarketBook inplay flag (no odds on list page). */
@@ -238,43 +393,52 @@ export function createProviderD() {
 
     if (!candidates.length) return matches;
 
-    const eventToMarketId = new Map();
+    const candidateIds = candidates.map((m) => String(m.gmid));
+    const books = await getOddsBooksByEventIds(candidateIds);
 
-    await mapPool(
-      candidates,
-      async (match) => {
-        try {
-          const eventId = String(match.gmid);
-          const metaList = extractBetfairArray(
-            await betfairGet(`/betfair/market-all-list/${eventId}`)
-          );
-          const matchOddsMeta = metaList.find((m) =>
-            String(m.marketName || '')
-              .toLowerCase()
-              .includes('match odds')
-          );
-          if (matchOddsMeta?.marketId) {
-            eventToMarketId.set(eventId, String(matchOddsMeta.marketId));
+    const missingIds = candidateIds.filter((id) => !books.has(id));
+    if (missingIds.length > 0) {
+      const eventMeta = await getMatchOddsMetaByEventIds(missingIds);
+      await mapPool(
+        missingIds,
+        async (eventId) => {
+          const meta = eventMeta.get(eventId);
+          if (!meta?.marketId) return;
+          try {
+            if (!isOddsFreshInMemory(eventId)) {
+              await fetchAndStoreMarketOdds(
+                eventId,
+                meta.marketId,
+                meta.sportId
+              );
+            }
+            const book = (await getOddsBooksByEventIds([eventId])).get(eventId);
+            if (book) books.set(eventId, book);
+          } catch {
+            // keep default inplay false
           }
-        } catch {
-          // keep default inplay false
-        }
-      },
-      2
-    );
+        },
+        2
+      );
+    }
 
-    const marketIds = [...new Set(eventToMarketId.values())];
-    if (!marketIds.length) return matches;
-
-    const books = await fetchMarketBooksBulk(marketIds);
     const inplayByEvent = new Map();
 
-    for (const [eventId, marketId] of eventToMarketId) {
-      const book = books.get(marketId);
+    for (const [eventId, book] of books) {
       if (!book) continue;
+      const startMs = new Date(
+        matches.find((m) => String(m.gmid) === eventId)?.stime || 0
+      ).getTime();
+      const started =
+        Number.isFinite(startMs) && startMs > 0 && startMs <= Date.now();
+      const hasPrices = (book.runners || []).some((r) => {
+        const back = r?.ex?.availableToBack?.[0]?.price ?? r?.back?.[0]?.price;
+        return Number(back) > 1.01;
+      });
+      const live = Boolean(book.inplay) || (started && hasPrices);
       inplayByEvent.set(eventId, {
-        iplay: Boolean(book.inplay),
-        inplay: Boolean(book.inplay),
+        iplay: live,
+        inplay: live,
         status: book.status || 'OPEN',
       });
     }
@@ -300,52 +464,67 @@ export function createProviderD() {
     return baseList.map((m) => byId.get(String(m.gmid)) || m);
   };
 
-  /** Match Odds back/lay preview for list pages (batched listMarketBook). */
+  /** Match Odds back/lay preview for list pages (from synced market-odds cache). */
   const enrichListMatchesWithOdds = async (matches) => {
-    const eventMeta = new Map();
+    const eventIds = matches.map((m) => String(m.gmid));
+    const eventMeta = await getMatchOddsMetaByEventIds(eventIds);
 
-    await mapPool(
-      matches,
-      async (match) => {
-        try {
-          const eventId = String(match.gmid);
-          const metaList = extractBetfairArray(
-            await betfairGet(`/betfair/market-all-list/${eventId}`)
-          );
-          const matchOddsMeta = metaList.find((m) =>
-            String(m.marketName || '')
-              .toLowerCase()
-              .includes('match odds')
-          );
-          if (matchOddsMeta?.marketId) {
-            eventMeta.set(eventId, {
-              marketId: String(matchOddsMeta.marketId),
-              runners: matchOddsMeta.runners || [],
-            });
+    const missingMetaIds = eventIds.filter((id) => !eventMeta.has(id));
+    if (missingMetaIds.length > 0) {
+      await mapPool(
+        missingMetaIds,
+        async (eventId) => {
+          try {
+            const metaList = await resolveMarketListForEvent(eventId);
+            const matchOddsMeta = findMatchOddsMarket(metaList);
+            if (matchOddsMeta?.marketId) {
+              eventMeta.set(eventId, {
+                marketId: String(matchOddsMeta.marketId),
+                runners: matchOddsMeta.runners || [],
+                sportId: await getSportIdForEvent(eventId),
+              });
+            }
+          } catch {
+            // keep match without odds
           }
-        } catch {
-          // keep match without odds
-        }
-      },
-      5
-    );
-
-    const marketIds = [...eventMeta.values()].map((v) => v.marketId);
-    if (!marketIds.length) return matches;
-
-    let books;
-    try {
-      books = await fetchMarketBooksBulk(marketIds);
-    } catch (err) {
-      console.warn('[ProviderD] listMarketBook bulk failed:', err.message);
-      return matches;
+        },
+        5
+      );
     }
 
+    let books = await getOddsBooksByEventIds(eventIds);
+    const needsLiveFetch = eventIds.filter(
+      (id) => eventMeta.has(id) && !books.has(id) && !isOddsFreshInMemory(id)
+    );
+
+    if (needsLiveFetch.length > 0) {
+      await mapPool(
+        needsLiveFetch,
+        async (eventId) => {
+          const meta = eventMeta.get(eventId);
+          if (!meta?.marketId) return;
+          try {
+            await fetchAndStoreMarketOdds(
+              eventId,
+              meta.marketId,
+              meta.sportId
+            );
+          } catch {
+            // keep match without odds
+          }
+        },
+        5
+      );
+      books = await getOddsBooksByEventIds(eventIds);
+    }
+
+    if (!books.size) return matches;
+
     return matches.map((m) => {
-      const meta = eventMeta.get(String(m.gmid));
-      if (!meta) return m;
-      const book = books.get(meta.marketId);
-      if (!book) return m;
+      const eventId = String(m.gmid);
+      const meta = eventMeta.get(eventId);
+      const book = books.get(eventId);
+      if (!meta || !book) return m;
       return applyMatchOddsToListMatch(m, book, meta.runners);
     });
   };
@@ -359,9 +538,7 @@ export function createProviderD() {
     if (!payload?.event_id || !marketLabel) return null;
 
     const eventId = await resolveEventId(payload.event_id, sportId);
-    const markets = extractBetfairArray(
-      await betfairGet(`/betfair/market-all-list/${eventId}`)
-    );
+    const markets = await resolveMarketListForEvent(eventId, sportId);
     return findMarketIdByName(markets, marketLabel);
   };
 
@@ -384,8 +561,8 @@ export function createProviderD() {
 
     async fetchMarketList(eventId) {
       ensureConfig();
-      const data = await betfairGet(`/betfair/market-all-list/${eventId}`);
-      return normalizeBetfairList(data);
+      const metaList = await resolveMarketListForEvent(eventId);
+      return normalizeBetfairList({ data: metaList });
     },
 
     async fetchMarketOdds(eventId, marketId) {
@@ -472,7 +649,7 @@ export function createProviderD() {
     async fetchMatchData(gameId, sportId) {
       ensureConfig();
       const eventId = await resolveEventId(gameId, sportId);
-      const result = await buildMarketsForEvent(eventId);
+      const result = await buildMarketsForEventCached(eventId);
       return {
         success: result.success,
         msg: result.success ? 'Success' : result.message || 'Failed',
