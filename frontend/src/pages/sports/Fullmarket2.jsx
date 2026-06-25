@@ -624,7 +624,7 @@ function Fullmarket2() {
   }, [scorecardHtml, isLive]);
 
   useEffect(() => {
-    if (!gameid || !key) return;
+    if (!gameid) return;
     let isCancelled = false;
     const altEventIds = beventId ? [beventId] : [];
 

@@ -1421,7 +1421,7 @@ const sportsbookData = Array.isArray(dataSource)
   }, [isLive, gameid, match]);
 
   useEffect(() => {
-    if (!gameid || !key) return;
+    if (!gameid) return;
     let isCancelled = false;
 
     const cachedTv = getBetfairTvLinkSync({ gameid, key });

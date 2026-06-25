@@ -1,3 +1,5 @@
+import api from "./axiosConfig";
+
 export const SPORTS_MEDIA_TYPE = {
   CRICKET: "cricket",
   TENNIS: "tennis",
@@ -7,17 +9,11 @@ export const SPORTS_MEDIA_TYPE = {
 const BASE_URL =
   import.meta.env.VITE_PROVIDER_D_API_URL || "https://winkaro.online/api/v1";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-
-const GET_ALL_TV_URL =
-  import.meta.env.VITE_GET_ALL_TV_URL || `${API_BASE_URL}/get-all-tv`;
-
 export const DEFAULT_BULKAPI_KEY =
   import.meta.env.VITE_BULKAPI_KEY ||
   "gk_db1cb19180dd6dc5657140d56d29c138099808c7a1196c52";
 
-const TV_LIST_TTL_MS = 3 * 60 * 1000;
+const TV_LIST_TTL_MS = 60 * 1000;
 
 /** @type {{ map: Map<string, string> | null, at: number }} */
 let tvCache = { map: null, at: 0 };
@@ -50,6 +46,13 @@ function indexTvList(payload) {
   return map;
 }
 
+function mergeIntoCache(eventId, tvUrl) {
+  if (!eventId || !tvUrl) return;
+  const map = tvCache.map?.size ? new Map(tvCache.map) : new Map();
+  map.set(String(eventId), String(tvUrl));
+  tvCache = { map, at: Date.now() };
+}
+
 function lookupTvUrl(map, gameid, altEventIds = []) {
   if (!map) return null;
   const ids = [gameid, ...altEventIds].filter(Boolean).map(String);
@@ -61,8 +64,14 @@ function lookupTvUrl(map, gameid, altEventIds = []) {
 }
 
 function getTvCacheEntry() {
-  if (!tvCache.map || Date.now() - tvCache.at >= TV_LIST_TTL_MS) return null;
+  if (!tvCache.map || tvCache.map.size === 0) return null;
+  if (Date.now() - tvCache.at >= TV_LIST_TTL_MS) return null;
   return tvCache;
+}
+
+async function fetchTvListFromBackend() {
+  const response = await api.get("/get-all-tv");
+  return response.data;
 }
 
 async function fetchTvList() {
@@ -73,17 +82,14 @@ async function fetchTvList() {
 
   tvInflight = (async () => {
     try {
-      const response = await fetch(GET_ALL_TV_URL, {
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) return getTvCacheEntry()?.map ?? null;
-
-      const payload = await response.json();
+      const payload = await fetchTvListFromBackend();
       if (!Array.isArray(payload)) return getTvCacheEntry()?.map ?? null;
 
       const map = indexTvList(payload);
-      tvCache = { map, at: Date.now() };
-      return map;
+      if (map.size > 0) {
+        tvCache = { map, at: Date.now() };
+      }
+      return map.size > 0 ? map : null;
     } catch {
       return getTvCacheEntry()?.map ?? null;
     } finally {
@@ -92,6 +98,13 @@ async function fetchTvList() {
   })();
 
   return tvInflight;
+}
+
+async function fetchTvByEventFromBackend(eventId) {
+  const response = await api.get("/tv/by-event", {
+    params: { gameid: eventId },
+  });
+  return response.data?.tv ? String(response.data.tv) : null;
 }
 
 /** Warm cache while user browses match list (non-blocking). */
@@ -106,8 +119,7 @@ export function getBetfairTvLinkSync({ gameid, key: _key, altEventIds = [] }) {
 }
 
 /**
- * get-all-tv: [{ eventId, tv, sportName, ... }]
- * Returns the `tv` URL for the matching eventId.
+ * Resolve TV URL for an event — always hits backend /tv/by-event per page open.
  */
 export async function getBetfairTvLinkByEventId({
   gameid,
@@ -116,6 +128,19 @@ export async function getBetfairTvLinkByEventId({
 }) {
   const cached = getBetfairTvLinkSync({ gameid, altEventIds });
   if (cached) return cached;
+
+  const ids = [gameid, ...altEventIds].filter(Boolean).map(String);
+  for (const id of ids) {
+    try {
+      const tv = await fetchTvByEventFromBackend(id);
+      if (tv) {
+        mergeIntoCache(id, tv);
+        return tv;
+      }
+    } catch {
+      // 404 or network — try next id
+    }
+  }
 
   const map = await fetchTvList();
   return lookupTvUrl(map, gameid, altEventIds);
