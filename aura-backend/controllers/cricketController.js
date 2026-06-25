@@ -11,6 +11,10 @@ import {
   getAnyCachedSportPayload,
   serveSportsListRequest,
 } from '../services/sportsListCache/sportsListCacheService.js';
+import {
+  sendBettingApiError,
+  sendBettingProviderFailure,
+} from '../utils/bettingApiErrors.js';
 
 dotenv.config();
 
@@ -89,12 +93,10 @@ export const fetchCrirketBettingData = async (req, res) => {
       return res.status(200).json({ success: true, data: json });
     }
 
-    return res
-      .status(500)
-      .json({ success: false, message: 'Invalid response from API' });
+    return sendBettingProviderFailure(res, json, gameid);
   } catch (error) {
     console.error('Error in fetchBettingData:', error.message);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    return sendBettingApiError(res, error, gameid);
   }
 };
 

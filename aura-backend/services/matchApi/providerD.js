@@ -56,6 +56,11 @@ import {
   parseFancyBookmakerPayload,
   pickFeaturedOddsTargets,
 } from './providerDHelpers.js';
+import {
+  WinkaroApiError,
+  winkaroErrorFromAxios,
+  winkaroErrorFromResponse,
+} from '../../utils/winkaroApiError.js';
 
 dotenv.config();
 
@@ -82,18 +87,38 @@ export function createProviderD() {
   };
 
   const betfairGet = async (path, params = {}) => {
-    const response = await axios.get(`${API_URL}${path}`, {
-      params: { key: API_KEY, ...params },
-    });
-    return response.data;
+    try {
+      const response = await axios.get(`${API_URL}${path}`, {
+        params: { key: API_KEY, ...params },
+        validateStatus: () => true,
+        timeout: 20000,
+      });
+      if (response.status >= 400) {
+        throw winkaroErrorFromResponse(response, { path, method: 'GET' });
+      }
+      return response.data;
+    } catch (err) {
+      if (err instanceof WinkaroApiError) throw err;
+      throw winkaroErrorFromAxios(err, { path, method: 'GET' });
+    }
   };
 
   const betfairPost = async (path, body = {}) => {
-    const response = await axios.post(`${API_URL}${path}`, body, {
-      params: { key: API_KEY },
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.data;
+    try {
+      const response = await axios.post(`${API_URL}${path}`, body, {
+        params: { key: API_KEY },
+        headers: { 'Content-Type': 'application/json' },
+        validateStatus: () => true,
+        timeout: 20000,
+      });
+      if (response.status >= 400) {
+        throw winkaroErrorFromResponse(response, { path, method: 'POST' });
+      }
+      return response.data;
+    } catch (err) {
+      if (err instanceof WinkaroApiError) throw err;
+      throw winkaroErrorFromAxios(err, { path, method: 'POST' });
+    }
   };
 
   const normalizeBetfairList = (data) => {
@@ -247,7 +272,8 @@ export function createProviderD() {
     try {
       const probe = await resolveMarketListForEvent(id, sportId);
       if (probe.length > 0) return id;
-    } catch {
+    } catch (err) {
+      if (err instanceof WinkaroApiError) throw err;
       // not a direct event id — search competitions
     }
 
@@ -341,7 +367,21 @@ export function createProviderD() {
   const buildMarketsForEvent = async (eventId) => {
     const metaList = await resolveMarketListForEvent(eventId);
     if (!metaList.length) {
-      return { success: false, data: [], message: 'No markets for event' };
+      const winkaroPath = `/betfair/market-all-list/${eventId}`;
+      return {
+        success: false,
+        data: [],
+        message: 'Winkaro API returned no markets for this event',
+        source: 'winkaro',
+        winkaroPath,
+        winkaro: {
+          httpStatus: 200,
+          method: 'GET',
+          path: winkaroPath,
+          detail:
+            'market-all-list responded but no betting markets are available for this event',
+        },
+      };
     }
 
     const matchOddsMeta = findMatchOddsMarket(metaList);
@@ -653,8 +693,11 @@ export function createProviderD() {
       return {
         success: result.success,
         msg: result.success ? 'Success' : result.message || 'Failed',
-        status: result.success ? 200 : 500,
+        status: result.success ? 200 : 404,
         data: result.data,
+        source: result.source,
+        winkaro: result.winkaro,
+        winkaroPath: result.winkaroPath,
       };
     },
 

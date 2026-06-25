@@ -4,6 +4,10 @@ import {
   getAnyCachedSportPayload,
   serveSportsListRequest,
 } from '../services/sportsListCache/sportsListCacheService.js';
+import {
+  sendBettingApiError,
+  sendBettingProviderFailure,
+} from '../utils/bettingApiErrors.js';
 
 dotenv.config();
 
@@ -45,17 +49,15 @@ export const fetchsoccerBettingData = async (req, res) => {
     const json = await fetchMatchData(gameid, 1);
 
     if (json.success) {
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: json,
       });
-    } else {
-      res
-        .status(500)
-        .json({ success: false, message: 'Invalid response from API' });
     }
+
+    return sendBettingProviderFailure(res, json, gameid);
   } catch (error) {
     console.error('Error in fetchBettingData:', error.message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    return sendBettingApiError(res, error, gameid);
   }
 };
