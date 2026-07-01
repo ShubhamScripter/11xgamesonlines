@@ -46,53 +46,63 @@ function sendBettingPayload(ws, { gameid, apitype, markets, premiumFancy, provid
 
 /** Cricket: push Provider D markets immediately, premium follows in background. */
 async function pushCricketBettingFast(ws, gameid) {
-  const primary = await fetchMatchData(gameid, 4);
-  if (!primary?.success) return null;
+  try {
+    const primary = await fetchMatchData(gameid, 4);
+    if (!primary?.success) return null;
 
-  const markets = unwrapMatchMarkets(primary);
-  const cacheKey = `${gameid}_cricket`;
-  const providerCGameId = String(gameid);
+    const markets = unwrapMatchMarkets(primary);
+    const cacheKey = `${gameid}_cricket`;
+    const providerCGameId = String(gameid);
 
-  sendBettingPayload(ws, {
-    gameid,
-    apitype: 'cricket',
-    markets,
-    premiumFancy: cachedData[cacheKey]?.outbound?.premiumFancy ?? [],
-    providerCGameId:
-      cachedData[cacheKey]?.outbound?.providerCGameId ?? providerCGameId,
-  });
-
-  fetchProviderCPremiumFancy(gameid, 4)
-    .then((premium) => {
-      const outbound = {
-        markets,
-        premiumFancy: premium.premiumFancy ?? [],
-        providerCGameId: premium.providerCGameId ?? providerCGameId,
-      };
-      cachedData[cacheKey] = { raw: primary, outbound };
-      sendBettingPayload(ws, {
-        gameid,
-        apitype: 'cricket',
-        markets,
-        premiumFancy: outbound.premiumFancy,
-        providerCGameId: outbound.providerCGameId,
-      });
-    })
-    .catch(() => {});
-
-  cachedData[cacheKey] = {
-    raw: primary,
-    outbound: {
+    sendBettingPayload(ws, {
+      gameid,
+      apitype: 'cricket',
       markets,
       premiumFancy: cachedData[cacheKey]?.outbound?.premiumFancy ?? [],
-      providerCGameId,
-    },
-  };
+      providerCGameId:
+        cachedData[cacheKey]?.outbound?.providerCGameId ?? providerCGameId,
+    });
 
-  return markets;
+    fetchProviderCPremiumFancy(gameid, 4)
+      .then((premium) => {
+        const outbound = {
+          markets,
+          premiumFancy: premium.premiumFancy ?? [],
+          providerCGameId: premium.providerCGameId ?? providerCGameId,
+        };
+        cachedData[cacheKey] = { raw: primary, outbound };
+        sendBettingPayload(ws, {
+          gameid,
+          apitype: 'cricket',
+          markets,
+          premiumFancy: outbound.premiumFancy,
+          providerCGameId: outbound.providerCGameId,
+        });
+      })
+      .catch(() => {});
+
+    cachedData[cacheKey] = {
+      raw: primary,
+      outbound: {
+        markets,
+        premiumFancy: cachedData[cacheKey]?.outbound?.premiumFancy ?? [],
+        providerCGameId,
+      },
+    };
+
+    return markets;
+  } catch (err) {
+    console.warn(
+      `[bettingSocket] pushCricketBettingFast failed for ${gameid}:`,
+      err?.message || err
+    );
+    return null;
+  }
 }
 
 let wssInstance = null;
+
+const BETTING_POLL_MS = Number(process.env.BETTING_POLL_MS) || 3000;
 
 // Global State
 const cricketPremiumPollAt = new Map();
@@ -564,8 +574,8 @@ export const setupWebSocket = (server) => {
     });
   });
 
-  // Start all polling intervals
-  setInterval(pollBettingData, 1000);
+  // Start all polling intervals (sports: 3s default — reduces Winkaro rate-limit pressure)
+  setInterval(pollBettingData, BETTING_POLL_MS);
   setInterval(pollCasinoBettingData, 1000);
 };
 

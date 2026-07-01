@@ -105,6 +105,8 @@ import InActiveMatch from './pages/generalSetting/InActiveMatch';
 import ViewBets from './pages/generalSetting/ViewBets';
 import InactiveUsers from './pages/generalSetting/InactiveUsers';
 import BetLockedUsers from './pages/generalSetting/BetLockedUsers';
+import LockApplication from './pages/generalSetting/LockApplication';
+import BetLock from './pages/betLock/BetLock';
 
 import DownLineView from './pages/downlineList/DownLineView';
 
@@ -174,7 +176,9 @@ function App() {
             <Route path='/in-active-match' element={<InActiveMatch />} />
             <Route path='/viewBets' element={<ViewBets />} />
             <Route path='/inactive-users' element={<InactiveUsers />} />
+            <Route path='/bet-lock' element={<BetLock />} />
             <Route path='/BetLockUser' element={<BetLockedUsers />} />
+            <Route path='/lock-application' element={<LockApplication />} />
           </Route>
         </Route>
       </Routes>

@@ -18,6 +18,7 @@ import downlineRoutes from './routes/admin/downlineRoutes.js';
 import manualResultRoutes from './routes/admin/manualResultRoutes.js';
 import marketAnalizeRoutes from './routes/admin/marketAnalizeRoutes.js';
 import matchSettingsRoutes from './routes/admin/matchSettingsRoute.js';
+import betApplicationLockRoutes from './routes/admin/betApplicationLockRoute.js';
 import manualDepositRoutes from './routes/manualDepositRoutes.js';
 import subRouteRoutes from './routes/admin/subAdminRoutes.js';
 import betRoute from './routes/betRoute.js';
@@ -32,6 +33,7 @@ import { setupWebSocket } from './socket/bettingSocket.js';
 import casinoRoutesNew from './routes/casinoRoutesNew.js';
 import tvRoutes from './routes/tvRoutes.js';
 import { startGetAllTvCron } from './services/tvApi/getAllTvCron.js';
+import { bootLog } from './config/silenceConsole.js';
 
 connectDB();
 
@@ -86,6 +88,7 @@ app.use('/api', horseRacingRoutes);
 app.use('/api', casinoRoutes);
 app.use('/api', marketAnalizeRoutes);
 app.use('/api', matchSettingsRoutes);
+app.use('/api', betApplicationLockRoutes);
 app.use('/api', manualResultRoutes);
 app.use('/api', cashoutRoute);
 app.use('/api', manualDepositRoutes);
@@ -136,9 +139,14 @@ const PORT = isLocal
     : process.env.CLIENT_PORT;
 
 server.listen(PORT, () => {
-  console.log(
+  bootLog(
     `${APP_TYPE} server running on port ${PORT} (${isLocal ? 'local' : 'prod'})`
   );
+});
+
+server.on('error', (err) => {
+  bootLog(`Server failed to start on port ${PORT}:`, err.message);
+  process.exit(1);
 });
 
 

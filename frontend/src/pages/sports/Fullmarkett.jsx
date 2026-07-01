@@ -1096,20 +1096,6 @@ function Fullmarkett() {
     }
 
     if (errorMessage) {
-      // Only show error toasts if user is logged in
-      const token = localStorage.getItem("token");
-      const now = Date.now();
-      if (now - lastBetToastAt < 1500) {
-        dispatch(messageClear());
-        return;
-      }
-
-      const toastKey = `error:${errorMessage}`;
-      if (token && lastBetToastKey !== toastKey) {
-        lastBetToastKey = toastKey;
-        lastBetToastAt = now;
-        toast.error(errorMessage);
-      }
       dispatch(messageClear());
     }
   }, [successMessage, errorMessage, dispatch]);

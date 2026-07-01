@@ -378,27 +378,26 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
     };
 
     try {
-      // Use createfancyBet for Fancy categories the backend supports
-      if (fancyGameTypes.has(formData.gameType)) {
-        await dispatch(createfancyBet(formData));
-      } else {
-        await dispatch(createBet(formData));
-      }
+      const action =
+        fancyGameTypes.has(formData.gameType)
+          ? createfancyBet(formData)
+          : createBet(formData);
+      await dispatch(action).unwrap();
       await dispatch(getUser());
       if (odds?.gameId) {
         dispatch(getPendingBetAmo(odds.gameId));
         dispatch(getPendingBet(odds.gameId));
       }
       setStake('');
-    } catch (e) {
-      // errors handled via slice
+    } catch {
+      // Error toast shown from betReducer thunk
     }
   };
 
   useEffect(() => {
     if (successMessage) {
+      toast.success(successMessage);
       dispatch(messageClear());
-      // Add a small delay to ensure user data is refreshed before closing
       setTimeout(() => {
         onClose?.();
       }, 500);

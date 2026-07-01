@@ -3,7 +3,9 @@ import cron from 'node-cron';
 import { bootLog } from '../../config/silenceConsole.js';
 import { syncAllTvFromRemoteSafe } from './getAllTvService.js';
 
-const CRON_ENABLED = process.env.GET_ALL_TV_CRON_ENABLED !== 'false';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const CRON_ENABLED =
+  IS_PRODUCTION && process.env.GET_ALL_TV_CRON_ENABLED !== 'false';
 const CRON_MIN = Number(process.env.GET_ALL_TV_CRON_MIN) || 1;
 
 let refreshing = false;
@@ -19,7 +21,12 @@ async function refreshTvCache() {
 }
 
 export function startGetAllTvCron() {
-  if (!CRON_ENABLED) return;
+  if (!CRON_ENABLED) {
+    if (!IS_PRODUCTION) {
+      bootLog('[getAllTv] cron skipped (local/dev — production only)');
+    }
+    return;
+  }
 
   const expr = CRON_MIN === 1 ? '* * * * *' : `*/${CRON_MIN} * * * *`;
   cron.schedule(expr, refreshTvCache);

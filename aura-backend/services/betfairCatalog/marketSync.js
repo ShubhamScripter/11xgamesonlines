@@ -8,7 +8,8 @@ import { isMatchOddsMarketName } from './marketStore.js';
 import { syncEventsForSport } from './eventSync.js';
 import { winkaroGet } from './winkaroClient.js';
 
-const MARKET_FETCH_CONCURRENCY = 4;
+const MARKET_FETCH_CONCURRENCY =
+  Number(process.env.BETFAIR_MARKET_FETCH_CONCURRENCY) || 2;
 
 function makeMarketContentHash(market) {
   const payload = JSON.stringify({

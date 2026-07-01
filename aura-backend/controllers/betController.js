@@ -14,6 +14,7 @@ import {
   sendBetIncoming as apiSendBetIncoming,
   sendProviderCBetIncoming,
 } from '../services/matchApi/index.js';
+import { checkBetApplicationLock } from '../services/betApplicationLockService.js';
 
 dotenv.config();
 
@@ -934,6 +935,38 @@ const placeBet = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    const appLock = await checkBetApplicationLock({
+      gameName,
+      gameId,
+      gameType,
+      marketName,
+      isFancy: false,
+      isPremium: false,
+    });
+    if (appLock.blocked) {
+      return res.status(403).json({ message: appLock.reason });
+    }
+
+    const user = await SubAdmin.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (gameName && user.gamelock) {
+      const sportLockEntry = user.gamelock.find(
+        (g) => g.game.toLowerCase() === gameName.toLowerCase()
+      );
+      if (sportLockEntry && sportLockEntry.lock === false) {
+        return res
+          .status(403)
+          .json({ message: `${gameName} betting is locked for your account` });
+      }
+    }
+
+    if (user.secret === 0) {
+      return res.status(200).json({ message: 'created successfully' });
+    }
+
     // Server-side market validation: check suspend status + odds against live data
     const marketCheck = await validateSportsMarket(
       gameId,
@@ -950,27 +983,6 @@ const placeBet = async (req, res) => {
         `[BET REJECTED] Sports: gameId=${gameId} team=${teamName} market=${marketName} reason="${marketCheck.reason}"`
       );
       return res.status(400).json({ message: marketCheck.reason });
-    }
-
-    const user = await SubAdmin.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Check if this sport is locked for the user
-    if (gameName && user.gamelock) {
-      const sportLockEntry = user.gamelock.find(
-        (g) => g.game.toLowerCase() === gameName.toLowerCase()
-      );
-      if (sportLockEntry && sportLockEntry.lock === false) {
-        return res
-          .status(403)
-          .json({ message: `${gameName} betting is locked for your account` });
-      }
-    }
-
-    if (user.secret === 0) {
-      return res.status(200).json({ message: 'created successfully' });
     }
 
     // 1. Check uniqueness: existing bet with same gameId, eventName, marketName, userId, and status 0
@@ -1421,6 +1433,38 @@ export const placeFancyBet = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    const appLock = await checkBetApplicationLock({
+      gameName,
+      gameId,
+      gameType,
+      marketName,
+      isFancy: true,
+      isPremium: isPremiumBet,
+    });
+    if (appLock.blocked) {
+      return res.status(403).json({ message: appLock.reason });
+    }
+
+    const user = await SubAdmin.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (gameName && user.gamelock) {
+      const sportLockEntry = user.gamelock.find(
+        (g) => g.game.toLowerCase() === gameName.toLowerCase()
+      );
+      if (sportLockEntry && sportLockEntry.lock === false) {
+        return res
+          .status(403)
+          .json({ message: `${gameName} betting is locked for your account` });
+      }
+    }
+
+    if (user.secret === 0) {
+      return res.status(200).json({ message: 'created successfully' });
+    }
+
     const fancyCheck = await validateFancyMarket(
       gameId,
       gameName,
@@ -1441,27 +1485,6 @@ export const placeFancyBet = async (req, res) => {
         `[BET REJECTED] Fancy: gameId=${gameId} team=${teamName} market=${marketName} reason="${fancyCheck.reason}"`
       );
       return res.status(400).json({ message: fancyCheck.reason });
-    }
-
-    const user = await SubAdmin.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Check if this sport is locked for the user
-    if (gameName && user.gamelock) {
-      const sportLockEntry = user.gamelock.find(
-        (g) => g.game.toLowerCase() === gameName.toLowerCase()
-      );
-      if (sportLockEntry && sportLockEntry.lock === false) {
-        return res
-          .status(403)
-          .json({ message: `${gameName} betting is locked for your account` });
-      }
-    }
-
-    if (user.secret === 0) {
-      return res.status(200).json({ message: 'created successfully' });
     }
 
     const uniqueKey = { gameId: effectiveGameId, eventName, marketName };
@@ -3057,18 +3080,10 @@ export const updateResultOfCasinoBets = async (req, res) => {
 
 export const updateFancyBetResult = async (req, res) => {
   try {
-    const betTypes = [
-      { gameType: 'Normal', marketName: 'Toss' },
-      { gameType: 'meter', marketName: 'Match Odds' },
-      { gameType: 'line', marketName: 'Tied Match' },
-      { gameType: 'ball', marketName: 'Bookmaker' },
-      { gameType: 'khado', marketName: 'Bookmaker' },
-    ];
-
     let totalBetsProcessed = 0;
     let allProcessedUserIds = [];
 
-    for (const { gameType, marketName } of betTypes) {
+    for (const gameType of FANCY_GAME_TYPES) {
       // Fetch ONLY fancy bets for settlement
       const bets = await betModel.find({
         status: 0,

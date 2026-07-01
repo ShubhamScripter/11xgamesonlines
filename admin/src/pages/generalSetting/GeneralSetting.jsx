@@ -4,8 +4,6 @@ import SearchUsers from '../../assets/search-users.jpg'
 import ActiveMatchList from "../../assets/active-match-list.jpg"
 import InActiveMatchList from '../../assets/in-active-match-list.jpg'
 import Inactiveusers from '../../assets/inactive-users.jpg'
-import BetLockedUsers from '../../assets/bet-locked-users.jpg'
-
 import EditPopup from './EditPopup'
 import { useNavigate } from 'react-router'
 import { useSelector } from 'react-redux'
@@ -219,11 +217,11 @@ function GeneralSetting() {
 
       <div className='bg-[#e0e6e6] border-b border-b-[#7e97a7]  p-4 mt-4'>
         <h2 className='text-[#243a48] font-[700]'>Match And Bets</h2>
-        <div className='flex gap-2 mt-2'>
-            <img src={ActiveMatchList} alt="" className='rounded-[10px] border-2 border-[#333]'
+        <div className='flex flex-wrap gap-2 mt-2'>
+            <img src={ActiveMatchList} alt="" className='rounded-[10px] border-2 border-[#333] cursor-pointer'
             onClick={()=>navigate('/active-match')}
             />
-            <img src={InActiveMatchList} alt="" className='rounded-[10px] border-2 border-[#333]'
+            <img src={InActiveMatchList} alt="" className='rounded-[10px] border-2 border-[#333] cursor-pointer'
             onClick={()=>navigate('/in-active-match')}
             />
         </div>
@@ -234,9 +232,6 @@ function GeneralSetting() {
         <div className='flex gap-2 mt-2'>
             <img src={Inactiveusers} alt="" className='rounded-[10px] border-2 border-[#333]'
             onClick={()=>navigate('/inactive-users')}
-            />
-            <img src={BetLockedUsers} alt="" className='rounded-[10px] border-2 border-[#333]'
-            onClick={()=>navigate('/BetLockUser')}
             />
         </div>
       </div>

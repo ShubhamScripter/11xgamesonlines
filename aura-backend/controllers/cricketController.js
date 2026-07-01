@@ -69,7 +69,7 @@ export const getCricketScorecard = async (req, res) => {
 
 const cricketBettingCache = new Map();
 const cricketPremiumCache = new Map();
-const CRICKET_BETTING_CACHE_MS = 5000;
+const CRICKET_BETTING_CACHE_MS = Number(process.env.CRICKET_BETTING_CACHE_MS) || 10000;
 const CRICKET_PREMIUM_CACHE_MS = 4000;
 
 export const fetchCrirketBettingData = async (req, res) => {
@@ -93,9 +93,25 @@ export const fetchCrirketBettingData = async (req, res) => {
       return res.status(200).json({ success: true, data: json });
     }
 
+    if (cached?.payload) {
+      return res.status(200).json({
+        success: true,
+        stale: true,
+        data: cached.payload,
+      });
+    }
+
     return sendBettingProviderFailure(res, json, gameid);
   } catch (error) {
     console.error('Error in fetchBettingData:', error.message);
+    const stale = cricketBettingCache.get(String(gameid));
+    if (stale?.payload) {
+      return res.status(200).json({
+        success: true,
+        stale: true,
+        data: stale.payload,
+      });
+    }
     return sendBettingApiError(res, error, gameid);
   }
 };

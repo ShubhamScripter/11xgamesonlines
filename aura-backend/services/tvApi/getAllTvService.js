@@ -6,6 +6,8 @@ import { bootLog } from '../../config/silenceConsole.js';
 const GET_ALL_TV_URL =
   process.env.GET_ALL_TV_URL || 'http://139.59.102.137:5102/api/get-all-tv';
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 const TV_CACHE_TTL_MS = Number(process.env.GET_ALL_TV_CACHE_MS) || 60 * 1000;
 const TV_FETCH_TIMEOUT_MS =
   Number(process.env.GET_ALL_TV_FETCH_TIMEOUT_MS) || 30_000;
@@ -134,6 +136,10 @@ async function fetchRemoteTvListOnce() {
 }
 
 async function fetchRemoteTvList() {
+  if (!IS_PRODUCTION) {
+    throw new Error('get-all-tv remote fetch is production-only');
+  }
+
   const startedAt = Date.now();
   bootLog(
     `[getAllTv] calling ${GET_ALL_TV_URL} (timeout=${TV_FETCH_TIMEOUT_MS}ms, retries=${TV_FETCH_RETRIES})`

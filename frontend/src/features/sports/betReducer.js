@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../utils/axiosConfig";
+import {
+  normalizeBetPlacementRejectPayload,
+  showBetPlacementErrorToast,
+} from "../../utils/bettingApiErrors";
 
 // Async thunk to place a bet
 export const createBet = createAsyncThunk(
@@ -20,10 +24,9 @@ export const createBet = createAsyncThunk(
       // Return the response data
       return response.data; // directly return { message, bet }
     } catch (error) {
-      // Handle errors and reject with a value
-      return rejectWithValue(
-        error.response?.data || { message: "Something went wrong" }
-      );
+      const payload = normalizeBetPlacementRejectPayload(error);
+      showBetPlacementErrorToast(payload.message);
+      return rejectWithValue(payload);
     }
   }
 );
@@ -108,11 +111,9 @@ export const createfancyBet = createAsyncThunk(
       });
       return response.data; // directly return { message, bet }
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
-        return rejectWithValue(error.response.data.message);
-      } else {
-        return rejectWithValue(error.message);
-      }
+      const payload = normalizeBetPlacementRejectPayload(error);
+      showBetPlacementErrorToast(payload.message);
+      return rejectWithValue(payload);
     }
   }
 );
@@ -327,7 +328,10 @@ const betSlice = createSlice({
       })
       .addCase(createfancyBet.rejected, (state, { payload }) => {
         state.loading = false;
-        state.errorMessage = payload;
+        state.errorMessage =
+          typeof payload === 'string'
+            ? payload
+            : payload?.message || 'Something went wrong';
       })
       .addCase(getCurrentBetCount.pending, (state) => {
         state.loading = true;

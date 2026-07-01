@@ -1,5 +1,8 @@
 import { toast } from 'react-hot-toast';
 
+let lastPlacementToastAt = 0;
+let lastPlacementToastMsg = '';
+
 /** User-facing message when Winkaro / betting API has no data for this event. */
 export function resolveBettingErrorMessage(error, gameid) {
   const id = String(gameid || '');
@@ -24,6 +27,42 @@ export function resolveBettingErrorMessage(error, gameid) {
 
 export function showBettingEventErrorToast(error, gameid) {
   toast.error(resolveBettingErrorMessage(error, gameid));
+}
+
+/** Instant toast when place-bet / place-fancy-bet fails (403 lock, validation, etc.). */
+export function resolveBetPlacementErrorMessage(error) {
+  const data = error?.response?.data;
+  const status = error?.response?.status;
+
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (data?.message) return String(data.message);
+
+  if (status === 403) return 'Betting is locked for this selection';
+  if (status === 400) return 'Invalid bet — please check odds and stake';
+
+  return error?.message || 'Failed to place bet';
+}
+
+export function showBetPlacementErrorToast(errorOrMessage) {
+  const message =
+    typeof errorOrMessage === 'string'
+      ? errorOrMessage
+      : resolveBetPlacementErrorMessage(errorOrMessage);
+
+  if (!message) return;
+
+  const now = Date.now();
+  if (message === lastPlacementToastMsg && now - lastPlacementToastAt < 2000) {
+    return;
+  }
+
+  lastPlacementToastMsg = message;
+  lastPlacementToastAt = now;
+  toast.error(message, { duration: 4500 });
+}
+
+export function normalizeBetPlacementRejectPayload(error) {
+  return { message: resolveBetPlacementErrorMessage(error) };
 }
 
 export function normalizeBettingThunkError(error, gameid) {

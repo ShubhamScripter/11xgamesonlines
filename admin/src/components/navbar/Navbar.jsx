@@ -104,6 +104,27 @@ const navData = [
     icon: "FaWhatsapp",
     path: "/customer-support"
   },
+  {
+    label: "Bet Lock",
+    icon: "FaLock",
+    children: [
+      {
+        label: "Overview",
+        icon: "FaThLarge",
+        path: "/bet-lock"
+      },
+      {
+        label: "Lock Application",
+        icon: "FaLock",
+        path: "/lock-application"
+      },
+      {
+        label: "Bet Locked Users",
+        icon: "FaUserLock",
+        path: "/BetLockUser"
+      }
+    ]
+  },
   // {
   //   label: "Block Market",
   //   icon: "FaBan",
@@ -125,12 +146,13 @@ const navData = [
   }
 ];
 
-const SidebarItem = ({ item, badges }) => {
+const SidebarItem = ({ item, badges, depth = 0 }) => {
   const [open, setOpen] = useState(false);
   const Icon = Icons[item.icon] || Icons.FaQuestionCircle;
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const badgeValue = item.badgeKey ? Number(badges?.[item.badgeKey] || 0) : 0;
+  const paddingLeft = depth > 0 ? { paddingLeft: `${12 + depth * 12}px` } : undefined;
 
   const handleClick = async () => {
     if (item.label === "Logout") {
@@ -150,6 +172,7 @@ const SidebarItem = ({ item, badges }) => {
     <div className="hide-scrollbar">
       <div
         onClick={handleClick}
+        style={paddingLeft}
         className="flex items-center justify-between cursor-pointer p-2 py-3 border-b-[1px] border-b-solid border-b-[#ffffff4d] hover:bg-[#4a4e42] hover:font-semibold"
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -173,6 +196,7 @@ const SidebarItem = ({ item, badges }) => {
               key={child.path || child.label}
               item={child}
               badges={badges}
+              depth={depth + 1}
             />
           ))}
         </div>

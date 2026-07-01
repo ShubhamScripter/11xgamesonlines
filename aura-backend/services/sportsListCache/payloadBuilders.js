@@ -131,18 +131,7 @@ export async function buildCricketPayload(withOdds, oddsScope) {
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const nowMs = Date.now();
-  const recentLiveWindowMs = 8 * 60 * 60 * 1000;
-  const filteredMatches = transformed.filter((match) => {
-    const matchDate = new Date(match.date);
-    if (match.inplay === true) return true;
-    if (Number.isNaN(matchDate.getTime())) return true;
-    const startMs = matchDate.getTime();
-    if (startMs >= nowMs) return true;
-    return nowMs - startMs <= recentLiveWindowMs;
-  });
-
-  return { success: true, matches: filteredMatches };
+  return { success: true, matches: transformed };
 }
 
 export async function buildSoccerPayload(withOdds, oddsScope) {

@@ -29,7 +29,6 @@ import {
   getMatchOddsMetaByEventIds,
   getSportIdForEvent,
   hasMarketsForEvent,
-  isEventMarketsFresh,
 } from '../betfairCatalog/marketStore.js';
 import { syncMarketsForEvent } from '../betfairCatalog/marketSync.js';
 import { normalizeMarketOddsToBook } from '../betfairCatalog/oddsHelpers.js';
@@ -61,12 +60,18 @@ import {
   winkaroErrorFromAxios,
   winkaroErrorFromResponse,
 } from '../../utils/winkaroApiError.js';
+import {
+  awaitWinkaroSlot,
+  pauseWinkaroAfter429,
+} from '../../utils/winkaroRateLimit.js';
 
 dotenv.config();
 
 const LIST_MARKET_BOOK_MAX = 10;
 const EVENT_MARKETS_CACHE_MS =
-  Number(process.env.BETFAIR_EVENT_MARKETS_CACHE_MS) || 1500;
+  Number(process.env.BETFAIR_EVENT_MARKETS_CACHE_MS) || 5000;
+const EVENT_MARKETS_FAIL_CACHE_MS =
+  Number(process.env.BETFAIR_EVENT_MARKETS_FAIL_CACHE_MS) || 20000;
 const eventMarketsCache = new Map();
 
 /**
@@ -87,23 +92,37 @@ export function createProviderD() {
   };
 
   const betfairGet = async (path, params = {}) => {
+    await awaitWinkaroSlot();
     try {
       const response = await axios.get(`${API_URL}${path}`, {
         params: { key: API_KEY, ...params },
         validateStatus: () => true,
         timeout: 20000,
       });
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers?.['retry-after']) || 16;
+        pauseWinkaroAfter429(retryAfter);
+      }
       if (response.status >= 400) {
-        throw winkaroErrorFromResponse(response, { path, method: 'GET' });
+        throw winkaroErrorFromResponse(response, {
+          path,
+          method: 'GET',
+          baseUrl: API_URL,
+        });
       }
       return response.data;
     } catch (err) {
       if (err instanceof WinkaroApiError) throw err;
-      throw winkaroErrorFromAxios(err, { path, method: 'GET' });
+      if (err?.response?.status === 429) {
+        const retryAfter = Number(err.response.headers?.['retry-after']) || 16;
+        pauseWinkaroAfter429(retryAfter);
+      }
+      throw winkaroErrorFromAxios(err, { path, method: 'GET', baseUrl: API_URL });
     }
   };
 
   const betfairPost = async (path, body = {}) => {
+    await awaitWinkaroSlot();
     try {
       const response = await axios.post(`${API_URL}${path}`, body, {
         params: { key: API_KEY },
@@ -111,13 +130,25 @@ export function createProviderD() {
         validateStatus: () => true,
         timeout: 20000,
       });
+      if (response.status === 429) {
+        const retryAfter = Number(response.headers?.['retry-after']) || 16;
+        pauseWinkaroAfter429(retryAfter);
+      }
       if (response.status >= 400) {
-        throw winkaroErrorFromResponse(response, { path, method: 'POST' });
+        throw winkaroErrorFromResponse(response, {
+          path,
+          method: 'POST',
+          baseUrl: API_URL,
+        });
       }
       return response.data;
     } catch (err) {
       if (err instanceof WinkaroApiError) throw err;
-      throw winkaroErrorFromAxios(err, { path, method: 'POST' });
+      if (err?.response?.status === 429) {
+        const retryAfter = Number(err.response.headers?.['retry-after']) || 16;
+        pauseWinkaroAfter429(retryAfter);
+      }
+      throw winkaroErrorFromAxios(err, { path, method: 'POST', baseUrl: API_URL });
     }
   };
 
@@ -235,10 +266,10 @@ export function createProviderD() {
 
   const resolveMarketListForEvent = async (eventId, sportIdHint = null) => {
     const eid = String(eventId);
-    const hasDb = await hasMarketsForEvent(eid);
-    const fresh = hasDb ? await isEventMarketsFresh(eid) : false;
 
-    if (hasDb && fresh) {
+    // Prefer MongoDB catalog — live odds polls must not re-hit market-all-list.
+    // Catalog refresh is handled by marketCatalogCron only.
+    if (await hasMarketsForEvent(eid)) {
       const fromDb = await getMarketsForEvent(eid);
       if (fromDb.length > 0) {
         return fromDb;
@@ -429,14 +460,19 @@ export function createProviderD() {
   const buildMarketsForEventCached = async (eventId) => {
     const key = String(eventId);
     const hit = eventMarketsCache.get(key);
-    if (hit && Date.now() - hit.ts < EVENT_MARKETS_CACHE_MS) {
-      return hit.result;
+    if (hit) {
+      const ttl = hit.success ? EVENT_MARKETS_CACHE_MS : EVENT_MARKETS_FAIL_CACHE_MS;
+      if (Date.now() - hit.ts < ttl) {
+        return hit.result;
+      }
     }
 
     const result = await buildMarketsForEvent(eventId);
-    if (result.success) {
-      eventMarketsCache.set(key, { ts: Date.now(), result });
-    }
+    eventMarketsCache.set(key, {
+      ts: Date.now(),
+      result,
+      success: Boolean(result.success),
+    });
     return result;
   };
 
