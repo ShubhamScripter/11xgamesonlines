@@ -3355,3 +3355,90 @@ export const getDuplicateIPUsers = async (req, res) => {
     });
   }
 };
+
+/**
+ * Detect a single device (persistent x-device-id fingerprint) being used by
+ * more than one user account. Used to notify the admin about possible
+ * multi-accounting from one device.
+ */
+export const getDuplicateDeviceUsers = async (req, res) => {
+  try {
+    const { role } = req;
+
+    const allowedRoles = ["superadmin", "admin", "subadmin", "seniorSuper"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied - You don't have permission to view this data",
+      });
+    }
+
+    // Only real end-users can multi-account from one device.
+    const allEndUsers = await SubAdmin.find({
+      role: "user",
+      status: { $ne: "delete" },
+    }).select("userName deviceIds lastDevice lastIP _id role status lastLogin createdAt");
+
+    // Map deviceId -> unique users
+    const deviceMap = new Map();
+
+    const addUserToDevice = (deviceId, user) => {
+      const id = (deviceId || "").trim();
+      if (!id || id === "unknown-device") return;
+      if (!deviceMap.has(id)) deviceMap.set(id, []);
+      const bucket = deviceMap.get(id);
+      if (!bucket.some((u) => u._id.toString() === user._id.toString())) {
+        bucket.push({
+          _id: user._id,
+          userName: user.userName,
+          role: user.role,
+          status: user.status,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          lastIP: user.lastIP,
+        });
+      }
+    };
+
+    for (const user of allEndUsers) {
+      const ids = Array.isArray(user.deviceIds) ? user.deviceIds : [];
+      for (const deviceId of ids) {
+        addUserToDevice(deviceId, user);
+      }
+      // Fallback for accounts that logged in before deviceIds existed.
+      if (!ids.length && user.lastDevice) {
+        addUserToDevice(user.lastDevice, user);
+      }
+    }
+
+    const duplicateDevices = [];
+    for (const [deviceId, users] of deviceMap.entries()) {
+      if (users.length > 1) {
+        duplicateDevices.push({
+          deviceId,
+          users,
+          count: users.length,
+        });
+      }
+    }
+
+    duplicateDevices.sort((a, b) => b.count - a.count);
+
+    return res.status(200).json({
+      success: true,
+      data: duplicateDevices,
+      totalDuplicateDevices: duplicateDevices.length,
+      totalAffectedUsers: duplicateDevices.reduce(
+        (sum, item) => sum + item.count,
+        0
+      ),
+    });
+  } catch (error) {
+    console.error("Error fetching duplicate device users:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};

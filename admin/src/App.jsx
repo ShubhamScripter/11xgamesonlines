@@ -107,6 +107,7 @@ import InactiveUsers from './pages/generalSetting/InactiveUsers';
 import BetLockedUsers from './pages/generalSetting/BetLockedUsers';
 import LockApplication from './pages/generalSetting/LockApplication';
 import BetLock from './pages/betLock/BetLock';
+import DeviceAlerts from './pages/deviceAlerts/DeviceAlerts';
 
 import DownLineView from './pages/downlineList/DownLineView';
 
@@ -177,6 +178,7 @@ function App() {
             <Route path='/viewBets' element={<ViewBets />} />
             <Route path='/inactive-users' element={<InactiveUsers />} />
             <Route path='/bet-lock' element={<BetLock />} />
+            <Route path='/device-alerts' element={<DeviceAlerts />} />
             <Route path='/BetLockUser' element={<BetLockedUsers />} />
             <Route path='/lock-application' element={<LockApplication />} />
           </Route>

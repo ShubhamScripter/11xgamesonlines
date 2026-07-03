@@ -74,6 +74,8 @@ const subAdminSchema = new mongoose.Schema(
     lastLogin: { type: Date, default: null },
     lastDevice: { type: String, default: null },
     lastIP: { type: String, default: null },
+    /** All persistent device fingerprints (x-device-id) this account has logged in from. Used for multi-account-per-device detection. */
+    deviceIds: { type: [String], default: [] },
     quickStakes: {
       type: [Number],
       default: [100, 200, 500, 1000, 2000, 3000, 5000, 10000],

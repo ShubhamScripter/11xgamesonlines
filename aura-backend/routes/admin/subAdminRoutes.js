@@ -35,6 +35,7 @@ import {
   userSetting,
   withdrowalAndDeposite,
   getDuplicateIPUsers,
+  getDuplicateDeviceUsers,
   getLockedUsers,
   getUserCompleteInfo,
   getUserProfileLight,
@@ -125,6 +126,7 @@ router.post("/sub-admin/profile-data", adminAuthMiddleware, getUserCompleteInfo)
 router.post("/sub-admin/profile-light", adminAuthMiddleware, getUserProfileLight);
 
 router.get("/duplicate-ip-users", adminAuthMiddleware, getDuplicateIPUsers);
+router.get("/duplicate-device-users", adminAuthMiddleware, getDuplicateDeviceUsers);
 router.get("/users-locked", adminAuthMiddleware, getLockedUsers);
 
 router.get('/admin/app-settings', adminAuthMiddleware, getAdminAppSettings);

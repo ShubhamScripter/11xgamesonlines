@@ -105,6 +105,12 @@ const navData = [
     path: "/customer-support"
   },
   {
+    label: "Device Alerts",
+    icon: "FaMobileAlt",
+    path: "/device-alerts",
+    badgeKey: "deviceAlerts",
+  },
+  {
     label: "Bet Lock",
     icon: "FaLock",
     children: [
@@ -206,29 +212,32 @@ const SidebarItem = ({ item, badges, depth = 0 }) => {
 };
 
 const Navbar = () => {
-  const [badges, setBadges] = useState({ depositPending: 0, withdrawPending: 0 });
+  const [badges, setBadges] = useState({ depositPending: 0, withdrawPending: 0, deviceAlerts: 0 });
 
   useEffect(() => {
     let mounted = true;
 
     const fetchBadges = async () => {
       try {
-        const [depositRes, withdrawRes] = await Promise.all([
+        const [depositRes, withdrawRes, deviceRes] = await Promise.all([
           axiosInstance.get("/admin/deposit-requests", {
             params: { status: "pending", requestType: "deposit" },
           }),
           axiosInstance.get("/admin/deposit-requests", {
             params: { status: "pending", requestType: "withdraw" },
           }),
+          axiosInstance.get("/duplicate-device-users").catch(() => null),
         ]);
 
         const depositList = Array.isArray(depositRes?.data?.data) ? depositRes.data.data : [];
         const withdrawList = Array.isArray(withdrawRes?.data?.data) ? withdrawRes.data.data : [];
+        const deviceCount = Number(deviceRes?.data?.totalDuplicateDevices || 0);
         if (mounted) {
           setBadges((prev) => ({
             ...prev,
             depositPending: depositList.length,
             withdrawPending: withdrawList.length,
+            deviceAlerts: deviceCount,
           }));
         }
       } catch {

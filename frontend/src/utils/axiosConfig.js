@@ -7,12 +7,33 @@ const api = axios.create({
   withCredentials: true, // important for cookies/session if backend uses them
 });
 
+// Persistent per-browser device fingerprint used to detect multi-accounting
+// from a single device. Stored once and reused across sessions.
+const getDeviceId = () => {
+  try {
+    let deviceId = localStorage.getItem("deviceId");
+    if (!deviceId) {
+      deviceId =
+        (crypto.randomUUID && crypto.randomUUID()) ||
+        `dev-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem("deviceId", deviceId);
+    }
+    return deviceId;
+  } catch {
+    return null;
+  }
+};
+
 //  Request Interceptor → Attach token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const deviceId = getDeviceId();
+    if (deviceId) {
+      config.headers["x-device-id"] = deviceId;
     }
     return config;
   },

@@ -277,6 +277,30 @@ export const loginUser = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Track device + IP for multi-account-per-device detection.
+    // x-device-id is a persistent per-browser fingerprint sent by the frontend.
+    const deviceId =
+      req.headers['x-device-id'] ||
+      req.headers['user-agent'] ||
+      'unknown-device';
+    const ipAddress =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.connection?.remoteAddress ||
+      user.lastIP ||
+      null;
+
+    const deviceUpdate = {
+      $set: {
+        lastLogin: new Date(),
+        lastDevice: deviceId,
+        ...(ipAddress ? { lastIP: ipAddress } : {}),
+      },
+    };
+    if (deviceId && deviceId !== 'unknown-device') {
+      deviceUpdate.$addToSet = { deviceIds: deviceId };
+    }
+    await SubAdmin.updateOne({ _id: user._id }, deviceUpdate);
+
     res.cookie('auth', token, {
       httpOnly: true,
       secure: true,
