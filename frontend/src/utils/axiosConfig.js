@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
+   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
   // baseURL: "/api",
 
   withCredentials: true, // important for cookies/session if backend uses them
@@ -67,8 +67,14 @@ api.interceptors.response.use(
 
 export default api;
 
-export const host = "ws://localhost:3000";
-// export const host="https://ad.7billion.online"
-// export const host = "/";
+// WebSocket endpoint.
+// - Explicit override: set VITE_WS_URL (e.g. wss://baajilive.com)
+// - Production build: derive same-origin automatically (wss on https, ws on http)
+// - Local dev: fall back to the local backend
+export const host =
+  import.meta.env.VITE_WS_URL ||
+  (import.meta.env.PROD && typeof window !== "undefined"
+    ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
+    : "ws://localhost:5000");
 
 

@@ -4,7 +4,7 @@ export function resolveUploadUrl(value) {
   if (!src) return '';
   if (/^https?:\/\//i.test(src)) return src;
 
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   const fallbackBase =
     import.meta.env.VITE_UPLOADS_BASE_URL ||
     import.meta.env.VITE_ADMIN_UPLOADS_BASE_URL ||

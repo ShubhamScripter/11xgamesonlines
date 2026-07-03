@@ -7,11 +7,9 @@ export const setLogoutHandler = (handler) => {
 };
 
 const axiosInstance = axios.create({
-  // baseURL: 'https://cd06b49e12b2.ngrok-free.app/api',
-   baseURL: 'http://localhost:3000/api',
-  // baseURL:'https://7billion.online/api',
-
-  // baseURL: "/api",
+  // In production (.env.production) VITE_API_BASE_URL=/api → same-origin calls.
+  // In local dev it falls back to the local backend.
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

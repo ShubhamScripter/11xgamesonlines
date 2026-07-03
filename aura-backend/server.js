@@ -40,9 +40,15 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-const APP_TYPE = process.env.APP_TYPE || 'dashboard';
-
 // Middleware
+// Extra allowed origins can be added via CORS_ORIGINS (comma-separated) in .env.
+// Note: the user + admin sites are served by THIS same backend (same origin),
+// so CORS is only relevant for tools/other origins like ngrok.
+const envOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
     origin: [
@@ -55,6 +61,7 @@ app.use(
       'https://diamond-admin-tau.vercel.app/',
       'https://diamondbook-client.vercel.app/',
       'https://aura444.org/',
+      ...envOrigins,
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -99,49 +106,49 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-if (APP_TYPE === 'dashboard') {
-  app.use(express.static(path.join(__dirname, '../dashboard/dist')));
-  app.get('*', (req, res) =>
-    res.sendFile(path.join(__dirname, '../dashboard/dist/index.html'))
-  );
-} else {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  app.get('*', (req, res) =>
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'))
-  );
-}
+// Single backend serves BOTH sites based on the request hostname:
+//   ag.<domain>      → admin panel   (admin/dist)
+//   everything else  → user frontend (frontend/dist)
+// The /api routes above are registered first, so they work on either hostname.
+const frontendDist = path.join(__dirname, '../frontend/dist');
+const adminDist = path.join(__dirname, '../admin/dist');
+
+const isAdminHost = (req) => {
+  const hostHeader = (req.hostname || req.headers.host || '').toLowerCase();
+  return hostHeader.startsWith('ag.') || hostHeader.startsWith('admin.');
+};
+
+app.use((req, res, next) =>
+  express.static(isAdminHost(req) ? adminDist : frontendDist)(req, res, next)
+);
+
+app.get('*', (req, res) =>
+  res.sendFile(
+    path.join(isAdminHost(req) ? adminDist : frontendDist, 'index.html')
+  )
+);
 
 setupWebSocket(server);
 
 initSportsCacheStore();
 
-// Only run settlement crons on the client backend process.
-// In production, TWO PM2 processes (agaura444 + aura444) run the same server.js.
-// If both run crons, bets get settled twice → bettingProfitLoss doubles.
-if (APP_TYPE !== 'dashboard') {
-  cronJobGame1p();
-  startCompetitionCatalogCron();
-  startEventCatalogCron();
-  startMarketCatalogCron();
-  startOddsSyncCron();
-  startSportsListCacheCron();
-  startGetAllTvCron();
-} else {
-  // dashboard process — settlement/caches crons skipped
-}
+// Single backend process → run all settlement/catalog crons here exactly once.
+// (With one process there is no risk of double-settlement.)
+cronJobGame1p();
+startCompetitionCatalogCron();
+startEventCatalogCron();
+startMarketCatalogCron();
+startOddsSyncCron();
+startSportsListCacheCron();
+startGetAllTvCron();
 
 const isLocal = process.env.NODE_ENV !== 'production';
 
-const PORT = isLocal
-  ? process.env.PORT || (APP_TYPE === 'dashboard' ? 8001 : 8000)
-  : APP_TYPE === 'dashboard'
-    ? process.env.DASHBOARD_PORT
-    : process.env.CLIENT_PORT;
+// One port for the whole app (both user + admin are served from here).
+const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  bootLog(
-    `${APP_TYPE} server running on port ${PORT} (${isLocal ? 'local' : 'prod'})`
-  );
+  bootLog(`server running on port ${PORT} (${isLocal ? 'local' : 'prod'})`);
 });
 
 server.on('error', (err) => {
