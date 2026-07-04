@@ -1348,9 +1348,36 @@ export const getBetHistory = async (req, res) => {
 
     const total = await betHistoryModel.countDocuments(query);
 
+    const missingSourceBetIds = [
+      ...new Set(
+        bets
+          .filter((bet) => !bet.betSource && bet.betId)
+          .map((bet) => bet.betId)
+      ),
+    ];
+
+    let betSourceByBetId = {};
+    if (missingSourceBetIds.length) {
+      const parentBets = await betModel
+        .find({ _id: { $in: missingSourceBetIds } })
+        .select('_id betSource')
+        .lean();
+      betSourceByBetId = Object.fromEntries(
+        parentBets.map((bet) => [String(bet._id), bet.betSource || null])
+      );
+    }
+
+    const enrichedBets = bets.map((bet) => {
+      const row = bet.toObject();
+      if (!row.betSource && row.betId && betSourceByBetId[row.betId]) {
+        row.betSource = betSourceByBetId[row.betId];
+      }
+      return row;
+    });
+
     res.status(200).json({
       success: true,
-      data: bets,
+      data: enrichedBets,
       pagination: {
         total,
         page: parseInt(page),

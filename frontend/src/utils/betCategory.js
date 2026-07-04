@@ -1,6 +1,6 @@
 import { formatAppDateTime } from './time';
 
-/** @typedef {'all'|'casino'|'match_odds'|'bookmaker'|'fancy'} BetFilterKey */
+/** @typedef {'all'|'casino'|'match_odds'|'bookmaker'|'fancy'|'premium'} BetFilterKey */
 
 export const BET_FILTER_OPTIONS = [
   { key: 'all', label: 'All' },
@@ -8,6 +8,7 @@ export const BET_FILTER_OPTIONS = [
   { key: 'match_odds', label: 'Match Odds' },
   { key: 'bookmaker', label: 'Bookmaker' },
   { key: 'fancy', label: 'Fancy' },
+  { key: 'premium', label: 'Premium' },
 ];
 
 const FANCY_GAME_TYPES = new Set([
@@ -24,14 +25,36 @@ export const BET_CATEGORY_LABELS = {
   match_odds: 'Match Odds',
   bookmaker: 'Bookmaker',
   fancy: 'Fancy',
+  premium: 'Premium',
   other: 'Sports',
 };
+
+export function isPremiumSportsBet(bet) {
+  const source = String(bet?.betSource || '').trim().toLowerCase();
+  return source === 'providerc';
+}
+
+function isFancyGameTypeBet(bet) {
+  const gameType = String(bet?.gameType || '').trim();
+  const gtLower = gameType.toLowerCase();
+
+  if (FANCY_GAME_TYPES.has(gtLower)) return true;
+
+  const fancy = bet?.fancyScore ?? bet?.fancy_score;
+  const fancyStr =
+    fancy === undefined || fancy === null ? '' : String(fancy).trim();
+  if (fancyStr && fancyStr !== '0') return true;
+
+  return false;
+}
 
 /**
  * Classify a sports bet row from API (betHistory model).
  * @returns {Exclude<BetFilterKey, 'all'|'casino'>}
  */
 export function getSportsBetCategory(bet) {
+  if (isPremiumSportsBet(bet)) return 'premium';
+
   const gameType = String(bet?.gameType || '').trim();
   const gtLower = gameType.toLowerCase();
 
@@ -67,6 +90,7 @@ export function mapSportsBetForCard(bet, { unsettledOnly = false } = {}) {
     betCategory: category,
     categoryLabel: BET_CATEGORY_LABELS[category] || BET_CATEGORY_LABELS.other,
     gameType: bet.gameType || '',
+    betSource: bet.betSource || null,
     id: bet._id || bet.id || `sports-${created.getTime()}`,
     marketName: bet.marketName || '—',
     gameName: bet.gameName || '—',
@@ -128,4 +152,22 @@ export function filterBetsByCategory(bets, filterKey) {
 
 export function sortBetsByTimeDesc(bets) {
   return [...bets].sort((a, b) => (b.placedTs || 0) - (a.placedTs || 0));
+}
+
+export function buildBetFilterCounts(allBets) {
+  const counts = {
+    all: allBets.length,
+    casino: 0,
+    match_odds: 0,
+    bookmaker: 0,
+    fancy: 0,
+    premium: 0,
+  };
+
+  allBets.forEach((b) => {
+    if (b.betKind === 'casino') counts.casino += 1;
+    else if (counts[b.betCategory] != null) counts[b.betCategory] += 1;
+  });
+
+  return counts;
 }

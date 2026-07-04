@@ -5,6 +5,7 @@ import BetTypeFilters from "../../components/Bethistory/BetTypeFilters";
 import { getBetHistory } from "../../features/sports/betReducer";
 import api from "../../utils/axiosConfig";
 import {
+  buildBetFilterCounts,
   filterBetsByCategory,
   mapCasinoBetForCard,
   mapSportsBetForCard,
@@ -96,20 +97,7 @@ function Bets() {
     return sortBetsByTimeDesc([...sports, ...casino]);
   }, [betHistory, casinoBets, settlementFilter]);
 
-  const filterCounts = useMemo(() => {
-    const counts = {
-      all: allBets.length,
-      casino: 0,
-      match_odds: 0,
-      bookmaker: 0,
-      fancy: 0,
-    };
-    allBets.forEach((b) => {
-      if (b.betKind === "casino") counts.casino += 1;
-      else if (counts[b.betCategory] != null) counts[b.betCategory] += 1;
-    });
-    return counts;
-  }, [allBets]);
+  const filterCounts = useMemo(() => buildBetFilterCounts(allBets), [allBets]);
 
   const filteredBets = useMemo(
     () => filterBetsByCategory(allBets, typeFilter),

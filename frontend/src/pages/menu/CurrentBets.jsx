@@ -12,6 +12,8 @@ import BetTypeFilters from '../../components/Bethistory/BetTypeFilters';
 
 import {
 
+  buildBetFilterCounts,
+
   filterBetsByCategory,
 
   mapSportsBetForCard,
@@ -100,19 +102,7 @@ function CurrentBets() {
 
 
 
-  const filterCounts = useMemo(() => {
-
-    const counts = { all: allBets.length, casino: 0, match_odds: 0, bookmaker: 0, fancy: 0 };
-
-    allBets.forEach((b) => {
-
-      if (counts[b.betCategory] != null) counts[b.betCategory] += 1;
-
-    });
-
-    return counts;
-
-  }, [allBets]);
+  const filterCounts = useMemo(() => buildBetFilterCounts(allBets), [allBets]);
 
 
 

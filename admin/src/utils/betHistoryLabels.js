@@ -8,6 +8,9 @@ const FANCY_GAME_TYPES = new Set([
 ]);
 
 export function getSportsBetTypeLabel(item = {}) {
+  const source = String(item.betSource || '').trim().toLowerCase();
+  if (source === 'providerc') return 'Premium';
+
   const gameType = String(item.gameType || '').trim();
   const gtLower = gameType.toLowerCase();
   const marketName = String(item.marketName || '').toLowerCase();

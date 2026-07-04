@@ -153,6 +153,9 @@ const betHistorySchema = new mongoose.Schema(
       default: Date.now,
     },
     subtype: { type: String },
+    betSource: {
+      type: String,
+    },
   },
   {
     timestamps: true,

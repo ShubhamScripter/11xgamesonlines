@@ -91,9 +91,10 @@ const BetCard = ({ data, compact = false }) => {
                           const fancy = bet.fancyScore;
                           const fancyStr = fancy === undefined || fancy === null ? "" : String(fancy).trim();
                           if (!fancyStr || fancyStr === "0") return null;
+                          const fancyLabel = bet.betCategory === "premium" ? "Premium" : "Fancy";
                           return (
                             <span className="text-xs text-blue-600 font-semibold">
-                              Fancy {fancyStr}
+                              {fancyLabel} {fancyStr}
                             </span>
                           );
                         })()}
