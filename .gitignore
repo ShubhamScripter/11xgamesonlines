@@ -27,6 +27,10 @@ yarn-error.log*
 **/.env
 **/.env.*
 
+# Keep the committed template (no live secrets should be added beyond setup defaults).
+!.env.example
+!**/.env.example
+
 # Frontend/admin build-time env files contain NO secrets (only VITE_API_BASE_URL=/api).
 # Keep them tracked so `git pull` on the server has them for the build step.
 !frontend/.env.production
