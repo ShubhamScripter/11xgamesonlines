@@ -31,11 +31,16 @@ cd aura-backend
 npm install
 
 echo "==> [5/5] (Re)starting backend via PM2"
+# Use project-local PM2 (devDependency) — global `pm2` is often missing in aaPanel shells.
+PM2_BIN="./node_modules/.bin/pm2"
+if [ ! -x "$PM2_BIN" ]; then
+  PM2_BIN="npx --no-install pm2"
+fi
 # startOrReload = start if not running, otherwise zero-downtime reload.
-pm2 startOrReload ecosystem.config.cjs --env production
-pm2 save
+$PM2_BIN startOrReload ecosystem.config.cjs --env production
+$PM2_BIN save
 cd ..
 
 echo ""
 echo "==> Deploy complete."
-pm2 status
+cd aura-backend && $PM2_BIN status
