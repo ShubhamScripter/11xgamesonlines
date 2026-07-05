@@ -26,6 +26,7 @@ import ProfitLoss from './pages/menu/ProfitLoss'
 import Activelog from './pages/menu/ActiveLog'
 import Myprofile from './pages/menu/MyProfile'
 import ManualDeposit from './pages/menu/ManualDeposit'
+import AttendanceBonus from './pages/menu/AttendanceBonus'
 import Settings from './pages/menu/Setting'
 import ChangePassword from './pages/menu/ChangePassword'
 import { Toaster } from 'react-hot-toast'
@@ -51,6 +52,7 @@ const ACCOUNT_ROUTES = [
   { path: 'active-log', element: <Activelog /> },
   { path: 'profile', element: <Myprofile /> },
   { path: 'manual-deposit', element: <ManualDeposit /> },
+  { path: 'attendance', element: <AttendanceBonus /> },
   { path: 'setting', element: <Settings /> },
   { path: 'change-password', element: <ChangePassword /> },
 ];

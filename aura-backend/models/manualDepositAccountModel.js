@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 
+const METHODS = ['bkash', 'nagad', 'rocket', 'crypto'];
+
 const manualDepositAccountSchema = new mongoose.Schema(
   {
     method: {
       type: String,
-      enum: ['bank', 'upi', 'crypto', 'whatsapp'],
+      enum: METHODS,
       required: true,
       index: true,
     },
@@ -25,6 +27,8 @@ const manualDepositAccountSchema = new mongoose.Schema(
       network: { type: String, trim: true },
       note: { type: String, trim: true },
       phoneNumber: { type: String, trim: true },
+      accountType: { type: String, trim: true },
+      minAmount: { type: Number, min: 0 },
     },
     isActive: {
       type: Boolean,

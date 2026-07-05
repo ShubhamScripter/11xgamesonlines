@@ -105,9 +105,9 @@ const navData = [
     path: "/customer-support"
   },
   {
-    label: "Device Alerts",
-    icon: "FaMobileAlt",
-    path: "/device-alerts",
+    label: "Risk & Fraud",
+    icon: "FaShieldAlt",
+    path: "/risk-fraud",
     badgeKey: "deviceAlerts",
   },
   {
@@ -226,12 +226,12 @@ const Navbar = () => {
           axiosInstance.get("/admin/deposit-requests", {
             params: { status: "pending", requestType: "withdraw" },
           }),
-          axiosInstance.get("/duplicate-device-users").catch(() => null),
+          axiosInstance.get("/fraud-clusters").catch(() => null),
         ]);
 
         const depositList = Array.isArray(depositRes?.data?.data) ? depositRes.data.data : [];
         const withdrawList = Array.isArray(withdrawRes?.data?.data) ? withdrawRes.data.data : [];
-        const deviceCount = Number(deviceRes?.data?.totalDuplicateDevices || 0);
+        const deviceCount = Number(deviceRes?.data?.stats?.flaggedClusters || 0);
         if (mounted) {
           setBadges((prev) => ({
             ...prev,

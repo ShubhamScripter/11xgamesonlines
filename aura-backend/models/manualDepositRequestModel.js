@@ -26,7 +26,7 @@ const manualDepositRequestSchema = new mongoose.Schema(
     },
     method: {
       type: String,
-      enum: ['bank', 'upi', 'crypto', 'whatsapp'],
+      enum: ['bkash', 'nagad', 'rocket', 'crypto'],
       required: true,
       index: true,
     },
@@ -43,6 +43,8 @@ const manualDepositRequestSchema = new mongoose.Schema(
     referenceId: { type: String, trim: true },
     paymentNote: { type: String, trim: true },
     bonusType: { type: String, trim: true },
+    bonusAmount: { type: Number, default: 0, min: 0 },
+    firstDepositBonusApplied: { type: Boolean, default: false },
     paymentImageUrl: { type: String, trim: true },
     status: {
       type: String,

@@ -76,6 +76,9 @@ const subAdminSchema = new mongoose.Schema(
     lastIP: { type: String, default: null },
     /** All persistent device fingerprints (x-device-id) this account has logged in from. Used for multi-account-per-device detection. */
     deviceIds: { type: [String], default: [] },
+    firstDepositBonusClaimed: { type: Boolean, default: false },
+    /** Last calendar day (Asia/Dhaka YYYY-MM-DD) user claimed attendance bonus */
+    lastAttendanceDate: { type: String, default: '', trim: true },
     quickStakes: {
       type: [Number],
       default: [100, 200, 500, 1000, 2000, 3000, 5000, 10000],

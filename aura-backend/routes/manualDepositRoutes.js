@@ -8,6 +8,7 @@ import {
   getManualDepositAccountsForUser,
   getManualDepositRequestsForAdmin,
   getMyManualDepositRequests,
+  getFirstDepositBonusInfo,
   reviewManualDepositRequest,
   updateManualDepositAccount,
 } from '../controllers/manualDepositController.js';
@@ -29,6 +30,7 @@ router.post(
   createManualDepositRequest
 );
 router.get('/user/deposit-requests', authMiddleware, getMyManualDepositRequests);
+router.get('/user/first-deposit-bonus', authMiddleware, getFirstDepositBonusInfo);
 
 // Admin-side management
 router.get(

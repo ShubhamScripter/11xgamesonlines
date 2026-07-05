@@ -180,7 +180,10 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
                       {r.paymentImageUrl ? (
                         <ImagePreviewLink
                           href={resolveUploadUrl(r.paymentImageUrl)}
+                          thumbnail
+                          alt="Payment screenshot"
                           label="View Screenshot"
+                          thumbnailClassName="w-14 h-14 rounded border border-gray-200 object-cover cursor-pointer hover:opacity-90 hover:ring-2 hover:ring-blue-400 transition"
                         />
                       ) : (
                         '-'

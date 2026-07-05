@@ -22,6 +22,10 @@ import {
   mapTransactionsForAdmin,
   mapUserFinancialsForAdmin,
 } from '../../utils/adminCurrency.js';
+import {
+  claimFirstDepositBonusFlag,
+  computeFirstDepositBonus,
+} from '../../utils/firstDepositBonus.js';
 
 const countUplines = async (user) => {
   let count = 0;
@@ -1785,45 +1789,55 @@ export const withdrowalAndDeposite = async (req, res) => {
 
     //  Handle Deposit
     if (type === 'deposite') {
+      let bonusAmount = 0;
+      const bonusPreview = await computeFirstDepositBonus(editUser, balance);
+      if (bonusPreview.applied && bonusPreview.bonusAmount > 0) {
+        if (await claimFirstDepositBonusFlag(editUser._id)) {
+          bonusAmount = bonusPreview.bonusAmount;
+        }
+      }
+      const totalCredit = balance + bonusAmount;
+      const adminDebit = totalCredit;
+
       if (role === 'superadmin') {
-        // Super Admin can deposit without balance restriction
+        editUser.balance += totalCredit;
+        editUser.avbalance += totalCredit;
+        editUser.baseBalance += totalCredit;
+        editUser.exposureLimit = (editUser.exposureLimit || 0) + totalCredit;
+        editUser.remark = remark || editUser.remark;
+        editUser.creditReferenceProfitLoss =
+          editUser.baseBalance - editUser.creditReference;
+        subAdmin.balance -= adminDebit;
+        subAdmin.avbalance = Math.max(0, subAdmin.avbalance - adminDebit);
+      } else if (adminDebit > subAdmin.avbalance) {
+        if (bonusAmount > 0) {
+          await SubAdmin.findByIdAndUpdate(editUser._id, {
+            $set: { firstDepositBonusClaimed: false },
+          });
+          bonusAmount = 0;
+        }
+        if (balance > subAdmin.avbalance) {
+          return res.status(400).json({ message: 'Insufficient balance' });
+        }
         editUser.balance += balance;
         editUser.avbalance += balance;
         editUser.baseBalance += balance;
         editUser.exposureLimit = (editUser.exposureLimit || 0) + balance;
-        // editUser.totalAvbalance += balance;
         editUser.remark = remark || editUser.remark;
-
-        //  CORRECT: Recalculate creditReferenceProfitLoss after baseBalance change
-        // Always use the formula: baseBalance - creditReference
         editUser.creditReferenceProfitLoss =
           editUser.baseBalance - editUser.creditReference;
-
-        //Parent update
         subAdmin.balance -= balance;
-        // subAdmin.baseBalance -= balance;
         subAdmin.avbalance = Math.max(0, subAdmin.avbalance - balance);
-      } else if (balance > subAdmin.avbalance) {
-        return res.status(400).json({ message: 'Insufficient balance' });
       } else {
-        // Normal admin deposits from their own balance
-        editUser.balance += balance;
-        editUser.avbalance += balance;
-        editUser.baseBalance += balance;
-        editUser.exposureLimit = (editUser.exposureLimit || 0) + balance;
-        // editUser.totalAvbalance += balance;
+        editUser.balance += totalCredit;
+        editUser.avbalance += totalCredit;
+        editUser.baseBalance += totalCredit;
+        editUser.exposureLimit = (editUser.exposureLimit || 0) + totalCredit;
         editUser.remark = remark || editUser.remark;
-
-        //  CORRECT: Recalculate creditReferenceProfitLoss after baseBalance change
-        // Always use the formula: baseBalance - creditReference
         editUser.creditReferenceProfitLoss =
           editUser.baseBalance - editUser.creditReference;
-        // editUser.profitLoss should NOT be updated here - only from betting results!
-
-        // Don't recalculate profit/loss - it should only come from betting results
-        subAdmin.balance -= balance;
-        // subAdmin.baseBalance -= balance;
-        subAdmin.avbalance = Math.max(0, subAdmin.avbalance - balance);
+        subAdmin.balance -= adminDebit;
+        subAdmin.avbalance = Math.max(0, subAdmin.avbalance - adminDebit);
       }
       await subAdmin.save();
       await editUser.save();
@@ -1846,6 +1860,26 @@ export const withdrowalAndDeposite = async (req, res) => {
         to: editUser.userName,
         invite: subAdmin.code,
       });
+
+      if (bonusAmount > 0) {
+        await DepositHistory.create({
+          userName: editUser.userName,
+          amount: bonusAmount,
+          remark: 'First deposit bonus',
+          invite: subAdmin.code,
+        });
+        await TransactionHistory.create({
+          userId: userId,
+          userName: editUser.userName,
+          withdrawl: 0,
+          deposite: bonusAmount,
+          amount: editUser.avbalance,
+          remark: `First deposit bonus +${bonusAmount}`,
+          from: 'first-deposit-bonus',
+          to: editUser.userName,
+          invite: subAdmin.code,
+        });
+      }
     }
 
     await updateAdmin(id);

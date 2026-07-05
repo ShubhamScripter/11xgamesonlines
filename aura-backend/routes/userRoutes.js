@@ -20,6 +20,10 @@ import {
   getP2PTransferHistory,
   transferP2P,
 } from '../controllers/p2pController.js';
+import {
+  claimAttendanceBonus,
+  getAttendanceStatus,
+} from '../controllers/attendanceBonusController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -49,4 +53,6 @@ router.put('/update/quick-stakes', authMiddleware, updateQuickStakes);
 router.put('/update/theme', authMiddleware, updateTheme);
 router.post('/user/p2p-transfer', authMiddleware, transferP2P);
 router.get('/user/p2p-transfer-log', authMiddleware, getP2PTransferHistory);
+router.get('/user/attendance', authMiddleware, getAttendanceStatus);
+router.post('/user/attendance/claim', authMiddleware, claimAttendanceBonus);
 export default router;

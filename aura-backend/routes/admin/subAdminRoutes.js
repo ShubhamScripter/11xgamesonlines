@@ -45,6 +45,7 @@ import {
   getAdminAppSettings,
   updateAdminAppSettings,
 } from '../../controllers/appSettingsController.js';
+import { getFraudClusters } from '../../controllers/admin/fraudClusterController.js';
 
 const router = express.Router();
 
@@ -127,6 +128,7 @@ router.post("/sub-admin/profile-light", adminAuthMiddleware, getUserProfileLight
 
 router.get("/duplicate-ip-users", adminAuthMiddleware, getDuplicateIPUsers);
 router.get("/duplicate-device-users", adminAuthMiddleware, getDuplicateDeviceUsers);
+router.get("/fraud-clusters", adminAuthMiddleware, getFraudClusters);
 router.get("/users-locked", adminAuthMiddleware, getLockedUsers);
 
 router.get('/admin/app-settings', adminAuthMiddleware, getAdminAppSettings);

@@ -26,6 +26,10 @@ export const getPublicAppSettings = async (req, res) => {
       data: {
         supportWhatsApp: doc.supportWhatsApp || '',
         usdtToBdtRate: doc.usdtToBdtRate || 0,
+        firstDepositBonusEnabled: Boolean(doc.firstDepositBonusEnabled),
+        firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
+        attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
+        attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
       },
     });
   } catch (error) {
@@ -46,6 +50,10 @@ export const getAdminAppSettings = async (req, res) => {
         whatsappDialCode: doc.whatsappDialCode || '',
         whatsappPhoneNational: doc.whatsappPhoneNational || '',
         usdtToBdtRate: doc.usdtToBdtRate || 0,
+        firstDepositBonusEnabled: Boolean(doc.firstDepositBonusEnabled),
+        firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
+        attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
+        attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
       },
     });
   } catch (error) {
@@ -66,8 +74,16 @@ export const updateAdminAppSettings = async (req, res) => {
       });
     }
 
-    const { whatsappDialCode, whatsappPhoneNational, supportWhatsApp, usdtToBdtRate } =
-      req.body;
+    const {
+      whatsappDialCode,
+      whatsappPhoneNational,
+      supportWhatsApp,
+      usdtToBdtRate,
+      firstDepositBonusEnabled,
+      firstDepositBonusPercent,
+      attendanceBonusEnabled,
+      attendanceBonusAmount,
+    } = req.body;
 
     const doc = await getAppSettingsDoc();
 
@@ -144,6 +160,36 @@ export const updateAdminAppSettings = async (req, res) => {
       doc.usdtToBdtRate = rate;
     }
 
+    if (firstDepositBonusEnabled !== undefined) {
+      doc.firstDepositBonusEnabled = Boolean(firstDepositBonusEnabled);
+    }
+
+    if (firstDepositBonusPercent !== undefined) {
+      const pct = Number(firstDepositBonusPercent);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'First deposit bonus must be between 0 and 100 percent',
+        });
+      }
+      doc.firstDepositBonusPercent = pct;
+    }
+
+    if (attendanceBonusEnabled !== undefined) {
+      doc.attendanceBonusEnabled = Boolean(attendanceBonusEnabled);
+    }
+
+    if (attendanceBonusAmount !== undefined) {
+      const amt = Number(attendanceBonusAmount);
+      if (!Number.isFinite(amt) || amt < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Attendance bonus amount must be zero or greater',
+        });
+      }
+      doc.attendanceBonusAmount = amt;
+    }
+
     await doc.save();
 
     return res.json({
@@ -154,6 +200,10 @@ export const updateAdminAppSettings = async (req, res) => {
         whatsappDialCode: doc.whatsappDialCode,
         whatsappPhoneNational: doc.whatsappPhoneNational,
         usdtToBdtRate: doc.usdtToBdtRate || 0,
+        firstDepositBonusEnabled: Boolean(doc.firstDepositBonusEnabled),
+        firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
+        attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
+        attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
       },
     });
   } catch (error) {

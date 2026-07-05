@@ -30,6 +30,27 @@ const appSettingsSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    /** First deposit bonus — admin controlled */
+    firstDepositBonusEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    firstDepositBonusPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    /** Daily attendance check-in bonus */
+    attendanceBonusEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    attendanceBonusAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

@@ -3,7 +3,7 @@ import { IoClose } from "react-icons/io5";
 import {
   RiExchangeDollarFill, RiWhatsappFill, RiWallet3Fill, RiFileList3Fill, RiHandCoinFill,
   RiHistoryFill, RiBarChart2Fill, RiEyeLine, RiUser3Fill, RiTeamFill,
-  RiListCheck3, RiSettings3Fill, RiLogoutBoxRFill, RiBankCardFill
+  RiListCheck3, RiSettings3Fill, RiLogoutBoxRFill, RiBankCardFill, RiCalendarCheckFill
 } from 'react-icons/ri';
 import { HiOutlineChevronRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
@@ -104,6 +104,7 @@ function Navbar({ onClose = () => { }, sidebarOpen, setSidebarOpen }) {
     { label: "Bets History", icon: <RiHistoryFill />, path: "/user/bet-history" },
     { label: "Active Log", icon: <RiEyeLine />, path: "/user/active-log" },
     { label: "My Profile", icon: <RiUser3Fill />, path: "/user/profile" },
+    { label: "Daily Attendance", icon: <RiCalendarCheckFill />, path: "/user/attendance" },
     { label: "Self Deposit / Withdraw", icon: <RiBankCardFill />, path: "/user/manual-deposit" },
     { label: "Logout", icon: <RiLogoutBoxRFill />, action: "logout" }
   ];

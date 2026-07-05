@@ -16,8 +16,29 @@ import {
   amountToAdminBdt,
   getUsdtToBdtRate,
 } from '../utils/adminCurrency.js';
+import {
+  MAX_ACCOUNTS_PER_METHOD,
+  VALID_DEPOSIT_METHODS,
+  depositScreenshotRequired,
+  isMobileBankingMethod,
+  validateAdminAccountDetails,
+  validateDepositReferenceId,
+  validateUserDepositRequest,
+  validateUserWithdrawRequest,
+} from '../constants/manualDepositConstants.js';
+import {
+  buildOwnerAdminAccountFilter,
+  countDepositAccounts,
+  pickRandomDepositAccount,
+} from '../utils/depositAccountDistribution.js';
+import {
+  claimFirstDepositBonusFlag,
+  computeFirstDepositBonus,
+  getFirstDepositBonusSettings,
+  isFirstDepositEligible,
+} from '../utils/firstDepositBonus.js';
 
-const VALID_METHODS = ['bank', 'upi', 'crypto', 'whatsapp'];
+const VALID_METHODS = VALID_DEPOSIT_METHODS;
 
 function round2(n) {
   return Math.round(Number(n) * 100) / 100;
@@ -134,7 +155,17 @@ export const createManualDepositAccount = async (req, res) => {
       return res.status(400).json({ message: 'Title is required.' });
     }
 
-    if (method === 'upi' && uploadedImage) {
+    const existingCount = await ManualDepositAccount.countDocuments({
+      method,
+      $or: [{ createdById: req.id }, { createdById: null, createdBy: req.admin }],
+    });
+    if (existingCount >= MAX_ACCOUNTS_PER_METHOD) {
+      return res.status(400).json({
+        message: `Maximum ${MAX_ACCOUNTS_PER_METHOD} accounts allowed for ${method}.`,
+      });
+    }
+
+    if (method === 'crypto' && uploadedImage) {
       details.qrCodeUrl = await persistUploadedImage(
         uploadedImage,
         'deposit-accounts'
@@ -143,10 +174,18 @@ export const createManualDepositAccount = async (req, res) => {
       details.qrCodeUrl = toUploadPathOnly(details.qrCodeUrl);
     }
 
+    const validated = validateAdminAccountDetails(method, details, {
+      hasQrImage: Boolean(uploadedImage),
+      existingQrUrl: '',
+    });
+    if (!validated.ok) {
+      return res.status(400).json({ message: validated.message });
+    }
+
     const account = await ManualDepositAccount.create({
       method,
       title: String(title).trim(),
-      details,
+      details: validated.details,
       isActive: parseIsActive(isActive),
       createdBy: req.admin || 'admin',
       updatedBy: req.admin || 'admin',
@@ -190,12 +229,23 @@ export const updateManualDepositAccount = async (req, res) => {
     }
     if (title !== undefined) account.title = String(title).trim();
     if (req.body.details !== undefined) {
-      account.details = details;
+      const validated = validateAdminAccountDetails(
+        account.method,
+        { ...(account.details?.toObject?.() || account.details || {}), ...details },
+        {
+          hasQrImage: Boolean(uploadedImage),
+          existingQrUrl: account.details?.qrCodeUrl || '',
+        }
+      );
+      if (!validated.ok) {
+        return res.status(400).json({ message: validated.message });
+      }
+      account.details = validated.details;
       if (account.details?.qrCodeUrl && !uploadedImage) {
         account.details.qrCodeUrl = toUploadPathOnly(account.details.qrCodeUrl);
       }
     }
-    if (account.method === 'upi' && uploadedImage) {
+    if (account.method === 'crypto' && uploadedImage) {
       account.details = {
         ...(account.details || {}),
         qrCodeUrl: await persistUploadedImage(
@@ -253,6 +303,7 @@ export const getManualDepositAccountsForAdmin = async (req, res) => {
   try {
     const filter = {
       $or: [{ createdById: req.id }, { createdById: null, createdBy: req.admin }],
+      method: { $in: VALID_DEPOSIT_METHODS },
     };
     const accounts = await ManualDepositAccount.find(filter).sort({
       method: 1,
@@ -285,18 +336,31 @@ export const getManualDepositAccountsForUser = async (req, res) => {
       return res.status(400).json({ message: 'User upline admin not found.' });
     }
 
-    const filter = { isActive: true };
     if (method) {
       if (!VALID_METHODS.includes(method)) {
         return res.status(400).json({ message: 'Invalid deposit method.' });
       }
-      filter.method = method;
-    }
-    filter.$or = [
-      { createdById: ownerAdmin._id },
-      { createdById: null, createdBy: ownerAdmin.userName },
-    ];
 
+      const methodFilter = buildOwnerAdminAccountFilter(ownerAdmin, { method });
+      const poolSize = await countDepositAccounts(ManualDepositAccount, methodFilter);
+      const picked = await pickRandomDepositAccount(ManualDepositAccount, methodFilter);
+
+      const resolvedAccounts = picked
+        ? [withResolvedAccountImage(req, picked)]
+        : [];
+
+      return res.status(200).json({
+        success: true,
+        data: resolvedAccounts,
+        meta: {
+          pickMode: 'random',
+          method,
+          poolSize,
+        },
+      });
+    }
+
+    const filter = buildOwnerAdminAccountFilter(ownerAdmin);
     const accounts = await ManualDepositAccount.find(filter).sort({
       method: 1,
       createdAt: -1,
@@ -327,6 +391,8 @@ export const createManualDepositRequest = async (req, res) => {
       paymentNote,
       bonusType,
       withdrawDetails,
+      accountPassword,
+      senderPhone,
     } = req.body;
     const uploadedImage = req.file;
 
@@ -342,11 +408,13 @@ export const createManualDepositRequest = async (req, res) => {
       return res.status(400).json({ message: 'Invalid request type.' });
     }
     const normalizedMethod =
-      requestType === 'withdraw' ? String(method || 'bank') : String(method || '');
+      requestType === 'withdraw'
+        ? String(method || 'bkash')
+        : String(method || '');
     if (!VALID_METHODS.includes(normalizedMethod)) {
       return res.status(400).json({ message: 'Invalid deposit method.' });
     }
-    if (requestType === 'deposit' && !uploadedImage) {
+    if (depositScreenshotRequired(normalizedMethod, requestType) && !uploadedImage) {
       return res.status(400).json({ message: 'Payment screenshot is required.' });
     }
 
@@ -362,112 +430,84 @@ export const createManualDepositRequest = async (req, res) => {
 
     let finalAccountId = null;
     let accountSnapshot = {};
+    let trimmedDepositRef = '';
 
     if (requestType === 'withdraw') {
+      if (!String(accountPassword || '').trim()) {
+        return res.status(400).json({ message: 'Account password is required.' });
+      }
+      const passwordOk = await user.comparePassword(String(accountPassword));
+      if (!passwordOk) {
+        return res.status(401).json({ message: 'Invalid account password.' });
+      }
+
       const wd = parseDetailsPayload(withdrawDetails);
 
-      if (normalizedMethod === 'bank') {
-        const requiredFields = [
-          'accountHolderName',
-          'accountNumber',
-          'confirmAccountNumber',
-          'bankName',
-          'ifscCode',
-        ];
-        for (const field of requiredFields) {
-          if (!String(wd?.[field] || '').trim()) {
-            return res.status(400).json({
-              message: `Please provide ${field}.`,
-            });
-          }
-        }
-        if (
-          String(wd.accountNumber).trim() !== String(wd.confirmAccountNumber).trim()
-        ) {
-          return res
-            .status(400)
-            .json({ message: 'Account number and confirm account number must match.' });
+      if (isMobileBankingMethod(normalizedMethod)) {
+        const withdrawCheck = validateUserWithdrawRequest({
+          method: normalizedMethod,
+          amount: amt,
+          withdrawable: user.avbalance,
+          phoneNumber: wd?.phoneNumber,
+          hasPassword: true,
+        });
+        if (!withdrawCheck.ok) {
+          return res.status(400).json({ message: withdrawCheck.message });
         }
         accountSnapshot = {
-          title: 'User Withdraw Bank Details',
+          title: `User Withdraw ${normalizedMethod.toUpperCase()} Details`,
           details: {
             method: normalizedMethod,
-            accountHolderName: String(wd.accountHolderName).trim(),
-            accountNumber: String(wd.accountNumber).trim(),
-            bankName: String(wd.bankName).trim(),
-            branchName: String(wd.branchName || '').trim(),
-            ifscCode: String(wd.ifscCode).trim(),
+            phoneNumber: withdrawCheck.phoneNumber,
+            accountHolderName: String(wd?.accountHolderName || user.userName || '').trim(),
           },
         };
-      } else if (normalizedMethod === 'upi') {
-        if (!String(wd?.upiId || '').trim()) {
-          return res.status(400).json({ message: 'Please provide upiId.' });
-        }
-        accountSnapshot = {
-          title: 'User Withdraw UPI Details',
-          details: {
-            method: normalizedMethod,
-            upiId: String(wd.upiId).trim(),
-          },
-        };
-      } else if (normalizedMethod === 'crypto') {
-        if (!String(wd?.walletAddress || '').trim()) {
-          return res.status(400).json({ message: 'Please provide walletAddress.' });
-        }
-        if (!String(wd?.network || '').trim()) {
-          return res.status(400).json({ message: 'Please provide network.' });
-        }
-        accountSnapshot = {
-          title: 'User Withdraw Crypto Details',
-          details: {
-            method: normalizedMethod,
-            walletAddress: String(wd.walletAddress).trim(),
-            network: String(wd.network).trim(),
-          },
-        };
-      } else if (normalizedMethod === 'whatsapp') {
-        if (!String(wd?.phoneNumber || '').trim()) {
-          return res.status(400).json({ message: 'Please provide phoneNumber.' });
-        }
-        accountSnapshot = {
-          title: 'User Withdraw WhatsApp Details',
-          details: {
-            method: normalizedMethod,
-            phoneNumber: String(wd.phoneNumber).trim(),
-          },
-        };
+      } else {
+        return res.status(400).json({
+          message: 'Withdraw is only available via bKash, Nagad, or Rocket.',
+        });
       }
     } else {
-      const account = await ManualDepositAccount.findOne({
-        _id: accountId,
+      const methodFilter = buildOwnerAdminAccountFilter(ownerAdmin, {
         method: normalizedMethod,
-        isActive: true,
-        $or: [
-          { createdById: ownerAdmin._id },
-          { createdById: null, createdBy: ownerAdmin.userName },
-        ],
       });
+
+      let account = null;
+      if (accountId) {
+        account = await ManualDepositAccount.findOne({
+          ...methodFilter,
+          _id: accountId,
+        });
+      }
       if (!account) {
-        return res
-          .status(400)
-          .json({ message: 'Selected account is invalid or inactive.' });
+        account = await pickRandomDepositAccount(ManualDepositAccount, methodFilter);
+      }
+      if (!account) {
+        return res.status(400).json({
+          message: `No active ${normalizedMethod} deposit account is configured.`,
+        });
       }
       finalAccountId = account._id;
       accountSnapshot = {
         title: account.title,
         details: account.details,
       };
+
+      const depositCheck = validateUserDepositRequest({
+        method: normalizedMethod,
+        amount: amt,
+        referenceId,
+        senderPhone,
+        accountDetails: account.details,
+        hasScreenshot: Boolean(uploadedImage),
+      });
+      if (!depositCheck.ok) {
+        return res.status(400).json({ message: depositCheck.message });
+      }
+      trimmedDepositRef = depositCheck.referenceId;
     }
 
-    let trimmedDepositRef = '';
-    if (requestType === 'deposit') {
-      const digitsOnly = String(referenceId ?? '').replace(/\D/g, '');
-      if (digitsOnly.length !== 12) {
-        return res.status(400).json({
-          message: 'UTR must be exactly 12 digits.',
-        });
-      }
-      trimmedDepositRef = digitsOnly;
+    if (requestType === 'deposit' && trimmedDepositRef) {
       const dup = await ManualDepositRequest.findOne({
         requestType: 'deposit',
         status: { $in: ['pending', 'approved'] },
@@ -476,10 +516,20 @@ export const createManualDepositRequest = async (req, res) => {
       if (dup) {
         return res.status(400).json({
           message:
-            'Duplicate UTR ID. This reference is already used in a pending or approved deposit request.',
+            'Duplicate transaction ID. This reference is already used in a pending or approved deposit request.',
         });
       }
     }
+
+    const mergedNote = [
+      paymentNote,
+      senderPhone && isMobileBankingMethod(normalizedMethod)
+        ? `Sender: +${String(senderPhone).replace(/\D/g, '')}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' | ')
+      .trim();
 
     const paymentImageUrl =
       requestType === 'deposit' && uploadedImage
@@ -518,7 +568,7 @@ export const createManualDepositRequest = async (req, res) => {
         accountSnapshot,
         referenceId:
           requestType === 'deposit' ? trimmedDepositRef : referenceId,
-        paymentNote,
+        paymentNote: mergedNote || paymentNote,
         bonusType,
         paymentImageUrl,
         status: 'pending',
@@ -589,9 +639,38 @@ export const createManualDepositRequest = async (req, res) => {
   }
 };
 
+export const getFirstDepositBonusInfo = async (req, res) => {
+  try {
+    const user = await SubAdmin.findById(req.id).lean();
+    if (!user || user.role !== 'user') {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const settings = await getFirstDepositBonusSettings();
+    const eligible = settings.enabled
+      ? await isFirstDepositEligible(user)
+      : false;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        enabled: settings.enabled,
+        percent: settings.percent,
+        eligible,
+        claimed: Boolean(user.firstDepositBonusClaimed),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 export const getMyManualDepositRequests = async (req, res) => {
   try {
-    const requests = await ManualDepositRequest.find({ userId: req.id })
+    const requests = await ManualDepositRequest.find({
+      userId: req.id,
+      method: { $in: VALID_DEPOSIT_METHODS },
+    })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -607,7 +686,10 @@ export const getMyManualDepositRequests = async (req, res) => {
 export const getManualDepositRequestsForAdmin = async (req, res) => {
   try {
     const { status, method, userName, requestType } = req.query;
-    const filter = { ownerAdminId: req.id };
+    const filter = {
+      ownerAdminId: req.id,
+      method: { $in: VALID_DEPOSIT_METHODS },
+    };
 
     if (status) {
       if (!['pending', 'approved', 'rejected'].includes(status)) {
@@ -651,6 +733,7 @@ export const getManualDepositRequestsForAdmin = async (req, res) => {
           const legacy = await ManualDepositRequest.find({
             ownerAdminId: null,
             userId: { $in: ids },
+            method: { $in: VALID_DEPOSIT_METHODS },
             ...(filter.status ? { status: filter.status } : {}),
             ...(filter.method ? { method: filter.method } : {}),
             ...(filter.requestType ? { requestType: filter.requestType } : {}),
@@ -817,41 +900,83 @@ export const reviewManualDepositRequest = async (req, res) => {
     let debitedAdmin = null;
 
     if (!isWithdraw) {
-      // Deposit approval:
-      // Deduct from approver wallet first (admin/subadmin/etc), then credit user.
+      let bonusAmount = 0;
+      const bonusPreview = await computeFirstDepositBonus(user, amount);
+      if (bonusPreview.applied && bonusPreview.bonusAmount > 0) {
+        if (await claimFirstDepositBonusFlag(user._id)) {
+          bonusAmount = bonusPreview.bonusAmount;
+        }
+      }
+      const totalCredit = round2(amount + bonusAmount);
+
+      // Deposit approval: deduct deposit + bonus from approver, credit user.
       debitedAdmin = await SubAdmin.findOneAndUpdate(
         {
           _id: new mongoose.Types.ObjectId(String(req.id)),
           status: 'active',
-          avbalance: { $gte: amount },
-          balance: { $gte: amount },
+          avbalance: { $gte: totalCredit },
+          balance: { $gte: totalCredit },
           role: { $ne: 'user' },
         },
-        pipelineDebitBalance(amount),
+        pipelineDebitBalance(totalCredit),
         { new: true }
       );
 
+      if (!debitedAdmin && bonusAmount > 0) {
+        // Admin cannot cover bonus — approve deposit only, restore claim flag
+        await SubAdmin.findByIdAndUpdate(user._id, {
+          $set: { firstDepositBonusClaimed: false },
+        });
+        bonusAmount = 0;
+        debitedAdmin = await SubAdmin.findOneAndUpdate(
+          {
+            _id: new mongoose.Types.ObjectId(String(req.id)),
+            status: 'active',
+            avbalance: { $gte: amount },
+            balance: { $gte: amount },
+            role: { $ne: 'user' },
+          },
+          pipelineDebitBalance(amount),
+          { new: true }
+        );
+      }
+
       if (!debitedAdmin) {
+        if (bonusAmount > 0) {
+          await SubAdmin.findByIdAndUpdate(user._id, {
+            $set: { firstDepositBonusClaimed: false },
+          });
+        }
         return res
           .status(400)
           .json({ message: 'Insufficient admin balance to approve this deposit.' });
       }
 
+      const creditAmount = bonusAmount > 0 ? totalCredit : amount;
       const creditedUser = await SubAdmin.findOneAndUpdate(
         { _id: user._id, role: 'user' },
-        pipelineCreditBalance(amount),
+        pipelineCreditBalance(creditAmount),
         { new: true }
       );
 
       if (!creditedUser) {
-        // rollback admin debit
+        const rollbackAmt = bonusAmount > 0 ? totalCredit : amount;
         await SubAdmin.findOneAndUpdate(
           { _id: debitedAdmin._id },
-          pipelineCreditBalance(amount),
+          pipelineCreditBalance(rollbackAmt),
           { new: true }
         );
+        if (bonusAmount > 0) {
+          await SubAdmin.findByIdAndUpdate(user._id, {
+            $set: { firstDepositBonusClaimed: false },
+          });
+        }
         return res.status(500).json({ message: 'Could not credit user for deposit.' });
       }
+
+      requestDoc.bonusAmount = bonusAmount;
+      requestDoc.firstDepositBonusApplied = bonusAmount > 0;
+      requestDoc.bonusType = bonusAmount > 0 ? 'first_deposit' : requestDoc.bonusType;
 
       // keep user in sync for WS + history below
       user.balance = creditedUser.balance;
@@ -922,15 +1047,37 @@ export const reviewManualDepositRequest = async (req, res) => {
         invite: user.invite,
       });
 
+      const bonusAmt = round2(Number(requestDoc.bonusAmount) || 0);
+      if (bonusAmt > 0) {
+        await DepositHistory.create({
+          userName: user.userName,
+          amount: bonusAmt,
+          remark: `First deposit bonus (${requestDoc.bonusType || 'first_deposit'})`,
+          invite: user.invite,
+        });
+        await TransactionHistory.create({
+          userId: user._id,
+          userName: user.userName,
+          withdrawl: 0,
+          deposite: bonusAmt,
+          amount: user.avbalance,
+          remark: `First deposit bonus +${bonusAmt}`,
+          from: 'first-deposit-bonus',
+          to: user.userName,
+          invite: user.invite,
+        });
+      }
+
       // Record admin-side debit history (optional but useful for audits)
       try {
+        const adminDebitTotal = amount + bonusAmt;
         await TransactionHistory.create({
           userId: req.id,
           userName: adminUserName,
-          withdrawl: amount,
+          withdrawl: adminDebitTotal,
           deposite: 0,
           amount: Number(debitedAdmin?.avbalance ?? 0),
-          remark: `Manual deposit approved for ${user.userName} (${requestDoc.method})`,
+          remark: `Manual deposit approved for ${user.userName} (${requestDoc.method})${bonusAmt > 0 ? ` incl. bonus ${bonusAmt}` : ''}`,
           from: adminUserName,
           to: user.userName,
           invite: debitedAdmin?.invite,
@@ -944,7 +1091,9 @@ export const reviewManualDepositRequest = async (req, res) => {
       success: true,
       message: isWithdraw
         ? 'Withdraw approved and wallet debited.'
-        : 'Deposit approved, user credited and admin debited.',
+        : requestDoc.bonusAmount > 0
+          ? `Deposit approved with first deposit bonus (+${requestDoc.bonusAmount}).`
+          : 'Deposit approved, user credited and admin debited.',
       data: requestDoc,
     });
   } catch (error) {

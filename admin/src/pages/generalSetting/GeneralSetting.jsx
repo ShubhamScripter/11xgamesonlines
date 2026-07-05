@@ -22,6 +22,18 @@ function GeneralSetting() {
     const [savedRate, setSavedRate] = useState(0);
     const [savingRate, setSavingRate] = useState(false);
 
+    const [bonusEnabled, setBonusEnabled] = useState(false);
+    const [bonusPercent, setBonusPercent] = useState('');
+    const [savedBonusEnabled, setSavedBonusEnabled] = useState(false);
+    const [savedBonusPercent, setSavedBonusPercent] = useState(0);
+    const [savingBonus, setSavingBonus] = useState(false);
+
+    const [attendanceEnabled, setAttendanceEnabled] = useState(false);
+    const [attendanceAmount, setAttendanceAmount] = useState('');
+    const [savedAttendanceEnabled, setSavedAttendanceEnabled] = useState(false);
+    const [savedAttendanceAmount, setSavedAttendanceAmount] = useState(0);
+    const [savingAttendance, setSavingAttendance] = useState(false);
+
     const user = useSelector(state => state.auth.user);
     const allowedRoles = ["superadmin", "admin","subadmin","seniorSuper"];
     const canViewDuplicateIPs = allowedRoles.includes(user?.role);
@@ -46,6 +58,16 @@ function GeneralSetting() {
           const rate = Number(data?.data?.usdtToBdtRate) || 0;
           setSavedRate(rate);
           setUsdtRate(rate ? String(rate) : '');
+          setBonusEnabled(Boolean(data?.data?.firstDepositBonusEnabled));
+          setSavedBonusEnabled(Boolean(data?.data?.firstDepositBonusEnabled));
+          const pct = Number(data?.data?.firstDepositBonusPercent) || 0;
+          setSavedBonusPercent(pct);
+          setBonusPercent(pct ? String(pct) : '');
+          setAttendanceEnabled(Boolean(data?.data?.attendanceBonusEnabled));
+          setSavedAttendanceEnabled(Boolean(data?.data?.attendanceBonusEnabled));
+          const attAmt = Number(data?.data?.attendanceBonusAmount) || 0;
+          setSavedAttendanceAmount(attAmt);
+          setAttendanceAmount(attAmt ? String(attAmt) : '');
         } catch (err) {
           console.error('Error fetching exchange rate:', err);
         }
@@ -69,6 +91,54 @@ function GeneralSetting() {
         alert(err?.response?.data?.message || 'Failed to save exchange rate');
       } finally {
         setSavingRate(false);
+      }
+    };
+
+    const saveFirstDepositBonus = async () => {
+      const pct = Number(bonusPercent);
+      if (bonusEnabled && (!Number.isFinite(pct) || pct <= 0 || pct > 100)) {
+        alert('Enter a valid bonus percentage between 1 and 100.');
+        return;
+      }
+      setSavingBonus(true);
+      try {
+        const { data } = await axios.put('/admin/app-settings', {
+          firstDepositBonusEnabled: bonusEnabled,
+          firstDepositBonusPercent: bonusEnabled ? pct : 0,
+        });
+        setSavedBonusEnabled(Boolean(data?.data?.firstDepositBonusEnabled));
+        const savedPct = Number(data?.data?.firstDepositBonusPercent) || 0;
+        setSavedBonusPercent(savedPct);
+        setBonusPercent(savedPct ? String(savedPct) : '');
+        alert('First deposit bonus settings saved.');
+      } catch (err) {
+        alert(err?.response?.data?.message || 'Failed to save bonus settings');
+      } finally {
+        setSavingBonus(false);
+      }
+    };
+
+    const saveAttendanceBonus = async () => {
+      const amt = Number(attendanceAmount);
+      if (attendanceEnabled && (!Number.isFinite(amt) || amt <= 0)) {
+        alert('Enter a valid daily bonus amount greater than 0.');
+        return;
+      }
+      setSavingAttendance(true);
+      try {
+        const { data } = await axios.put('/admin/app-settings', {
+          attendanceBonusEnabled: attendanceEnabled,
+          attendanceBonusAmount: attendanceEnabled ? amt : 0,
+        });
+        setSavedAttendanceEnabled(Boolean(data?.data?.attendanceBonusEnabled));
+        const savedAmt = Number(data?.data?.attendanceBonusAmount) || 0;
+        setSavedAttendanceAmount(savedAmt);
+        setAttendanceAmount(savedAmt ? String(savedAmt) : '');
+        alert('Attendance bonus settings saved.');
+      } catch (err) {
+        alert(err?.response?.data?.message || 'Failed to save attendance bonus');
+      } finally {
+        setSavingAttendance(false);
       }
     };
 
@@ -211,6 +281,125 @@ function GeneralSetting() {
           </div>
           <p className='text-xs text-gray-500 mt-2'>
             Current: {savedRate > 0 ? `1 USDT = ${savedRate} BDT` : 'Not set'}
+          </p>
+        </div>
+      )}
+
+      {/* First deposit bonus */}
+      {canManageSettings && (
+        <div className='bg-[#e0e6e6] border-b border-b-[#7e97a7] p-4 mt-4'>
+          <h2 className='text-[#243a48] font-[700]'>First Deposit Bonus</h2>
+          <p className='text-sm text-gray-600 mt-1'>
+            New users get an extra percentage on their first approved deposit. You can turn this off anytime.
+          </p>
+          <div className='mt-3 flex flex-wrap items-center gap-4'>
+            <label className='flex items-center gap-2 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={bonusEnabled}
+                onChange={(e) => setBonusEnabled(e.target.checked)}
+                className='w-4 h-4'
+              />
+              <span className='text-sm font-semibold text-[#243a48]'>
+                Enable first deposit bonus
+              </span>
+            </label>
+            <div className='flex items-end gap-2'>
+              <div className='flex flex-col gap-1'>
+                <label className='text-xs text-gray-600'>Bonus percentage</label>
+                <div className='flex items-center gap-2'>
+                  <input
+                    type='number'
+                    min='1'
+                    max='100'
+                    step='1'
+                    disabled={!bonusEnabled}
+                    value={bonusPercent}
+                    onChange={(e) => setBonusPercent(e.target.value)}
+                    placeholder='e.g. 10'
+                    className='border border-[#aaa] px-3 py-2 rounded w-[120px] text-sm bg-white disabled:opacity-50'
+                  />
+                  <span className='text-sm font-semibold'>%</span>
+                </div>
+              </div>
+              <button
+                type='button'
+                disabled={savingBonus}
+                onClick={saveFirstDepositBonus}
+                className='bg-[#243a48] text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50'
+              >
+                {savingBonus ? 'Saving...' : 'Save bonus'}
+              </button>
+            </div>
+          </div>
+          <p className='text-xs text-gray-500 mt-2'>
+            Status:{' '}
+            {savedBonusEnabled && savedBonusPercent > 0
+              ? `Active — ${savedBonusPercent}% extra on first deposit`
+              : 'Disabled'}
+          </p>
+          <p className='text-xs text-gray-500 mt-1'>
+            Example: user deposits ৳1,000 → receives ৳
+            {savedBonusEnabled && savedBonusPercent > 0
+              ? (1000 + (1000 * savedBonusPercent) / 100).toLocaleString()
+              : '1,000'}{' '}
+            total (deposit + bonus).
+          </p>
+        </div>
+      )}
+
+      {/* Daily attendance bonus */}
+      {canManageSettings && (
+        <div className='bg-[#e0e6e6] border-b border-b-[#7e97a7] p-4 mt-4'>
+          <h2 className='text-[#243a48] font-[700]'>Daily Attendance Bonus</h2>
+          <p className='text-sm text-gray-600 mt-1'>
+            Users can check in once per day and receive a fixed bonus in their wallet.
+          </p>
+          <div className='mt-3 flex flex-wrap items-center gap-4'>
+            <label className='flex items-center gap-2 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={attendanceEnabled}
+                onChange={(e) => setAttendanceEnabled(e.target.checked)}
+                className='w-4 h-4'
+              />
+              <span className='text-sm font-semibold text-[#243a48]'>
+                Enable daily attendance bonus
+              </span>
+            </label>
+            <div className='flex items-end gap-2'>
+              <div className='flex flex-col gap-1'>
+                <label className='text-xs text-gray-600'>Bonus per day (BDT)</label>
+                <input
+                  type='number'
+                  min='1'
+                  step='1'
+                  disabled={!attendanceEnabled}
+                  value={attendanceAmount}
+                  onChange={(e) => setAttendanceAmount(e.target.value)}
+                  placeholder='e.g. 10'
+                  className='border border-[#aaa] px-3 py-2 rounded w-[140px] text-sm bg-white disabled:opacity-50'
+                />
+              </div>
+              <button
+                type='button'
+                disabled={savingAttendance}
+                onClick={saveAttendanceBonus}
+                className='bg-[#243a48] text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50'
+              >
+                {savingAttendance ? 'Saving...' : 'Save attendance'}
+              </button>
+            </div>
+          </div>
+          <p className='text-xs text-gray-500 mt-2'>
+            Status:{' '}
+            {savedAttendanceEnabled && savedAttendanceAmount > 0
+              ? `Active — ৳${savedAttendanceAmount} per day per user`
+              : 'Disabled'}
+          </p>
+          <p className='text-xs text-gray-500 mt-1'>
+            Day resets at midnight Bangladesh time (Asia/Dhaka). Bonus is deducted from the
+            user&apos;s upline admin balance.
           </p>
         </div>
       )}
