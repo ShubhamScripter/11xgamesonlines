@@ -44,7 +44,11 @@ function ToggleSwitch({ checked, onChange, disabled, label }) {
       aria-checked={checked}
       aria-label={label}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!disabled) onChange(!checked);
+      }}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
       } ${checked ? 'bg-[#dc3545] border-[#dc3545]' : 'bg-[#e4e4e4] border-[#7e97a7]'}`}
@@ -77,13 +81,14 @@ function LockApplication() {
   const user = useSelector((state) => state.auth.user);
   const allowedRoles = ['superadmin', 'admin', 'subadmin', 'seniorSuper'];
   const canManage = allowedRoles.includes(user?.role);
-  const canManageSections = user?.role === 'superadmin';
+  const canManageSections = canManage;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [sectionSettingsMap, setSectionSettingsMap] = useState({});
   const [sectionActionKey, setSectionActionKey] = useState(null);
+  const [actionMatchId, setActionMatchId] = useState(null);
 
   const [sports, setSports] = useState({});
   const [betTypes, setBetTypes] = useState({});
@@ -92,8 +97,10 @@ function LockApplication() {
   const [matches, setMatches] = useState([]);
 
   const [activeEventSport, setActiveEventSport] = useState('cricket');
+  const [eventDateMode, setEventDateMode] = useState('all');
   const [eventDate, setEventDate] = useState(toDateInputValue());
   const [eventMatches, setEventMatches] = useState([]);
+  const [eventMatchTotal, setEventMatchTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [openLeagues, setOpenLeagues] = useState({});
 
@@ -144,16 +151,20 @@ function LockApplication() {
     setEventsLoading(true);
     try {
       const { data } = await axiosInstance.get('/bet-application-lock/events', {
-        params: { sport: activeEventSport, date: eventDate },
+        params: {
+          sport: activeEventSport,
+          date: eventDateMode === 'all' ? 'all' : eventDate,
+        },
       });
       setEventMatches(Array.isArray(data?.matches) ? data.matches : []);
+      setEventMatchTotal(data?.totalAll ?? data?.total ?? 0);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load events');
       setEventMatches([]);
     } finally {
       setEventsLoading(false);
     }
-  }, [activeEventSport, eventDate]);
+  }, [activeEventSport, eventDate, eventDateMode]);
 
   useEffect(() => {
     if (canManage) loadSettings();
@@ -182,8 +193,9 @@ function LockApplication() {
     async (match, sectionId, lockSection) => {
       if (!canManageSections || !match?.matchId) return;
 
-      const actionKey = `${match.matchId}-${sectionId}`;
-      const settings = sectionSettingsMap[String(match.matchId)] || {};
+      const matchKey = String(match.matchId);
+      const actionKey = `${matchKey}-${sectionId}`;
+      const settings = sectionSettingsMap[matchKey] || {};
       const currentDisabled = Array.isArray(settings.disabledSections)
         ? [...settings.disabledSections]
         : [];
@@ -192,9 +204,24 @@ function LockApplication() {
         ? [...new Set([...currentDisabled, sectionId])]
         : currentDisabled.filter((s) => s !== sectionId);
 
+      const previousMap = sectionSettingsMap;
+      const nextSections = { ...DEFAULT_SECTIONS };
+      for (const s of MATCH_SECTIONS) {
+        nextSections[s.id] = !nextDisabled.includes(s.id);
+      }
+      setSectionSettingsMap((prev) => ({
+        ...prev,
+        [matchKey]: {
+          ...(prev[matchKey] || {}),
+          matchDisabled: false,
+          disabledSections: nextDisabled,
+          sections: nextSections,
+        },
+      }));
+
       try {
         setSectionActionKey(actionKey);
-        await axiosInstance.patch(`/matches/${match.matchId}/sections`, {
+        await axiosInstance.patch(`/matches/${matchKey}/sections`, {
           sport: activeEventSport,
           matchName: match.matchName || '',
           disabledSections: nextDisabled,
@@ -204,6 +231,7 @@ function LockApplication() {
           MATCH_SECTIONS.find((s) => s.id === sectionId)?.label || sectionId;
         toast.success(lockSection ? `${label} hidden on user site` : `${label} visible on user site`);
       } catch (err) {
+        setSectionSettingsMap(previousMap);
         toast.error(err?.response?.data?.message || 'Failed to update section');
       } finally {
         setSectionActionKey(null);
@@ -278,20 +306,47 @@ function LockApplication() {
     setMatches(newMatches);
 
     try {
-      setActionMatchId(matchId);
-      await axiosInstance.put('/bet-application-lock', {
-        sports,
-        betTypes,
-        marketTypes,
-        leagues,
-        matches: newMatches,
-      });
+      setActionMatchId(String(matchId));
+      const { data } = await axiosInstance.patch(
+        `/bet-application-lock/matches/${encodeURIComponent(matchId)}`,
+        {
+          sport: activeEventSport,
+          locked,
+          matchName: matchName || '',
+          leagueName: leagueName || '',
+          date: date || '',
+        }
+      );
+      if (data?.data?.matches) {
+        setMatches(data.data.matches);
+      }
       toast.success(
         locked
           ? 'Match locked — hidden from user site'
           : 'Match unlocked — visible on user site'
       );
     } catch (err) {
+      if (err?.response?.status === 404) {
+        try {
+          await axiosInstance.put('/bet-application-lock', {
+            sports,
+            betTypes,
+            marketTypes,
+            leagues,
+            matches: newMatches,
+          });
+          toast.success(
+            locked
+              ? 'Match locked — hidden from user site'
+              : 'Match unlocked — visible on user site'
+          );
+          return;
+        } catch (putErr) {
+          setMatches(previousMatches);
+          toast.error(putErr?.response?.data?.message || 'Failed to lock match');
+          return;
+        }
+      }
       setMatches(previousMatches);
       toast.error(err?.response?.data?.message || 'Failed to lock match');
     } finally {
@@ -454,12 +509,24 @@ function LockApplication() {
               <h3 className="text-[#243a48] font-[700] text-sm">
                 Competition / Event / Markets
               </h3>
-              <input
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="border border-[#aaa] rounded px-2 py-1 text-sm bg-white"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={eventDateMode}
+                  onChange={(e) => setEventDateMode(e.target.value)}
+                  className="border border-[#aaa] rounded px-2 py-1 text-sm bg-white"
+                >
+                  <option value="all">All dates</option>
+                  <option value="day">Single date</option>
+                </select>
+                {eventDateMode === 'day' && (
+                  <input
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="border border-[#aaa] rounded px-2 py-1 text-sm bg-white"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="border-b border-[#7e97a7] px-2 pt-2 flex flex-wrap gap-1">
@@ -490,15 +557,25 @@ function LockApplication() {
                   className="w-full pl-9 pr-3 py-2 border border-[#aaa] rounded text-sm bg-white"
                 />
               </div>
+              <p className="text-xs text-gray-600 mb-3">
+                Showing {eventMatches.length} match{eventMatches.length === 1 ? '' : 'es'}
+                {eventDateMode === 'all'
+                  ? ` (${activeEventSport} — all dates)`
+                  : ` for ${eventDate}`}
+                {eventMatchTotal > eventMatches.length
+                  ? ` · ${eventMatchTotal} total loaded`
+                  : ''}
+              </p>
 
               {eventsLoading ? (
                 <p className="text-sm text-gray-500 py-6 text-center">Loading events…</p>
               ) : groupedEvents.length === 0 ? (
                 <p className="text-sm text-gray-500 py-6 text-center">
-                  No events found for {activeEventSport} on {eventDate}.
+                  No events found for {activeEventSport}
+                  {eventDateMode === 'day' ? ` on ${eventDate}` : ''}.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
                   {groupedEvents.map(({ title, matches: leagueMatches }) => {
                     const leagueLocked = isLeagueLocked(activeEventSport, title);
                     const isOpen = openLeagues[title] !== false;
@@ -542,17 +619,15 @@ function LockApplication() {
                                 match.matchId
                               );
                               const sections = getMatchSections(match.matchId);
-                              const matchFullyDisabled =
-                                locked ||
-                                Boolean(
-                                  sectionSettingsMap[String(match.matchId)]?.matchDisabled
-                                );
+                              const matchSuspended = Boolean(
+                                sectionSettingsMap[String(match.matchId)]?.matchDisabled
+                              );
 
                               return (
                                 <div
                                   key={match.matchId}
                                   className={`px-3 py-2 text-xs ${
-                                    locked || matchFullyDisabled ? 'bg-[#fff5f5]' : 'bg-white'
+                                    locked || matchSuspended ? 'bg-[#fff5f5]' : 'bg-white'
                                   }`}
                                 >
                                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -566,13 +641,15 @@ function LockApplication() {
                                           ? ` · ${formatIST(match.date)}`
                                           : ''}
                                         {match.inplay ? ' · In Play' : ''}
-                                        {matchFullyDisabled ? ' · Match hidden' : ''}
+                                        {matchSuspended ? ' · Match suspended' : ''}
+                                        {locked ? ' · Locked' : ''}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <LockChip locked={locked} />
                                       <ToggleSwitch
                                         checked={locked}
+                                        disabled={actionMatchId === String(match.matchId)}
                                         onChange={(v) => toggleMatchLock(match, v)}
                                         label={`Lock match ${match.matchId}`}
                                       />
@@ -590,7 +667,7 @@ function LockApplication() {
                                       const isUpdating = sectionActionKey === actionKey;
 
                                       return (
-                                        <label
+                                        <div
                                           key={section.id}
                                           className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 ${
                                             sectionLocked
@@ -606,7 +683,7 @@ function LockApplication() {
                                             disabled={
                                               !canManageSections ||
                                               isUpdating ||
-                                              matchFullyDisabled
+                                              matchSuspended
                                             }
                                             onChange={(v) =>
                                               handleSectionToggle(match, section.id, v)
@@ -614,9 +691,9 @@ function LockApplication() {
                                             label={`${section.label} for match ${match.matchId}`}
                                           />
                                           <span className="text-[10px] text-gray-500 min-w-[28px]">
-                                            {isUpdating ? '…' : sectionLocked ? 'Off' : 'On'}
+                                            {isUpdating ? '…' : sectionLocked ? 'Hidden' : 'Visible'}
                                           </span>
-                                        </label>
+                                        </div>
                                       );
                                     })}
                                   </div>

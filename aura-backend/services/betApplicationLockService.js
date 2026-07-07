@@ -2,6 +2,7 @@ import BetfairEvent from '../models/betfairEventModel.js';
 import BetApplicationLock, {
   getBetApplicationLockDoc,
 } from '../models/betApplicationLockModel.js';
+import mongoose from 'mongoose';
 import {
   normalizeSportKey,
   resolveBetTypeLockId,
@@ -155,10 +156,82 @@ export async function checkBetApplicationLock({
   return { blocked: false };
 }
 
+function normalizeLockDate(raw) {
+  if (raw == null || raw === '') return '';
+  if (raw instanceof Date) return raw.toISOString();
+  return String(raw).slice(0, 80);
+}
+
+function toBoolMap(obj) {
+  const m = new Map();
+  if (!obj || typeof obj !== 'object') return m;
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === true) m.set(String(key), true);
+  }
+  return m;
+}
+
+function normalizeMatchLockRow(m) {
+  return {
+    sport: String(m.sport).trim(),
+    matchId: String(m.matchId).trim(),
+    matchName: String(m.matchName || '').trim(),
+    leagueName: String(m.leagueName || '').trim(),
+    date: normalizeLockDate(m.date),
+    locked: m.locked !== false,
+  };
+}
+
+export async function updateSingleMatchLock(
+  { matchId, sport, locked, matchName, leagueName, date },
+  userId
+) {
+  const id = String(matchId || '').trim();
+  const sportKey = String(sport || '').trim();
+  if (!id || !sportKey) {
+    throw new Error('Valid matchId and sport are required');
+  }
+
+  let doc = await BetApplicationLock.findOne();
+  if (!doc) {
+    doc = new BetApplicationLock();
+  }
+
+  const current = Array.isArray(doc.matches)
+    ? doc.matches.map((m) => normalizeMatchLockRow(m))
+    : [];
+
+  const rest = current.filter(
+    (m) => !(m.matchId === id && m.sport === sportKey)
+  );
+
+  doc.matches = locked
+    ? [
+        ...rest,
+        normalizeMatchLockRow({
+          sport: sportKey,
+          matchId: id,
+          matchName,
+          leagueName,
+          date,
+          locked: true,
+        }),
+      ]
+    : rest;
+
+  if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+    doc.updatedBy = userId;
+  }
+
+  await doc.save();
+  invalidateBetLockCache();
+  return serializeLockDoc(doc.toObject());
+}
+
 export async function saveBetLockSettings(payload, userId) {
-  const sportsMap = new Map(Object.entries(payload?.sports || {}));
-  const betTypesMap = new Map(Object.entries(payload?.betTypes || {}));
-  const marketTypesMap = new Map(Object.entries(payload?.marketTypes || {}));
+  const sportsMap = toBoolMap(payload?.sports);
+  const betTypesMap = toBoolMap(payload?.betTypes);
+  const marketTypesMap = toBoolMap(payload?.marketTypes);
 
   const leagues = Array.isArray(payload?.leagues)
     ? payload.leagues
@@ -173,14 +246,7 @@ export async function saveBetLockSettings(payload, userId) {
   const matches = Array.isArray(payload?.matches)
     ? payload.matches
         .filter((m) => m?.sport && m?.matchId)
-        .map((m) => ({
-          sport: String(m.sport).trim(),
-          matchId: String(m.matchId).trim(),
-          matchName: String(m.matchName || '').trim(),
-          leagueName: String(m.leagueName || '').trim(),
-          date: String(m.date || '').trim(),
-          locked: m.locked !== false,
-        }))
+        .map((m) => normalizeMatchLockRow(m))
     : [];
 
   let doc = await BetApplicationLock.findOne();
@@ -193,7 +259,11 @@ export async function saveBetLockSettings(payload, userId) {
   doc.marketTypes = marketTypesMap;
   doc.leagues = leagues;
   doc.matches = matches;
-  doc.updatedBy = userId || null;
+  if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+    doc.updatedBy = userId;
+  } else {
+    doc.updatedBy = null;
+  }
   await doc.save();
 
   invalidateBetLockCache();

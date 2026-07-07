@@ -9,8 +9,10 @@ import {
 
 const VALID_SPORTS = ['cricket', 'tennis', 'soccer', 'horse-racing'];
 
+const MANAGE_MATCH_ROLES = new Set(['superadmin', 'admin', 'subadmin', 'seniorSuper']);
+
 function canManageMatchSettings(role) {
-  return role === 'superadmin';
+  return MANAGE_MATCH_ROLES.has(role);
 }
 
 const mapDeactivatedMatch = (m) => {
