@@ -30,6 +30,9 @@ export const getPublicAppSettings = async (req, res) => {
         firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
         attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
         attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
+        firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
+        affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
+        affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
       },
     });
   } catch (error) {
@@ -54,6 +57,9 @@ export const getAdminAppSettings = async (req, res) => {
         firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
         attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
         attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
+        firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
+        affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
+        affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
       },
     });
   } catch (error) {
@@ -83,6 +89,9 @@ export const updateAdminAppSettings = async (req, res) => {
       firstDepositBonusPercent,
       attendanceBonusEnabled,
       attendanceBonusAmount,
+      firstDepositWageringPercent,
+      affiliateModuleEnabled,
+      affiliateCommissionPercent,
     } = req.body;
 
     const doc = await getAppSettingsDoc();
@@ -190,6 +199,32 @@ export const updateAdminAppSettings = async (req, res) => {
       doc.attendanceBonusAmount = amt;
     }
 
+    if (firstDepositWageringPercent !== undefined) {
+      const pct = Number(firstDepositWageringPercent);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Wagering percent must be between 0 and 100',
+        });
+      }
+      doc.firstDepositWageringPercent = pct;
+    }
+
+    if (affiliateModuleEnabled !== undefined) {
+      doc.affiliateModuleEnabled = Boolean(affiliateModuleEnabled);
+    }
+
+    if (affiliateCommissionPercent !== undefined) {
+      const pct = Number(affiliateCommissionPercent);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Affiliate commission must be between 0 and 100 percent',
+        });
+      }
+      doc.affiliateCommissionPercent = pct;
+    }
+
     await doc.save();
 
     return res.json({
@@ -204,6 +239,9 @@ export const updateAdminAppSettings = async (req, res) => {
         firstDepositBonusPercent: Number(doc.firstDepositBonusPercent) || 0,
         attendanceBonusEnabled: Boolean(doc.attendanceBonusEnabled),
         attendanceBonusAmount: Number(doc.attendanceBonusAmount) || 0,
+        firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
+        affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
+        affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
       },
     });
   } catch (error) {

@@ -109,6 +109,8 @@ import LockApplication from './pages/generalSetting/LockApplication';
 import BetLock from './pages/betLock/BetLock';
 import DeviceAlerts from './pages/deviceAlerts/DeviceAlerts';
 import RiskFraud from './pages/riskFraud/RiskFraud';
+import GiftCoupons from './pages/giftCoupons/GiftCoupons';
+import AffiliateDashboard from './pages/affiliate/AffiliateDashboard';
 
 import DownLineView from './pages/downlineList/DownLineView';
 
@@ -172,6 +174,8 @@ function App() {
             <Route path='/block-market' element={<BlockMarket />} />
             <Route path='/customer-support' element={<CustomerSupport />} />
             <Route path='/general-setting' element={<GeneralSetting />} />
+            <Route path='/gift-coupons' element={<GiftCoupons />} />
+            <Route path='/affiliate' element={<AffiliateDashboard />} />
             <Route path='/searchuser' element={<SearchUser />} />
             <Route path='/PlayerBalance' element={<PlayerBalance />} />
             <Route path='/active-match' element={<ActiveMatch />} />

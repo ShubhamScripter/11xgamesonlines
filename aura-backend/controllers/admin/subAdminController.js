@@ -26,6 +26,11 @@ import {
   claimFirstDepositBonusFlag,
   computeFirstDepositBonus,
 } from '../../utils/firstDepositBonus.js';
+import { getAppSettingsDoc } from '../../models/appSettingsModel.js';
+import {
+  applyWageringOnFirstDepositBonus,
+  validateWithdrawalWagering,
+} from '../../utils/wagering.js';
 
 const countUplines = async (user) => {
   let count = 0;
@@ -1745,6 +1750,11 @@ export const withdrowalAndDeposite = async (req, res) => {
 
     // Handle Withdrawal
     if (type === 'withdrawal') {
+      const wagerCheck = validateWithdrawalWagering(editUser);
+      if (!wagerCheck.ok) {
+        return res.status(400).json({ message: wagerCheck.message });
+      }
+
       if (balance > editUser.avbalance || balance > editUser.balance) {
         return res.status(400).json({ message: 'Insufficient balance' });
       }
@@ -1879,6 +1889,15 @@ export const withdrowalAndDeposite = async (req, res) => {
           to: editUser.userName,
           invite: subAdmin.code,
         });
+
+        const appSettings = await getAppSettingsDoc();
+        const wagerPct = Number(appSettings.firstDepositWageringPercent) || 80;
+        await applyWageringOnFirstDepositBonus(
+          editUser._id,
+          balance,
+          bonusAmount,
+          wagerPct
+        );
       }
     }
 

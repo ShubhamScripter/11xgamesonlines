@@ -86,6 +86,13 @@ function ManualDeposit() {
     enabled: false,
     percent: 0,
     eligible: false,
+    wageringPercent: 80,
+  });
+  const [wagering, setWagering] = useState({
+    withdrawalLocked: false,
+    remainingWagering: 0,
+    requiredWagering: 0,
+    currentWageredAmount: 0,
   });
 
   const activeMethod =
@@ -122,6 +129,12 @@ function ManualDeposit() {
       ? Math.round((parsedAmount * firstDepositBonus.percent) / 100)
       : 0;
   const totalWithBonus = parsedAmount + bonusPreviewAmount;
+  const wageringTargetPreview =
+    bonusPreviewAmount > 0 && parsedAmount > 0
+      ? Math.round(
+          ((parsedAmount + bonusPreviewAmount) * firstDepositBonus.wageringPercent) / 100
+        )
+      : 0;
 
   const loadAccounts = async () => {
     if (requestType === 'withdraw') return;
@@ -162,9 +175,10 @@ function ManualDeposit() {
         enabled: Boolean(d.enabled),
         percent: Number(d.percent) || 0,
         eligible: Boolean(d.eligible),
+        wageringPercent: Number(d.wageringPercent) || 80,
       });
     } catch {
-      setFirstDepositBonus({ enabled: false, percent: 0, eligible: false });
+      setFirstDepositBonus({ enabled: false, percent: 0, eligible: false, wageringPercent: 80 });
     }
   };
 
@@ -172,9 +186,30 @@ function ManualDeposit() {
     loadAccounts();
   }, [activeMethod, requestType, mainTab]);
 
+  const loadWagering = async () => {
+    try {
+      const res = await api.get('/user/wagering-status');
+      const d = res?.data?.data || {};
+      setWagering({
+        withdrawalLocked: Boolean(d.withdrawalLocked),
+        remainingWagering: Number(d.remainingWagering) || 0,
+        requiredWagering: Number(d.requiredWagering) || 0,
+        currentWageredAmount: Number(d.currentWageredAmount) || 0,
+      });
+    } catch {
+      setWagering({
+        withdrawalLocked: false,
+        remainingWagering: 0,
+        requiredWagering: 0,
+        currentWageredAmount: 0,
+      });
+    }
+  };
+
   useEffect(() => {
     loadMyRequests();
     loadFirstDepositBonus();
+    loadWagering();
   }, [requestType]);
 
   useEffect(() => {
@@ -401,8 +436,25 @@ function ManualDeposit() {
                         total
                       </p>
                     )}
+                    {wageringTargetPreview > 0 && (
+                      <p className="text-xs text-amber-300/90 mt-2">
+                        Wagering lock: play {sym}
+                        {wageringTargetPreview.toLocaleString()} ({firstDepositBonus.wageringPercent}%
+                        of deposit+bonus) before withdrawal.
+                      </p>
+                    )}
                   </div>
                 )}
+              {requestType === 'deposit' && wagering.withdrawalLocked && (
+                <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                  <p className="text-sm font-semibold text-amber-300">Wagering in progress</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {sym}{wagering.currentWageredAmount.toFixed(2)} / {sym}
+                    {wagering.requiredWagering.toFixed(2)} played — {sym}
+                    {wagering.remainingWagering.toFixed(2)} remaining to unlock withdrawal.
+                  </p>
+                </div>
+              )}
               {isUsdtUser && usdtToBdtRate > 0 && parsedAmount > 0 && (
                 <p className="text-xs text-gray-400 mt-2">
                   ≈ {convertUsdtToBdt(amount, usdtToBdtRate).toFixed(2)} BDT (1 USDT ={' '}
@@ -630,6 +682,19 @@ function ManualDeposit() {
                 {withdrawable.toFixed(2)}
               </p>
             </div>
+
+            {wagering.withdrawalLocked && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+                <p className="font-semibold text-amber-300">Withdrawal locked — wagering required</p>
+                <p className="text-gray-400 mt-1">
+                  Play {sym}{wagering.remainingWagering.toFixed(2)} more to unlock withdrawals.
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Progress: {sym}{wagering.currentWageredAmount.toFixed(2)} / {sym}
+                  {wagering.requiredWagering.toFixed(2)}
+                </p>
+              </div>
+            )}
 
             <div className="inline-flex px-4 py-2 rounded-full bg-[#19A044]/15 text-[#19A044] text-sm font-semibold">
               Mobile Banking

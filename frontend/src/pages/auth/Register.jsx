@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IoIosCloseCircleOutline, IoMdCloseCircle } from "react-icons/io";
 import { FaRegEyeSlash, FaRegEye, FaChevronDown } from "react-icons/fa";
-import { useNavigate ,Link } from 'react-router-dom';
+import { useNavigate ,Link, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, reset } from '../../features/auth/authSlice';
 import toast, { Toaster } from 'react-hot-toast';
@@ -36,6 +36,8 @@ function CurrencyIcon({ code }) {
 
 function Register() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = (searchParams.get('ref') || '').trim().toUpperCase();
   const dispatch = useDispatch();
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -106,6 +108,7 @@ function Register() {
         name: name.trim() || trimmedUsername,
         email: email.trim(),
         currency,
+        ...(referralCode ? { ref: referralCode } : {}),
       })
     );
   };
@@ -146,6 +149,14 @@ function Register() {
                   <Link to="/login" className="w-1/2 text-gray-400 pb-2 text-center"><button>Log in</button></Link>
                   <button className="w-1/2 border-b-4 border-[#14805e] pb-2">Sign up</button>
                 </div>
+                {referralCode && (
+                  <div className="mb-4 rounded-lg border border-[#14805e]/50 bg-[#14805e]/10 px-4 py-3">
+                    <p className="text-sm text-[#14805e] font-semibold">Referred by agent</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Referral code: <span className="font-mono text-white">{referralCode}</span>
+                    </p>
+                  </div>
+                )}
                 <form className='flex flex-col' onSubmit={handleSubmit}>
                   <div className="mb-4">
                     <label className="block text-[16px] mb-2 text-[#8d9aa5]">

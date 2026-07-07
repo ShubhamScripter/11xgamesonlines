@@ -42,6 +42,8 @@ const sportsSettlementService =
   await import('../services/sportsSettlementService.js');
 const fancyBetSettlementService =
   await import('../services/fancyBetSettlementService.js');
+import { incrementWageredAmount } from '../utils/wagering.js';
+import { creditAgentCommissionOnUserLoss } from '../utils/affiliateCommission.js';
 import {
   calculateAllExposure,
   calculateFancyExposure,
@@ -901,6 +903,8 @@ const placeCasinoBet = async (req, res) => {
 
     await betHistory.save();
 
+    incrementWageredAmount(id, p).catch(() => {});
+
     return res.status(201).json({
       message: 'Casino bet placed successfully',
     });
@@ -1383,6 +1387,8 @@ const placeBet = async (req, res) => {
       userExposureBefore: user.exposure,
     });
     await betHistory.save();
+
+    incrementWageredAmount(id, originalStake).catch(() => {});
 
     return res.status(201).json({ message: 'Bet placed successfully' });
   } catch (error) {
@@ -1980,6 +1986,8 @@ export const placeFancyBet = async (req, res) => {
     sendBalanceUpdates(user._id, user.avbalance);
     sendExposureUpdates(user._id, user.exposure);
 
+    incrementWageredAmount(id, p).catch(() => {});
+
     return res.status(201).json({ message: 'Bet placed successfully' });
   } catch (error) {
     console.error('Error placing bet:', error);
@@ -2211,6 +2219,12 @@ export const updateResultOfBets = async (req, res) => {
                   settlementResult.userUpdates.profitLossChange,
               },
             });
+            const pl = settlementResult.userUpdates.profitLossChange;
+            if (pl < 0) {
+              creditAgentCommissionOnUserLoss(bet.userId, pl, {
+                betId: bet._id,
+              }).catch(() => {});
+            }
           }
 
           // UPDATE BETHISTORY: Settle/void each individual bet history record
@@ -2804,6 +2818,11 @@ export const updateResultOfCasinoBets = async (req, res) => {
               bettingProfitLoss: profitLossChange,
             },
           });
+          if (profitLossChange < 0) {
+            creditAgentCommissionOnUserLoss(userId, profitLossChange, {}).catch(
+              () => {}
+            );
+          }
 
           // Send WebSocket updates with fresh values
           const freshUser = await SubAdmin.findById(userId);
@@ -3313,6 +3332,11 @@ export const updateFancyBetResult = async (req, res) => {
                   bettingProfitLoss: bplChange,
                 },
               });
+              if (bplChange < 0) {
+                creditAgentCommissionOnUserLoss(bet.userId, bplChange, {
+                  betId: bet._id,
+                }).catch(() => {});
+              }
             }
 
             totalBetsProcessed++;

@@ -46,6 +46,22 @@ import {
   updateAdminAppSettings,
 } from '../../controllers/appSettingsController.js';
 import { getFraudClusters } from '../../controllers/admin/fraudClusterController.js';
+import {
+  createAffiliateAgent,
+  getAgentCommissionReport,
+  getAgentDownline,
+  getAgentReferralLink,
+  getAgentWeeklyCommission,
+  listAffiliateAgents,
+  updateAgentCommission,
+} from '../../controllers/affiliateController.js';
+import {
+  createCoupon,
+  deleteCoupon,
+  getCouponClaims,
+  listCoupons,
+  updateCouponStatus,
+} from '../../controllers/giftCouponController.js';
 
 const router = express.Router();
 
@@ -133,5 +149,22 @@ router.get("/users-locked", adminAuthMiddleware, getLockedUsers);
 
 router.get('/admin/app-settings', adminAuthMiddleware, getAdminAppSettings);
 router.put('/admin/app-settings', adminAuthMiddleware, updateAdminAppSettings);
+
+// Gift coupons (admin)
+router.get('/admin/coupons', adminAuthMiddleware, listCoupons);
+router.post('/admin/coupons', adminAuthMiddleware, createCoupon);
+router.get('/admin/coupons/:couponId/claims', adminAuthMiddleware, getCouponClaims);
+router.patch('/admin/coupons/:couponId', adminAuthMiddleware, updateCouponStatus);
+router.delete('/admin/coupons/:couponId', adminAuthMiddleware, deleteCoupon);
+
+// Affiliate module (admin + agent)
+router.get('/admin/affiliate/agents', adminAuthMiddleware, listAffiliateAgents);
+router.post('/admin/affiliate/agents', adminAuthMiddleware, createAffiliateAgent);
+router.put('/admin/affiliate/settings', adminAuthMiddleware, updateAgentCommission);
+router.put('/admin/affiliate/agents/:agentId/commission', adminAuthMiddleware, updateAgentCommission);
+router.get('/agent/affiliate/referral-link', adminAuthMiddleware, getAgentReferralLink);
+router.get('/agent/affiliate/downline', adminAuthMiddleware, getAgentDownline);
+router.get('/agent/affiliate/commission-report', adminAuthMiddleware, getAgentCommissionReport);
+router.get('/agent/affiliate/weekly-commission', adminAuthMiddleware, getAgentWeeklyCommission);
 
 export default router;

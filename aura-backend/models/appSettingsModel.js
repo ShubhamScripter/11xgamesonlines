@@ -51,6 +51,24 @@ const appSettingsSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    /** Wagering multiplier for first-deposit bonus (default 80%) */
+    firstDepositWageringPercent: {
+      type: Number,
+      default: 80,
+      min: 0,
+      max: 100,
+    },
+    /** Affiliate / agent commission module */
+    affiliateModuleEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    affiliateCommissionPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
   },
   { timestamps: true }
 );

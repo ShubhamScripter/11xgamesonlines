@@ -177,6 +177,8 @@ export function validateUserWithdrawRequest({
   withdrawable,
   phoneNumber,
   hasPassword,
+  requiredWagering,
+  currentWageredAmount,
 }) {
   const m = String(method || '').toLowerCase();
   const amt = Number(amount);
@@ -184,6 +186,16 @@ export function validateUserWithdrawRequest({
 
   if (!isMobileBankingMethod(m)) {
     return { ok: false, message: 'Withdraw is only available via mobile banking.' };
+  }
+
+  const reqWager = Number(requiredWagering) || 0;
+  const curWager = Number(currentWageredAmount) || 0;
+  if (reqWager > 0 && curWager < reqWager) {
+    const remaining = Math.round((reqWager - curWager) * 100) / 100;
+    return {
+      ok: false,
+      message: `Withdrawal locked until wagering target is met. Remaining: ${remaining}.`,
+    };
   }
 
   if (!Number.isFinite(amt) || amt < minAmt) {

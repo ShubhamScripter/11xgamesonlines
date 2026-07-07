@@ -14,7 +14,11 @@ export async function getFirstDepositBonusSettings() {
     100,
     Math.max(0, Number(doc.firstDepositBonusPercent) || 0)
   );
-  return { enabled, percent };
+  const wageringPercent = Math.min(
+    100,
+    Math.max(0, Number(doc.firstDepositWageringPercent) || 80)
+  );
+  return { enabled, percent, wageringPercent };
 }
 
 export function calcFirstDepositBonusAmount(depositAmount, percent) {

@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as Icons from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logoutAsync } from "../../store/authSlice";
 import axiosInstance from "../../utils/axiosInstance";
+
+const ADMIN_ROLES = new Set(["superadmin", "admin", "subadmin", "seniorSuper"]);
+const AGENT_ROLES = new Set(["agent", "superAgent"]);
 
 const navData = [
   {
@@ -16,88 +19,37 @@ const navData = [
     icon: "FaUserCircle",
     path: "/my-account-summary"
   },
-  // {
-  //   label: "My Report",
-  //   icon: "FaChartBar",
-  //   children: [
-  //     {
-  //       label: "Profit/Loss Report by Downline",
-  //       icon: "FaFileAlt",
-  //       path: "/AprofitByDownline"
-  //     },
-  //     {
-  //       label: "Profit/Loss by Downline",
-  //       icon: "FaFileInvoiceDollar",
-  //       path: "/AprofitDownline"
-  //     },
-  //     {
-  //       label: "Profit/Loss Report by Market",
-  //       icon: "FaChartPie",
-  //       path: "/AprofitMarket"
-  //     },
-  //     {
-  //       label: "Profit/Loss Sports Wise",
-  //       icon: "FaFutbol",
-  //       path: "/Adownlinesportspl"
-  //     },
-  //     {
-  //       label: "All Casino Profit/Loss",
-  //       icon: "FaDice",
-  //       path: "/ACdownlinesportspl"
-  //     },
-  //     {
-  //       label: "Casino Profit/Loss Report by Date",
-  //       icon: "FaCalendarAlt",
-  //       path: "/AprofitCasino"
-  //     },
-  //     {
-  //       label: "Casino P/L Downline Monthly",
-  //       icon: "FaCalendar",
-  //       path: "/ACasinoprofitAndLossDownlineNew"
-  //     },
-  //     {
-  //       label: "International Casino P/L Downline Monthly",
-  //       icon: "FaGlobe",
-  //       path: "/ICasinoprofitAndLossDownlineNew"
-  //     }
-  //   ]
-  // },
-  // {
-  //   label: "BetList",
-  //   icon: "FaListUl",
-  //   path: "/Betlist"
-  // },
-  // {
-  //   label: "BetListLive",
-  //   icon: "FaBroadcastTower",
-  //   path: "/BetListLive"
-  // },
-  // {
-  //   label: "Risk Management",
-  //   icon: "FaShieldAlt",
-  //   path: "/RiskManagement"
-  // },
+  {
+    label: "Affiliate Dashboard",
+    icon: "FaLink",
+    path: "/affiliate",
+    roles: ["agent", "superAgent"],
+  },
   {
     label: "Banking",
     icon: "FaCreditCard",
-    path: "/banking"
+    path: "/banking",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
   },
   {
     label: "Deposit Accounts",
     icon: "FaUniversity",
-    path: "/manual-deposit-accounts"
+    path: "/manual-deposit-accounts",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
   },
   {
     label: "Deposit Requests",
     icon: "FaInbox",
     path: "/manual-deposit-requests",
     badgeKey: "depositPending",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
   },
   {
     label: "Withdraw Requests",
     icon: "FaMoneyBillWave",
     path: "/manual-withdraw-requests",
     badgeKey: "withdrawPending",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
   },
   {
     label: "Customer support",
@@ -109,10 +61,12 @@ const navData = [
     icon: "FaShieldAlt",
     path: "/risk-fraud",
     badgeKey: "deviceAlerts",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
   },
   {
     label: "Bet Lock",
     icon: "FaLock",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
     children: [
       {
         label: "Overview",
@@ -131,26 +85,38 @@ const navData = [
       }
     ]
   },
-  // {
-  //   label: "Block Market",
-  //   icon: "FaBan",
-  //   path: "/block-market"
-  // },
   {
     label: "Admin Setting",
     icon: "FaCogs",
-    path: "/general-setting"
+    path: "/general-setting",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
+    children: [
+      { label: "General Settings", icon: "FaCogs", path: "/general-setting" },
+      { label: "Gift Coupons", icon: "FaGift", path: "/gift-coupons" },
+      { label: "Affiliate / Agents", icon: "FaUsers", path: "/affiliate" },
+    ]
   },
-  // {
-  //   label: "Time Zone : GMT+6:00",
-  //   icon: "FaClock"
-  // },
   {
     label: "Logout",
     icon: "FaSignOutAlt",
     path: "/logout"
   }
 ];
+
+function filterNavByRole(items, role) {
+  return items
+    .filter((item) => {
+      if (!item.roles) return true;
+      return item.roles.includes(role);
+    })
+    .map((item) => {
+      if (!item.children) return item;
+      const children = filterNavByRole(item.children, role);
+      if (!children.length) return null;
+      return { ...item, children };
+    })
+    .filter(Boolean);
+}
 
 const SidebarItem = ({ item, badges, depth = 0 }) => {
   const [open, setOpen] = useState(false);
@@ -212,9 +178,14 @@ const SidebarItem = ({ item, badges, depth = 0 }) => {
 };
 
 const Navbar = () => {
+  const user = useSelector((state) => state.auth.user);
+  const role = user?.role || "";
   const [badges, setBadges] = useState({ depositPending: 0, withdrawPending: 0, deviceAlerts: 0 });
 
+  const visibleNav = useMemo(() => filterNavByRole(navData, role), [role]);
+
   useEffect(() => {
+    if (!ADMIN_ROLES.has(role)) return;
     let mounted = true;
 
     const fetchBadges = async () => {
@@ -258,11 +229,11 @@ const Navbar = () => {
       window.removeEventListener("focus", fetchBadges);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, []);
+  }, [role]);
 
   return (
     <div className="w-64 bg-black text-white shadow-lg h-[calc(100vh-80px)] overflow-y-auto hide-scrollbar">
-      {navData.map((item) => (
+      {visibleNav.map((item) => (
         <SidebarItem key={item.path || item.label} item={item} badges={badges} />
       ))}
     </div>

@@ -37,6 +37,11 @@ import {
   getFirstDepositBonusSettings,
   isFirstDepositEligible,
 } from '../utils/firstDepositBonus.js';
+import { getAppSettingsDoc } from '../models/appSettingsModel.js';
+import {
+  applyWageringOnFirstDepositBonus,
+  getWageringStatus,
+} from '../utils/wagering.js';
 
 const VALID_METHODS = VALID_DEPOSIT_METHODS;
 
@@ -450,6 +455,8 @@ export const createManualDepositRequest = async (req, res) => {
           withdrawable: user.avbalance,
           phoneNumber: wd?.phoneNumber,
           hasPassword: true,
+          requiredWagering: user.requiredWagering,
+          currentWageredAmount: user.currentWageredAmount,
         });
         if (!withdrawCheck.ok) {
           return res.status(400).json({ message: withdrawCheck.message });
@@ -656,8 +663,10 @@ export const getFirstDepositBonusInfo = async (req, res) => {
       data: {
         enabled: settings.enabled,
         percent: settings.percent,
+        wageringPercent: settings.wageringPercent,
         eligible,
         claimed: Boolean(user.firstDepositBonusClaimed),
+        wagering: getWageringStatus(user),
       },
     });
   } catch (error) {
@@ -977,6 +986,17 @@ export const reviewManualDepositRequest = async (req, res) => {
       requestDoc.bonusAmount = bonusAmount;
       requestDoc.firstDepositBonusApplied = bonusAmount > 0;
       requestDoc.bonusType = bonusAmount > 0 ? 'first_deposit' : requestDoc.bonusType;
+
+      if (bonusAmount > 0) {
+        const appSettings = await getAppSettingsDoc();
+        const wagerPct = Number(appSettings.firstDepositWageringPercent) || 80;
+        await applyWageringOnFirstDepositBonus(
+          user._id,
+          amount,
+          bonusAmount,
+          wagerPct
+        );
+      }
 
       // keep user in sync for WS + history below
       user.balance = creditedUser.balance;

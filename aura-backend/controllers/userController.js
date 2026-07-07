@@ -9,6 +9,7 @@ import passwordHistory from '../models/passwordHistory.js';
 import SubAdmin from '../models/subAdminModel.js';
 import { calculateAllExposure } from '../utils/exposureUtils.js';
 import { formatLoginDateTime } from '../utils/appTime.js';
+import { getWageringStatus } from '../utils/wagering.js';
 
 export const registerUser = async (req, res) => {
   try {
@@ -32,7 +33,7 @@ export const registerUser = async (req, res) => {
 export const registerSelf = async (req, res) => {
   try {
     console.log("req.body",req.body);
-    const { userName, password, name, phone, email, currency } = req.body;
+    const { userName, password, name, phone, email, currency, ref, inviteCode } = req.body;
 
     // Currency chosen at signup: USDT shows "$" everywhere, BDT is the default.
     const normalizedCurrency =
@@ -77,14 +78,36 @@ export const registerSelf = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
-    // Force self-registration to be created under the intended superadmin
-    // (no env dependency, avoids attaching users under the "first" superadmin found).
-    const parentCode = '8CDAF764';
-    const parent = await SubAdmin.findOne({
-      code: parentCode,
-      role: 'superadmin',
-      status: { $ne: 'delete' },
-    }).select('code role status userName');
+    // Default parent: superadmin. Affiliate referral ?ref=AGENT_CODE attaches user to agent.
+    const defaultParentCode = '8CDAF764';
+    const referralCode = String(ref || inviteCode || req.query?.ref || '')
+      .trim()
+      .toUpperCase();
+
+    let parentCode = defaultParentCode;
+    let parent = null;
+
+    if (referralCode) {
+      const referrer = await SubAdmin.findOne({
+        code: referralCode,
+        status: { $ne: 'delete' },
+        role: { $in: ['agent', 'superAgent', 'superadmin', 'admin', 'subadmin', 'seniorSuper'] },
+      }).select('code role status userName');
+
+      if (referrer) {
+        parent = referrer;
+        parentCode = referrer.code;
+      }
+    }
+
+    if (!parent) {
+      parent = await SubAdmin.findOne({
+        code: defaultParentCode,
+        role: 'superadmin',
+        status: { $ne: 'delete' },
+      }).select('code role status userName');
+      parentCode = defaultParentCode;
+    }
 
     if (!parent) {
       return res.status(500).json({
@@ -631,5 +654,17 @@ export const updateTheme = async (req, res) => {
   } catch (error) {
     console.error('Update Theme Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const getUserWageringStatus = async (req, res) => {
+  try {
+    const user = await SubAdmin.findById(req.id).lean();
+    if (!user || user.role !== 'user') {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    return res.json({ success: true, data: getWageringStatus(user) });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Server error' });
   }
 };

@@ -77,6 +77,13 @@ const subAdminSchema = new mongoose.Schema(
     /** All persistent device fingerprints (x-device-id) this account has logged in from. Used for multi-account-per-device detection. */
     deviceIds: { type: [String], default: [] },
     firstDepositBonusClaimed: { type: Boolean, default: false },
+    /** Wagering lock after first-deposit bonus (80% of deposit+bonus by default) */
+    requiredWagering: { type: Number, default: 0 },
+    currentWageredAmount: { type: Number, default: 0 },
+    /** Per-agent affiliate commission % (null = use global setting) */
+    agentCommissionPercent: { type: Number, default: null, min: 0, max: 100 },
+    /** Accumulated affiliate commission balance for agents */
+    affiliateCommissionBalance: { type: Number, default: 0 },
     /** Last calendar day (Asia/Dhaka YYYY-MM-DD) user claimed attendance bonus */
     lastAttendanceDate: { type: String, default: '', trim: true },
     quickStakes: {

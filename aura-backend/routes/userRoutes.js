@@ -6,6 +6,7 @@ import {
   getLoginHistory,
   getPasswordHistoryByUserId,
   getUserById,
+  getUserWageringStatus,
   loginUser,
   registerSelf,
   updateQuickStakes,
@@ -24,6 +25,7 @@ import {
   claimAttendanceBonus,
   getAttendanceStatus,
 } from '../controllers/attendanceBonusController.js';
+import { claimCoupon } from '../controllers/giftCouponController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -55,4 +57,6 @@ router.post('/user/p2p-transfer', authMiddleware, transferP2P);
 router.get('/user/p2p-transfer-log', authMiddleware, getP2PTransferHistory);
 router.get('/user/attendance', authMiddleware, getAttendanceStatus);
 router.post('/user/attendance/claim', authMiddleware, claimAttendanceBonus);
+router.get('/user/wagering-status', authMiddleware, getUserWageringStatus);
+router.post('/user/coupon/claim', authMiddleware, claimCoupon);
 export default router;

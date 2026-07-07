@@ -27,6 +27,8 @@ function GeneralSetting() {
     const [savedBonusEnabled, setSavedBonusEnabled] = useState(false);
     const [savedBonusPercent, setSavedBonusPercent] = useState(0);
     const [savingBonus, setSavingBonus] = useState(false);
+    const [wageringPercent, setWageringPercent] = useState('80');
+    const [savedWageringPercent, setSavedWageringPercent] = useState(80);
 
     const [attendanceEnabled, setAttendanceEnabled] = useState(false);
     const [attendanceAmount, setAttendanceAmount] = useState('');
@@ -63,6 +65,9 @@ function GeneralSetting() {
           const pct = Number(data?.data?.firstDepositBonusPercent) || 0;
           setSavedBonusPercent(pct);
           setBonusPercent(pct ? String(pct) : '');
+          const wagerPct = Number(data?.data?.firstDepositWageringPercent) || 80;
+          setSavedWageringPercent(wagerPct);
+          setWageringPercent(String(wagerPct));
           setAttendanceEnabled(Boolean(data?.data?.attendanceBonusEnabled));
           setSavedAttendanceEnabled(Boolean(data?.data?.attendanceBonusEnabled));
           const attAmt = Number(data?.data?.attendanceBonusAmount) || 0;
@@ -100,16 +105,25 @@ function GeneralSetting() {
         alert('Enter a valid bonus percentage between 1 and 100.');
         return;
       }
+      const wager = Number(wageringPercent);
+      if (!Number.isFinite(wager) || wager < 0 || wager > 100) {
+        alert('Enter a valid wagering percentage between 0 and 100.');
+        return;
+      }
       setSavingBonus(true);
       try {
         const { data } = await axios.put('/admin/app-settings', {
           firstDepositBonusEnabled: bonusEnabled,
           firstDepositBonusPercent: bonusEnabled ? pct : 0,
+          firstDepositWageringPercent: wager,
         });
         setSavedBonusEnabled(Boolean(data?.data?.firstDepositBonusEnabled));
         const savedPct = Number(data?.data?.firstDepositBonusPercent) || 0;
         setSavedBonusPercent(savedPct);
         setBonusPercent(savedPct ? String(savedPct) : '');
+        const savedWager = Number(data?.data?.firstDepositWageringPercent) || 80;
+        setSavedWageringPercent(savedWager);
+        setWageringPercent(String(savedWager));
         alert('First deposit bonus settings saved.');
       } catch (err) {
         alert(err?.response?.data?.message || 'Failed to save bonus settings');
@@ -322,6 +336,23 @@ function GeneralSetting() {
                   <span className='text-sm font-semibold'>%</span>
                 </div>
               </div>
+              <div className='flex flex-col gap-1'>
+                <label className='text-xs text-gray-600'>Wagering requirement</label>
+                <div className='flex items-center gap-2'>
+                  <input
+                    type='number'
+                    min='0'
+                    max='100'
+                    step='1'
+                    disabled={!bonusEnabled}
+                    value={wageringPercent}
+                    onChange={(e) => setWageringPercent(e.target.value)}
+                    placeholder='80'
+                    className='border border-[#aaa] px-3 py-2 rounded w-[120px] text-sm bg-white disabled:opacity-50'
+                  />
+                  <span className='text-sm font-semibold'>% of deposit+bonus</span>
+                </div>
+              </div>
               <button
                 type='button'
                 disabled={savingBonus}
@@ -343,7 +374,8 @@ function GeneralSetting() {
             {savedBonusEnabled && savedBonusPercent > 0
               ? (1000 + (1000 * savedBonusPercent) / 100).toLocaleString()
               : '1,000'}{' '}
-            total (deposit + bonus).
+            total (deposit + bonus). Withdraw locked until user wagers{' '}
+            {savedWageringPercent}% of that total.
           </p>
         </div>
       )}
