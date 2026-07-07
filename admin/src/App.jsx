@@ -111,6 +111,7 @@ import DeviceAlerts from './pages/deviceAlerts/DeviceAlerts';
 import RiskFraud from './pages/riskFraud/RiskFraud';
 import GiftCoupons from './pages/giftCoupons/GiftCoupons';
 import AffiliateDashboard from './pages/affiliate/AffiliateDashboard';
+import AgentDashboard from './pages/affiliate/AgentDashboard';
 
 import DownLineView from './pages/downlineList/DownLineView';
 
@@ -176,6 +177,7 @@ function App() {
             <Route path='/general-setting' element={<GeneralSetting />} />
             <Route path='/gift-coupons' element={<GiftCoupons />} />
             <Route path='/affiliate' element={<AffiliateDashboard />} />
+            <Route path='/agent-dashboard' element={<AgentDashboard />} />
             <Route path='/searchuser' element={<SearchUser />} />
             <Route path='/PlayerBalance' element={<PlayerBalance />} />
             <Route path='/active-match' element={<ActiveMatch />} />

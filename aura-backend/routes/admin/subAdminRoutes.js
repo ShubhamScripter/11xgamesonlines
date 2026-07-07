@@ -49,6 +49,7 @@ import { getFraudClusters } from '../../controllers/admin/fraudClusterController
 import {
   createAffiliateAgent,
   getAgentCommissionReport,
+  getAgentDashboard,
   getAgentDownline,
   getAgentReferralLink,
   getAgentWeeklyCommission,
@@ -162,6 +163,7 @@ router.get('/admin/affiliate/agents', adminAuthMiddleware, listAffiliateAgents);
 router.post('/admin/affiliate/agents', adminAuthMiddleware, createAffiliateAgent);
 router.put('/admin/affiliate/settings', adminAuthMiddleware, updateAgentCommission);
 router.put('/admin/affiliate/agents/:agentId/commission', adminAuthMiddleware, updateAgentCommission);
+router.get('/agent/affiliate/dashboard', adminAuthMiddleware, getAgentDashboard);
 router.get('/agent/affiliate/referral-link', adminAuthMiddleware, getAgentReferralLink);
 router.get('/agent/affiliate/downline', adminAuthMiddleware, getAgentDownline);
 router.get('/agent/affiliate/commission-report', adminAuthMiddleware, getAgentCommissionReport);

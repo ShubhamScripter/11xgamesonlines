@@ -271,6 +271,128 @@ export async function getAgentWeeklyCommission(req, res) {
   }
 }
 
+/** Unified agent dashboard: downline + balances + per-user commission + weekly total */
+export async function getAgentDashboard(req, res) {
+  try {
+    if (!AGENT_ROLES.has(req.role)) {
+      return res.status(403).json({ message: 'Agents only.' });
+    }
+
+    const agent = await SubAdmin.findById(req.id).select(
+      'code userName name affiliateCommissionBalance agentCommissionPercent'
+    );
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found.' });
+    }
+
+    const weekStart = getWeekStart();
+    const weekEnd = getWeekEnd(weekStart);
+    const settings = await getAffiliateSettings();
+
+    const [downline, commissionByUser, weeklyByUser] = await Promise.all([
+      SubAdmin.find({
+        invite: agent.code,
+        role: 'user',
+        status: { $ne: 'delete' },
+      })
+        .select('userName name balance avbalance bettingProfitLoss createdAt status currency')
+        .sort({ createdAt: -1 })
+        .lean(),
+      AgentCommission.aggregate([
+        { $match: { agentId: agent._id } },
+        {
+          $group: {
+            _id: '$userId',
+            totalCommission: { $sum: '$commissionAmount' },
+            totalUserLoss: { $sum: '$userLossAmount' },
+            eventCount: { $sum: 1 },
+          },
+        },
+      ]),
+      AgentCommission.aggregate([
+        {
+          $match: {
+            agentId: agent._id,
+            createdAt: { $gte: weekStart, $lt: weekEnd },
+          },
+        },
+        {
+          $group: {
+            _id: '$userId',
+            weeklyCommission: { $sum: '$commissionAmount' },
+          },
+        },
+      ]),
+    ]);
+
+    const commissionMap = new Map(
+      commissionByUser.map((r) => [String(r._id), r])
+    );
+    const weeklyMap = new Map(
+      weeklyByUser.map((r) => [String(r._id), round2(r.weeklyCommission || 0)])
+    );
+
+    const rows = downline.map((u) => {
+      const comm = commissionMap.get(String(u._id));
+      return {
+        _id: u._id,
+        userName: u.userName,
+        name: u.name,
+        status: u.status,
+        currency: u.currency || 'BDT',
+        balance: round2(u.balance || 0),
+        avbalance: round2(u.avbalance || 0),
+        bettingProfitLoss: round2(u.bettingProfitLoss || 0),
+        joinedAt: u.createdAt,
+        totalUserLoss: round2(comm?.totalUserLoss || 0),
+        totalCommission: round2(comm?.totalCommission || 0),
+        weeklyCommission: weeklyMap.get(String(u._id)) || 0,
+        eventCount: comm?.eventCount || 0,
+      };
+    });
+
+    const weeklyCommission = round2(
+      weeklyByUser.reduce((sum, r) => sum + (r.weeklyCommission || 0), 0)
+    );
+
+    const totalDownlineBalance = round2(
+      downline.reduce((sum, u) => sum + (Number(u.balance) || 0), 0)
+    );
+    const totalDownlineAvBalance = round2(
+      downline.reduce((sum, u) => sum + (Number(u.avbalance) || 0), 0)
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        agent: {
+          userName: agent.userName,
+          name: agent.name,
+          code: agent.code,
+          commissionPercent:
+            agent.agentCommissionPercent != null
+              ? Number(agent.agentCommissionPercent)
+              : settings.globalCommissionPercent,
+        },
+        referralLink: buildReferralLink(agent.code, req),
+        summary: {
+          referredUsersCount: rows.length,
+          totalCommission: round2(agent.affiliateCommissionBalance || 0),
+          weeklyCommission,
+          weekStart,
+          weekEnd,
+          totalDownlineBalance,
+          totalDownlineAvBalance,
+          moduleEnabled: settings.enabled,
+        },
+        downline: rows,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Failed to load agent dashboard' });
+  }
+}
+
 export async function listAffiliateAgents(req, res) {
   try {
     if (!ADMIN_ROLES.has(req.role)) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { Navigate } from "react-router-dom";
 import { FaMicrophone } from "react-icons/fa";
 import { IoSearchSharp } from "react-icons/io5";
 import { MdPersonAddAlt1 } from "react-icons/md";
@@ -100,6 +101,10 @@ function DownLineList() {
   };
 
   const refetch = () => user?.id && dispatch(fetchDownlineTree(fetchParams()));
+
+  if (user?.role === 'agent') {
+    return <Navigate to="/agent-dashboard" replace />;
+  }
 
   return (
     <div>

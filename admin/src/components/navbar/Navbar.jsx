@@ -10,20 +10,21 @@ const AGENT_ROLES = new Set(["agent", "superAgent"]);
 
 const navData = [
   {
+    label: "Agent Dashboard",
+    icon: "FaChartLine",
+    path: "/agent-dashboard",
+    roles: ["agent", "superAgent"],
+  },
+  {
     label: "Downline List",
     icon: "FaUsers",
-    path: "/"
+    path: "/",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper", "superAgent"],
   },
   {
     label: "My Account",
     icon: "FaUserCircle",
     path: "/my-account-summary"
-  },
-  {
-    label: "Affiliate Dashboard",
-    icon: "FaLink",
-    path: "/affiliate",
-    roles: ["agent", "superAgent"],
   },
   {
     label: "Banking",

@@ -32,7 +32,8 @@ function Login() {
       password: formData.password,
     }));
     if (loginAsync.fulfilled.match(resultAction)) {
-      navigate('/');
+      const role = resultAction.payload?.user?.role;
+      navigate(role === 'agent' ? '/agent-dashboard' : '/');
     }
     // Optionally handle error here if needed
   };
