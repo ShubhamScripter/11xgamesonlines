@@ -7,6 +7,7 @@ import {
   resolveBetTypeLockId,
   isBetTypeLocked,
 } from '../constants/betLockConstants.js';
+import { checkMatchSectionLock } from '../utils/matchSectionSettings.js';
 
 const CACHE_MS = 15_000;
 let cache = { ts: 0, data: null };
@@ -85,6 +86,18 @@ export async function checkBetApplicationLock({
 }) {
   const sportKey = normalizeSportKey(gameName);
   if (!sportKey) return { blocked: false };
+
+  const sectionLock = await checkMatchSectionLock({
+    gameId,
+    sport: sportKey,
+    gameType,
+    marketName,
+    isFancy,
+    isPremium,
+  });
+  if (sectionLock.blocked) {
+    return { blocked: true, reason: sectionLock.reason };
+  }
 
   const settings = await getBetLockSettings();
 

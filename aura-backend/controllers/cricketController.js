@@ -11,6 +11,7 @@ import {
   getAnyCachedSportPayload,
   serveSportsListRequest,
 } from '../services/sportsListCache/sportsListCacheService.js';
+import { filterFullyDisabledFromPayload } from '../utils/matchSectionSettings.js';
 import {
   sendBettingApiError,
   sendBettingProviderFailure,
@@ -35,7 +36,8 @@ export const getCricketData = async (req, res) => {
 
     const stale = await getAnyCachedSportPayload('cricket');
     if (stale) {
-      return res.status(200).json(stale);
+      const filtered = await filterFullyDisabledFromPayload(stale, 'cricket');
+      return res.status(200).json(filtered);
     }
 
     return res

@@ -3,6 +3,7 @@ import {
   SPORTS_CACHE_SPORTS,
 } from './payloadBuilders.js';
 import { applyInplayInferenceToPayload } from './inplayInference.js';
+import { filterFullyDisabledFromPayload } from '../../utils/matchSectionSettings.js';
 import { cacheDelete, cacheGet, cacheSet } from './cacheStore.js';
 import {
   assessOddsCacheQuality,
@@ -181,13 +182,15 @@ export async function serveSportsListRequest(sport, withOdds, oddsScope) {
     cached = null;
   }
 
-  if (cached) return cached;
+  if (cached) {
+    return filterFullyDisabledFromPayload(cached, sport);
+  }
 
   // Cold start: eligible odds while full odds cache warms (only if complete)
   if (withOdds && oddsScope === 'all') {
     const eligible = await getCachedSportsPayload(sport, true, 'eligible');
     if (eligible?.matches?.length && isOddsPayloadComplete(eligible, 'eligible')) {
-      return eligible;
+      return filterFullyDisabledFromPayload(eligible, sport);
     }
   }
 
@@ -197,7 +200,7 @@ export async function serveSportsListRequest(sport, withOdds, oddsScope) {
   let payload = await buildSportPayload(sport, withOdds, oddsScope);
   payload = applyInplayInferenceToPayload(payload, sport);
   await maybePersistOddsPayload(sport, withOdds, oddsScope, payload);
-  return payload;
+  return filterFullyDisabledFromPayload(payload, sport);
 }
 
 /** Stale cache for error fallback — prefer complete odds over list-only. */

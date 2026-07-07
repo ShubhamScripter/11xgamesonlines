@@ -352,11 +352,21 @@ import {
   mapProviderDFancyGameType,
   normalizeFancySectionOdds,
 } from '../../utils/bettingPayloadUtils';
+import useMatchSectionSettings from '../../hooks/useMatchSectionSettings';
 function Fullmarket2() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
+  const {
+    loading: sectionSettingsLoading,
+    matchDisabled,
+    sections: matchSections,
+  } = useMatchSectionSettings(gameid, 'tennis');
+  const showMatchOddsSection = matchSections.match_odds !== false;
+  const showBookmakerSection = matchSections.bookmaker !== false;
+  const showFancySection = matchSections.fancy !== false;
   const { data: tennisMatches = [] } = useSelector((state) => state.tennis);
   const key = DEFAULT_BULKAPI_KEY;
   const beventId = useMemo(
@@ -911,6 +921,18 @@ function Fullmarket2() {
   } else if (selected === "Sportbook") {
     content = <Sportbook openBetSlip={openBetSlip} oddevenData={oddevenData} gameid={gameid} match={match}/>;
   }
+
+  if (!sectionSettingsLoading && matchDisabled) {
+    return (
+      <div className="p-6 text-center text-white bg-[#1e1e1e] min-h-[40vh] flex flex-col items-center justify-center">
+        <p className="text-lg font-semibold">This match is currently unavailable.</p>
+        <button type="button" className="mt-4 px-4 py-2 bg-[#17934e] rounded" onClick={() => navigate('/tennis')}>
+          Back to Tennis
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {loader && (
@@ -1014,17 +1036,17 @@ function Fullmarket2() {
               No markets available for this match. Try again later.
             </div>
           )}
-          {matchOddsList.length > 0 && (<>
+          {showMatchOddsSection && matchOddsList.length > 0 && (<>
             <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Tennis Game"/>
             </>
           )}
           <div className='pb-5'>
             {/* Bookmaker Section */}
-            {BookmakerList.length > 0 && (
+            {showBookmakerSection && BookmakerList.length > 0 && (
               <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Tennis Game"/>
             )}
             {/* Fancybet & sportsbook Section */}
-            {(fancy1Data.length > 0 || oddevenData.length > 0) && (
+            {showFancySection && (fancy1Data.length > 0 || oddevenData.length > 0) && (
               <div className='px-4 pt-4'>
                 <div className='bg-black h-12  pl-4 flex  items-center rounded-t-2xl'>
                   {fancy1Data.length > 0 && (

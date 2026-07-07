@@ -351,11 +351,21 @@ import {
   mapProviderDFancyGameType,
   normalizeFancySectionOdds,
 } from '../../utils/bettingPayloadUtils';
+import useMatchSectionSettings from '../../hooks/useMatchSectionSettings';
 function Fullmarket1() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
+  const {
+    loading: sectionSettingsLoading,
+    matchDisabled,
+    sections: matchSections,
+  } = useMatchSectionSettings(gameid, 'soccer');
+  const showMatchOddsSection = matchSections.match_odds !== false;
+  const showBookmakerSection = matchSections.bookmaker !== false;
+  const showFancySection = matchSections.fancy !== false;
   const { soccerData: soccerMatches = [] } = useSelector((state) => state.soccer);
   const key = DEFAULT_BULKAPI_KEY;
   const beventId = useMemo(
@@ -1049,6 +1059,18 @@ const oddevenData =
   } else if (selected === "Sportbook") {
     content = <Sportbook openBetSlip={openBetSlip} oddevenData={oddevenData} gameid={gameid} match={match}/>;
   }
+
+  if (!sectionSettingsLoading && matchDisabled) {
+    return (
+      <div className="p-6 text-center text-white bg-[#1e1e1e] min-h-[40vh] flex flex-col items-center justify-center">
+        <p className="text-lg font-semibold">This match is currently unavailable.</p>
+        <button type="button" className="mt-4 px-4 py-2 bg-[#17934e] rounded" onClick={() => navigate('/football')}>
+          Back to Football
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {loader &&(
@@ -1117,31 +1139,31 @@ const oddevenData =
               No markets available for this match. Try again later.
             </div>
           )}
-          {matchOddsList.length > 0 && (
+          {showMatchOddsSection && matchOddsList.length > 0 && (
             <>
 
             <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
             </>
           )}
           {/* Over/Under 0.5 Section */}
-          {soccerOver05List.length > 0 && (
+          {showMatchOddsSection && soccerOver05List.length > 0 && (
             <SoccerOver05 openBetSlip={openBetSlip} matchOddsList={soccerOver05List} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
           )}
           {/* Over/Under 1.5 Section */}
-          {soccerOver15List.length > 0 && (
+          {showMatchOddsSection && soccerOver15List.length > 0 && (
             <SoccerOver15 openBetSlip={openBetSlip} matchOddsList={soccerOver15List} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
           )}
           {/* Over/Under 2.5 Section */}
-          {soccerOver25List.length > 0 && (
+          {showMatchOddsSection && soccerOver25List.length > 0 && (
             <SoccerOver25 openBetSlip={openBetSlip} matchOddsList={soccerOver25List} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
           )}
           <div>
             {/* Bookmaker Section */}
-            {BookmakerList.length > 0 && (
+            {showBookmakerSection && BookmakerList.length > 0 && (
               <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Soccer Game"/>
             )}
             {/* Fancybet & sportsbook Section */}
-            {(fancy1Data.length > 0 || oddevenData.length > 0) && (
+            {showFancySection && (fancy1Data.length > 0 || oddevenData.length > 0) && (
               <div className='px-4 pt-4'>
                 <div className='bg-black h-12  pl-4 flex  items-center rounded-t-2xl'>
                   {fancy1Data.length > 0 && (

@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 import subAdmin from './subAdminModel.js';
+import { MATCH_SECTIONS } from '../constants/matchSectionConstants.js';
 
-//This Model stores only the  deactivated matches
-//if a match is not in this collection,it means it is active
+// Match visibility: whole-match off and/or per-section disable (match odds, bookmaker, fancy, premium)
 const deactivateMatchSchema = new mongoose.Schema(
   {
     matchId: {
@@ -18,6 +18,17 @@ const deactivateMatchSchema = new mongoose.Schema(
     },
     matchName: {
       type: String,
+    },
+    /** true = entire match hidden; legacy rows without this field are treated as fully disabled */
+    matchDisabled: {
+      type: Boolean,
+      default: true,
+    },
+    /** Sections hidden on user UI when match is active (matchDisabled=false) */
+    disabledSections: {
+      type: [String],
+      enum: MATCH_SECTIONS,
+      default: [],
     },
     deactivateBy: {
       type: mongoose.Schema.Types.ObjectId,

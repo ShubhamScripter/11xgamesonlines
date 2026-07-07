@@ -2,36 +2,33 @@ import express from 'express';
 
 import {
   checkMatchStatus,
+  getAdminMatchSectionSettings,
   getDeactivatedMatches,
   getInactiveMatches,
+  getPublicMatchSectionSettings,
   toggleMatchStatus,
+  updateMatchSections,
   updateMatchStatus,
 } from '../../controllers/admin/matchSettingsController.js';
 import { adminAuthMiddleware } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-//Toggle Match active/deactive
 router.patch(
   '/match-settings/:matchId/toggle-active',
   adminAuthMiddleware,
   toggleMatchStatus
 );
 
-// Inactive matches list (admin UI)
 router.get('/inactivematches', adminAuthMiddleware, getInactiveMatches);
-
-// Activate / suspend match (admin UI)
 router.patch('/matches/:matchId/status', adminAuthMiddleware, updateMatchStatus);
+router.patch('/matches/:matchId/sections', adminAuthMiddleware, updateMatchSections);
+router.get('/admin/match-section-settings', adminAuthMiddleware, getAdminMatchSectionSettings);
 
-//Get all deactivated matches
 router.get('/match-settings/deactivated', adminAuthMiddleware, getDeactivatedMatches);
+router.get('/match-settings/:matchId/status', adminAuthMiddleware, checkMatchStatus);
 
-//Check single match status
-router.get(
-  '/match-settings/:matchId/status',
-  adminAuthMiddleware,
-  checkMatchStatus
-);
+/** Public — user frontend reads section visibility */
+router.get('/public/match-section-settings/:matchId', getPublicMatchSectionSettings);
 
 export default router;

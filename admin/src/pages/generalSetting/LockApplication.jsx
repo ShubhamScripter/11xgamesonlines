@@ -18,6 +18,17 @@ const BET_TYPES = [
   { id: 'betfair_fancy', label: 'Premium Fancy' },
 ];
 
+const MATCH_SECTIONS = [
+  { id: 'match_odds', label: 'Match Odds' },
+  { id: 'bookmaker', label: 'Bookmaker' },
+  { id: 'fancy', label: 'Fancy' },
+  { id: 'premium', label: 'Premium' },
+];
+
+const DEFAULT_SECTIONS = Object.fromEntries(
+  MATCH_SECTIONS.map((s) => [s.id, true])
+);
+
 function toDateInputValue(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -66,10 +77,13 @@ function LockApplication() {
   const user = useSelector((state) => state.auth.user);
   const allowedRoles = ['superadmin', 'admin', 'subadmin', 'seniorSuper'];
   const canManage = allowedRoles.includes(user?.role);
+  const canManageSections = user?.role === 'superadmin';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [sectionSettingsMap, setSectionSettingsMap] = useState({});
+  const [sectionActionKey, setSectionActionKey] = useState(null);
 
   const [sports, setSports] = useState({});
   const [betTypes, setBetTypes] = useState({});
@@ -92,6 +106,18 @@ function LockApplication() {
     () => matches.filter((m) => m.locked === true).length,
     [matches]
   );
+
+  const loadSectionSettings = useCallback(async (sport) => {
+    try {
+      const { data } = await axiosInstance.get('/admin/match-section-settings', {
+        params: sport ? { sport } : undefined,
+      });
+      setSectionSettingsMap(data?.data || {});
+    } catch (err) {
+      console.error('Failed to load match section settings:', err);
+      setSectionSettingsMap({});
+    }
+  }, []);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -137,6 +163,55 @@ function LockApplication() {
     if (canManage) loadEvents();
   }, [canManage, loadEvents]);
 
+  useEffect(() => {
+    if (canManage) loadSectionSettings(activeEventSport);
+  }, [canManage, activeEventSport, loadSectionSettings]);
+
+  const getMatchSections = useCallback(
+    (matchId) => {
+      const settings = sectionSettingsMap[String(matchId)];
+      if (!settings || settings.matchDisabled) {
+        return { ...DEFAULT_SECTIONS };
+      }
+      return { ...DEFAULT_SECTIONS, ...(settings.sections || {}) };
+    },
+    [sectionSettingsMap]
+  );
+
+  const handleSectionToggle = useCallback(
+    async (match, sectionId, lockSection) => {
+      if (!canManageSections || !match?.matchId) return;
+
+      const actionKey = `${match.matchId}-${sectionId}`;
+      const settings = sectionSettingsMap[String(match.matchId)] || {};
+      const currentDisabled = Array.isArray(settings.disabledSections)
+        ? [...settings.disabledSections]
+        : [];
+
+      const nextDisabled = lockSection
+        ? [...new Set([...currentDisabled, sectionId])]
+        : currentDisabled.filter((s) => s !== sectionId);
+
+      try {
+        setSectionActionKey(actionKey);
+        await axiosInstance.patch(`/matches/${match.matchId}/sections`, {
+          sport: activeEventSport,
+          matchName: match.matchName || '',
+          disabledSections: nextDisabled,
+        });
+        await loadSectionSettings(activeEventSport);
+        const label =
+          MATCH_SECTIONS.find((s) => s.id === sectionId)?.label || sectionId;
+        toast.success(lockSection ? `${label} hidden on user site` : `${label} visible on user site`);
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Failed to update section');
+      } finally {
+        setSectionActionKey(null);
+      }
+    },
+    [activeEventSport, canManageSections, loadSectionSettings, sectionSettingsMap]
+  );
+
   const isLeagueLocked = (sport, leagueName) =>
     leagues.some(
       (l) =>
@@ -173,10 +248,11 @@ function LockApplication() {
     });
   };
 
-  const toggleMatchLock = (match, locked) => {
+  const toggleMatchLock = async (match, locked) => {
     const { matchId, matchName, leagueName, date } = match;
-    setMatches((prev) => {
-      const rest = prev.filter(
+    const previousMatches = matches;
+    const newMatches = (() => {
+      const rest = matches.filter(
         (m) =>
           !(
             m.sport === activeEventSport &&
@@ -197,7 +273,30 @@ function LockApplication() {
         ];
       }
       return rest;
-    });
+    })();
+
+    setMatches(newMatches);
+
+    try {
+      setActionMatchId(matchId);
+      await axiosInstance.put('/bet-application-lock', {
+        sports,
+        betTypes,
+        marketTypes,
+        leagues,
+        matches: newMatches,
+      });
+      toast.success(
+        locked
+          ? 'Match locked — hidden from user site'
+          : 'Match unlocked — visible on user site'
+      );
+    } catch (err) {
+      setMatches(previousMatches);
+      toast.error(err?.response?.data?.message || 'Failed to lock match');
+    } finally {
+      setActionMatchId(null);
+    }
   };
 
   const groupedEvents = useMemo(() => {
@@ -258,7 +357,9 @@ function LockApplication() {
           </h2>
           <p className="text-sm text-gray-600 mt-1 max-w-3xl">
             Enable locks to block users from placing bets. Locks apply at sport,
-            bet type, market, league, and match level.
+            bet type, market, league, and match level. Per-match section toggles
+            (Match Odds, Bookmaker, Fancy, Premium) hide that section on the user
+            site and apply immediately.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -440,32 +541,84 @@ function LockApplication() {
                                 activeEventSport,
                                 match.matchId
                               );
+                              const sections = getMatchSections(match.matchId);
+                              const matchFullyDisabled =
+                                locked ||
+                                Boolean(
+                                  sectionSettingsMap[String(match.matchId)]?.matchDisabled
+                                );
+
                               return (
                                 <div
                                   key={match.matchId}
-                                  className={`flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs ${
-                                    locked ? 'bg-[#fff5f5]' : 'bg-white'
+                                  className={`px-3 py-2 text-xs ${
+                                    locked || matchFullyDisabled ? 'bg-[#fff5f5]' : 'bg-white'
                                   }`}
                                 >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-semibold text-[#243a48] truncate">
-                                      {match.matchName || '—'}
-                                    </p>
-                                    <p className="text-gray-500 mt-0.5">
-                                      ID: {match.matchId}
-                                      {match.date
-                                        ? ` · ${formatIST(match.date)}`
-                                        : ''}
-                                      {match.inplay ? ' · In Play' : ''}
-                                    </p>
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-semibold text-[#243a48] truncate">
+                                        {match.matchName || '—'}
+                                      </p>
+                                      <p className="text-gray-500 mt-0.5">
+                                        ID: {match.matchId}
+                                        {match.date
+                                          ? ` · ${formatIST(match.date)}`
+                                          : ''}
+                                        {match.inplay ? ' · In Play' : ''}
+                                        {matchFullyDisabled ? ' · Match hidden' : ''}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <LockChip locked={locked} />
+                                      <ToggleSwitch
+                                        checked={locked}
+                                        onChange={(v) => toggleMatchLock(match, v)}
+                                        label={`Lock match ${match.matchId}`}
+                                      />
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <LockChip locked={locked} />
-                                    <ToggleSwitch
-                                      checked={locked}
-                                      onChange={(v) => toggleMatchLock(match, v)}
-                                      label={`Lock match ${match.matchId}`}
-                                    />
+
+                                  <div className="mt-2 pt-2 border-t border-[#f1f5f9] flex flex-wrap items-center gap-x-4 gap-y-2">
+                                    <span className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wide w-full sm:w-auto">
+                                      Sections
+                                    </span>
+                                    {MATCH_SECTIONS.map((section) => {
+                                      const sectionEnabled = sections[section.id] !== false;
+                                      const sectionLocked = !sectionEnabled;
+                                      const actionKey = `${match.matchId}-${section.id}`;
+                                      const isUpdating = sectionActionKey === actionKey;
+
+                                      return (
+                                        <label
+                                          key={section.id}
+                                          className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 ${
+                                            sectionLocked
+                                              ? 'border-[#fecaca] bg-[#fff5f5]'
+                                              : 'border-[#d1d5db] bg-[#fafafa]'
+                                          }`}
+                                        >
+                                          <span className="text-[10px] font-semibold text-[#243a48] whitespace-nowrap">
+                                            {section.label}
+                                          </span>
+                                          <ToggleSwitch
+                                            checked={sectionLocked}
+                                            disabled={
+                                              !canManageSections ||
+                                              isUpdating ||
+                                              matchFullyDisabled
+                                            }
+                                            onChange={(v) =>
+                                              handleSectionToggle(match, section.id, v)
+                                            }
+                                            label={`${section.label} for match ${match.matchId}`}
+                                          />
+                                          <span className="text-[10px] text-gray-500 min-w-[28px]">
+                                            {isUpdating ? '…' : sectionLocked ? 'Off' : 'On'}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
@@ -484,7 +637,7 @@ function LockApplication() {
 
       <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#243a48] border-t border-[#1a2d38] px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
         <p className="text-white text-xs sm:text-sm">
-          Red toggle = betting blocked for users. Click Save to apply.
+          Red toggle = blocked for users. Match lock applies instantly. Other locks need Save.
         </p>
         <button
           type="button"

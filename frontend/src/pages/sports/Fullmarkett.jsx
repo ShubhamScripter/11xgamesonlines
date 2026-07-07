@@ -744,6 +744,7 @@ import {
   SPORTS_MEDIA_TYPE,
 } from '../../utils/sportsMediaUrls';
 import api from '../../utils/axiosConfig';
+import useMatchSectionSettings from '../../hooks/useMatchSectionSettings';
 import { getMarketMaxLimit, getMarketMinLimit } from '../../utils/marketLimits';
 import {
   isProviderDFancyMarket,
@@ -762,6 +763,11 @@ function Fullmarkett() {
   const dispatch = useDispatch();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
+  const {
+    loading: sectionSettingsLoading,
+    matchDisabled,
+    sections: matchSections,
+  } = useMatchSectionSettings(gameid, 'cricket');
   const key = DEFAULT_BULKAPI_KEY;
   const mediaUrls = getSportsMediaUrls({
     sport: SPORTS_MEDIA_TYPE.CRICKET,
@@ -1507,29 +1513,35 @@ const sportsbookData = Array.isArray(dataSource)
     Array.isArray(premiumFancyData) && premiumFancyData.length > 0;
   const hasSportsbookData =
     Array.isArray(sportsbookData) && sportsbookData.length > 0;
+  const showMatchOddsSection = matchSections.match_odds !== false;
+  const showBookmakerSection = matchSections.bookmaker !== false;
+  const showFancySection = matchSections.fancy !== false;
+  const showPremiumSection = matchSections.premium !== false;
+  const hasFancyDataVisible = hasFancyData && showFancySection;
+  const hasPremiumDataVisible = hasPremiumData && showPremiumSection;
   const showFancyPremiumSection =
-    hasFancyData || hasPremiumData || hasSportsbookData;
+    hasFancyDataVisible || hasPremiumDataVisible || hasSportsbookData;
 
   let content;
   useEffect(() => {
-    if (selected === "Fancybet" && !hasFancyData) {
-      if (hasPremiumData) setSelected("Premium");
+    if (selected === "Fancybet" && !hasFancyDataVisible) {
+      if (hasPremiumDataVisible) setSelected("Premium");
       else if (hasSportsbookData) setSelected("Sportbook");
-    } else if (selected === "Premium" && !hasPremiumData) {
-      if (hasFancyData) setSelected("Fancybet");
+    } else if (selected === "Premium" && !hasPremiumDataVisible) {
+      if (hasFancyDataVisible) setSelected("Fancybet");
       else if (hasSportsbookData) setSelected("Sportbook");
     } else if (selected === "Sportbook" && !hasSportsbookData) {
-      if (hasFancyData) setSelected("Fancybet");
-      else if (hasPremiumData) setSelected("Premium");
+      if (hasFancyDataVisible) setSelected("Fancybet");
+      else if (hasPremiumDataVisible) setSelected("Premium");
     }
   }, [
-    hasFancyData,
-    hasPremiumData,
+    hasFancyDataVisible,
+    hasPremiumDataVisible,
     hasSportsbookData,
     selected,
   ]);
 
-  if (selected === "Fancybet" && hasFancyData) {
+  if (selected === "Fancybet" && hasFancyDataVisible) {
     content = (
       <Fancybet
         openBetSlip={openBetSlip}
@@ -1540,7 +1552,7 @@ const sportsbookData = Array.isArray(dataSource)
         gameName="Cricket Game"
       />
     );
-  } else if (selected === "Premium" && hasPremiumData) {
+  } else if (selected === "Premium" && hasPremiumDataVisible) {
     content = (
       <PremiumFancy
         openBetSlip={openBetSlip}
@@ -1573,6 +1585,21 @@ const sportsbookData = Array.isArray(dataSource)
       premiumFancyData.length > 0 ||
       sportsbookData.length > 0);
   const oddsLoading = loader && !hasMarketData;
+
+  if (!sectionSettingsLoading && matchDisabled) {
+    return (
+      <div className="p-6 text-center text-white bg-[#1e1e1e] min-h-[40vh] flex flex-col items-center justify-center">
+        <p className="text-lg font-semibold">This match is currently unavailable.</p>
+        <button
+          type="button"
+          className="mt-4 px-4 py-2 bg-[#17934e] rounded"
+          onClick={() => navigate('/cricket')}
+        >
+          Back to Cricket
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -1630,19 +1657,19 @@ const sportsbookData = Array.isArray(dataSource)
             </div>
         <div>
           {/* Match Odds Section */}
-            {matchOddsList.length > 0 ? (
+            {showMatchOddsSection && matchOddsList.length > 0 ? (
               <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
-            ) : oddsLoading ? (
+            ) : oddsLoading && showMatchOddsSection ? (
               <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
                 Loading match odds...
               </div>
             ) : null}
             <div className='pb-5'>
               {/* Bookmaker Section */}
-              {BookmakerList.length > 0 && (
+              {showBookmakerSection && BookmakerList.length > 0 && (
                 <Bookmakers openBetSlip={openBetSlip} BookmakerList={BookmakerList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
               )}
-              {oddsLoading && !hasFancyData && !hasPremiumData && !hasSportsbookData && (
+              {oddsLoading && !hasFancyDataVisible && !hasPremiumDataVisible && !hasSportsbookData && (showMatchOddsSection || showBookmakerSection) && (
                 <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
                   Loading fancy markets...
                 </div>
@@ -1650,7 +1677,7 @@ const sportsbookData = Array.isArray(dataSource)
               {showFancyPremiumSection && (
               <div className="pb-2">
                 <div className="bg-[#222424] p-2 flex items-center gap-2">
-                  {hasFancyData && (
+                  {hasFancyDataVisible && (
                   <div
                     className={`rounded-sm p-1 text-white cursor-pointer ${
                       selected === "Fancybet" ? "bg-[#17934e]" : "bg-transparent"
@@ -1663,7 +1690,7 @@ const sportsbookData = Array.isArray(dataSource)
                     Fancybet
                   </div>
                   )}
-                  {hasPremiumData && (
+                  {hasPremiumDataVisible && (
                   <div
                     className={`rounded-sm p-1 text-white cursor-pointer ${
                       selected === "Premium" ? "bg-[#d4a017]" : "bg-transparent"
