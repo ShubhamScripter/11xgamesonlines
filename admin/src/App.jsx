@@ -96,6 +96,7 @@ import BlockMarket from './pages/blockMarket/BlockMarket';
 import Transactionslog from './pages/banking/Transactionslog';
 
 import GeneralSetting from './pages/generalSetting/GeneralSetting';
+import BonusSettings from './pages/generalSetting/BonusSettings';
 import CustomerSupport from './pages/customerSupport/CustomerSupport';
 import SearchUser from './pages/generalSetting/SearchUser';
 import BetLockeduser from './pages/generalSetting/BetLockeduser';
@@ -175,6 +176,7 @@ function App() {
             <Route path='/block-market' element={<BlockMarket />} />
             <Route path='/customer-support' element={<CustomerSupport />} />
             <Route path='/general-setting' element={<GeneralSetting />} />
+            <Route path='/bonus-settings/:section' element={<BonusSettings />} />
             <Route path='/gift-coupons' element={<GiftCoupons />} />
             <Route path='/affiliate' element={<AffiliateDashboard />} />
             <Route path='/agent-dashboard' element={<AgentDashboard />} />

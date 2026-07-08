@@ -44,6 +44,13 @@ const fancyBetSettlementService =
   await import('../services/fancyBetSettlementService.js');
 import { incrementWageredAmount } from '../utils/wagering.js';
 import { creditAgentCommissionOnUserLoss } from '../utils/affiliateCommission.js';
+import { creditUserReferralOnLoss } from '../utils/userReferralCommission.js';
+
+function creditLossCommissions(userId, lossAmount, opts = {}) {
+  if (!(Number(lossAmount) < 0)) return;
+  creditAgentCommissionOnUserLoss(userId, lossAmount, opts).catch(() => {});
+  creditUserReferralOnLoss(userId, lossAmount, opts).catch(() => {});
+}
 import {
   calculateAllExposure,
   calculateFancyExposure,
@@ -2220,11 +2227,7 @@ export const updateResultOfBets = async (req, res) => {
               },
             });
             const pl = settlementResult.userUpdates.profitLossChange;
-            if (pl < 0) {
-              creditAgentCommissionOnUserLoss(bet.userId, pl, {
-                betId: bet._id,
-              }).catch(() => {});
-            }
+            creditLossCommissions(bet.userId, pl, { betId: bet._id });
           }
 
           // UPDATE BETHISTORY: Settle/void each individual bet history record
@@ -2818,11 +2821,9 @@ export const updateResultOfCasinoBets = async (req, res) => {
               bettingProfitLoss: profitLossChange,
             },
           });
-          if (profitLossChange < 0) {
-            creditAgentCommissionOnUserLoss(userId, profitLossChange, {}).catch(
-              () => {}
-            );
-          }
+          creditLossCommissions(userId, profitLossChange, {
+            source: 'casino_settlement',
+          });
 
           // Send WebSocket updates with fresh values
           const freshUser = await SubAdmin.findById(userId);
@@ -3332,11 +3333,7 @@ export const updateFancyBetResult = async (req, res) => {
                   bettingProfitLoss: bplChange,
                 },
               });
-              if (bplChange < 0) {
-                creditAgentCommissionOnUserLoss(bet.userId, bplChange, {
-                  betId: bet._id,
-                }).catch(() => {});
-              }
+              creditLossCommissions(bet.userId, bplChange, { betId: bet._id });
             }
 
             totalBetsProcessed++;

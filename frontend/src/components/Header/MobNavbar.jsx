@@ -3,7 +3,7 @@ import { IoClose } from "react-icons/io5";
 import {
   RiExchangeDollarFill, RiWhatsappFill, RiWallet3Fill, RiFileList3Fill, RiHandCoinFill,
   RiHistoryFill, RiBarChart2Fill, RiEyeLine, RiUser3Fill, RiTeamFill,
-  RiListCheck3, RiSettings3Fill, RiLogoutBoxRFill, RiBankCardFill, RiCalendarCheckFill, RiGiftFill
+  RiListCheck3, RiSettings3Fill, RiLogoutBoxRFill, RiBankCardFill, RiCalendarCheckFill, RiGiftFill, RiShareForwardFill
 } from 'react-icons/ri';
 import { HiOutlineChevronRight } from "react-icons/hi";
 import { useNavigate } from 'react-router-dom';
@@ -90,6 +90,7 @@ function MobNavbar({ closeMenu }) {
     { label: "My Profile", icon: <RiUser3Fill />, path: "/user/profile" },
     { label: "Daily Attendance", icon: <RiCalendarCheckFill />, path: "/user/attendance" },
     { label: "Gift Coupon", icon: <RiGiftFill />, path: "/user/gift-coupon" },
+    { label: "My Referrals", icon: <RiShareForwardFill />, path: "/user/referral" },
     { label: "Self Deposit / Withdraw", icon: <RiBankCardFill />, path: "/user/manual-deposit" },
     { label: "Logout", icon: <RiLogoutBoxRFill />, action: "logout" }
   ];

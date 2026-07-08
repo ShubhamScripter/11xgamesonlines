@@ -33,6 +33,9 @@ export const getPublicAppSettings = async (req, res) => {
         firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
         affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
         affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
+        userReferralModuleEnabled: Boolean(doc.userReferralModuleEnabled),
+        userReferralCommissionPercent:
+          Number(doc.userReferralCommissionPercent) || 0,
       },
     });
   } catch (error) {
@@ -60,6 +63,9 @@ export const getAdminAppSettings = async (req, res) => {
         firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
         affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
         affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
+        userReferralModuleEnabled: Boolean(doc.userReferralModuleEnabled),
+        userReferralCommissionPercent:
+          Number(doc.userReferralCommissionPercent) || 0,
       },
     });
   } catch (error) {
@@ -92,6 +98,8 @@ export const updateAdminAppSettings = async (req, res) => {
       firstDepositWageringPercent,
       affiliateModuleEnabled,
       affiliateCommissionPercent,
+      userReferralModuleEnabled,
+      userReferralCommissionPercent,
     } = req.body;
 
     const doc = await getAppSettingsDoc();
@@ -225,6 +233,21 @@ export const updateAdminAppSettings = async (req, res) => {
       doc.affiliateCommissionPercent = pct;
     }
 
+    if (userReferralModuleEnabled !== undefined) {
+      doc.userReferralModuleEnabled = Boolean(userReferralModuleEnabled);
+    }
+
+    if (userReferralCommissionPercent !== undefined) {
+      const pct = Number(userReferralCommissionPercent);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'User referral commission must be between 0 and 100 percent',
+        });
+      }
+      doc.userReferralCommissionPercent = pct;
+    }
+
     await doc.save();
 
     return res.json({
@@ -242,6 +265,9 @@ export const updateAdminAppSettings = async (req, res) => {
         firstDepositWageringPercent: Number(doc.firstDepositWageringPercent) || 80,
         affiliateModuleEnabled: Boolean(doc.affiliateModuleEnabled),
         affiliateCommissionPercent: Number(doc.affiliateCommissionPercent) || 0,
+        userReferralModuleEnabled: Boolean(doc.userReferralModuleEnabled),
+        userReferralCommissionPercent:
+          Number(doc.userReferralCommissionPercent) || 0,
       },
     });
   } catch (error) {

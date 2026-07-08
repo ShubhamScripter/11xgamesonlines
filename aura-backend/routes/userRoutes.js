@@ -12,6 +12,7 @@ import {
   updateQuickStakes,
   updateTheme,
   user_logout,
+  getMyReferralStats,
 } from '../controllers/userController.js';
 import {
   getPublicAppSettings,
@@ -59,4 +60,5 @@ router.get('/user/attendance', authMiddleware, getAttendanceStatus);
 router.post('/user/attendance/claim', authMiddleware, claimAttendanceBonus);
 router.get('/user/wagering-status', authMiddleware, getUserWageringStatus);
 router.post('/user/coupon/claim', authMiddleware, claimCoupon);
+router.get('/user/referral', authMiddleware, getMyReferralStats);
 export default router;

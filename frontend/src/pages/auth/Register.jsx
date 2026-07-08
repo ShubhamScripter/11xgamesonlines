@@ -151,7 +151,7 @@ function Register() {
                 </div>
                 {referralCode && (
                   <div className="mb-4 rounded-lg border border-[#14805e]/50 bg-[#14805e]/10 px-4 py-3">
-                    <p className="text-sm text-[#14805e] font-semibold">Referred by agent</p>
+                    <p className="text-sm text-[#14805e] font-semibold">You were invited</p>
                     <p className="text-xs text-gray-400 mt-1">
                       Referral code: <span className="font-mono text-white">{referralCode}</span>
                     </p>

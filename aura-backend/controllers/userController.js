@@ -7,9 +7,12 @@ import betModel from '../models/betModel.js';
 import LoginHistory from '../models/loginHistory.js';
 import passwordHistory from '../models/passwordHistory.js';
 import SubAdmin from '../models/subAdminModel.js';
+import UserReferralCommission from '../models/userReferralCommissionModel.js';
 import { calculateAllExposure } from '../utils/exposureUtils.js';
 import { formatLoginDateTime } from '../utils/appTime.js';
 import { getWageringStatus } from '../utils/wagering.js';
+import { getUserReferralSettings } from '../utils/userReferralCommission.js';
+import { buildUserRegisterReferralLink } from '../utils/frontendUrl.js';
 
 export const registerUser = async (req, res) => {
   try {
@@ -78,7 +81,9 @@ export const registerSelf = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered.' });
     }
 
-    // Default parent: superadmin. Affiliate referral ?ref=AGENT_CODE attaches user to agent.
+    // Default parent: superadmin.
+    // ?ref=AGENT_CODE → hierarchy invite under agent/admin.
+    // ?ref=USER_CODE → peer referral (referredByUserId); invite stays agent's/admin tree.
     const defaultParentCode = '8CDAF764';
     const referralCode = String(ref || inviteCode || req.query?.ref || '')
       .trim()
@@ -86,17 +91,48 @@ export const registerSelf = async (req, res) => {
 
     let parentCode = defaultParentCode;
     let parent = null;
+    let referredByUserId = null;
 
     if (referralCode) {
-      const referrer = await SubAdmin.findOne({
+      const staffReferrer = await SubAdmin.findOne({
         code: referralCode,
         status: { $ne: 'delete' },
-        role: { $in: ['agent', 'superAgent', 'superadmin', 'admin', 'subadmin', 'seniorSuper'] },
+        role: {
+          $in: [
+            'agent',
+            'superAgent',
+            'superadmin',
+            'admin',
+            'subadmin',
+            'seniorSuper',
+          ],
+        },
       }).select('code role status userName');
 
-      if (referrer) {
-        parent = referrer;
-        parentCode = referrer.code;
+      if (staffReferrer) {
+        parent = staffReferrer;
+        parentCode = staffReferrer.code;
+      } else {
+        const peerReferrer = await SubAdmin.findOne({
+          code: referralCode,
+          role: 'user',
+          status: { $ne: 'delete' },
+        }).select('_id code invite role userName');
+
+        if (peerReferrer) {
+          referredByUserId = peerReferrer._id;
+          // Keep new user under the peer's hierarchy parent when available
+          if (peerReferrer.invite) {
+            const peerParent = await SubAdmin.findOne({
+              code: peerReferrer.invite,
+              status: { $ne: 'delete' },
+            }).select('code role');
+            if (peerParent) {
+              parent = peerParent;
+              parentCode = peerParent.code;
+            }
+          }
+        }
       }
     }
 
@@ -130,6 +166,7 @@ export const registerSelf = async (req, res) => {
       account: 'user',
       code,
       invite: parentCode,
+      referredByUserId: referredByUserId || undefined,
       password,
       role: 'user',
       currency: normalizedCurrency,
@@ -665,6 +702,88 @@ export const getUserWageringStatus = async (req, res) => {
     }
     return res.json({ success: true, data: getWageringStatus(user) });
   } catch (error) {
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
+/** Peer referral dashboard: link, referred users, commission earned */
+export const getMyReferralStats = async (req, res) => {
+  try {
+    const me = await SubAdmin.findById(req.id)
+      .select('role code userName referralCommissionBalance currency')
+      .lean();
+    if (!me || me.role !== 'user') {
+      return res.status(403).json({ message: 'Only users can view referrals.' });
+    }
+
+    const settings = await getUserReferralSettings();
+    const referred = await SubAdmin.find({
+      referredByUserId: me._id,
+      role: 'user',
+      status: { $ne: 'delete' },
+    })
+      .select('userName name createdAt status')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const commissionAgg = await UserReferralCommission.aggregate([
+      { $match: { referrerId: me._id } },
+      {
+        $group: {
+          _id: '$userId',
+          totalCommission: { $sum: '$commissionAmount' },
+          totalUserLoss: { $sum: '$userLossAmount' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    const byUserId = new Map(
+      commissionAgg.map((r) => [String(r._id), r])
+    );
+
+    const recent = await UserReferralCommission.find({ referrerId: me._id })
+      .sort({ createdAt: -1 })
+      .limit(30)
+      .populate('userId', 'userName')
+      .lean();
+
+    const referralLink = buildUserRegisterReferralLink(me.code, req);
+
+    return res.json({
+      success: true,
+      data: {
+        enabled: settings.enabled,
+        commissionPercent: settings.commissionPercent,
+        myCode: me.code,
+        referralLink,
+        currency: me.currency || 'BDT',
+        totalReferred: referred.length,
+        totalCommissionEarned: Number(me.referralCommissionBalance) || 0,
+        referredUsers: referred.map((u) => {
+          const stats = byUserId.get(String(u._id));
+          return {
+            _id: u._id,
+            userName: u.userName,
+            name: u.name,
+            status: u.status,
+            joinedAt: u.createdAt,
+            commissionEarned: Number(stats?.totalCommission) || 0,
+            theirLosses: Number(stats?.totalUserLoss) || 0,
+          };
+        }),
+        recentCommissions: recent.map((r) => ({
+          _id: r._id,
+          userName: r.userId?.userName || '—',
+          userLossAmount: r.userLossAmount,
+          commissionPercent: r.commissionPercent,
+          commissionAmount: r.commissionAmount,
+          source: r.source,
+          createdAt: r.createdAt,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('getMyReferralStats error:', error);
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 };

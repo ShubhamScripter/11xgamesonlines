@@ -84,6 +84,18 @@ const subAdminSchema = new mongoose.Schema(
     agentCommissionPercent: { type: Number, default: null, min: 0, max: 100 },
     /** Accumulated affiliate commission balance for agents */
     affiliateCommissionBalance: { type: Number, default: 0 },
+    /**
+     * Peer referral (user→user). Hierarchy `invite` stays the agent's/admin code.
+     * This points at the end-user who shared their register link.
+     */
+    referredByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubAdmin',
+      default: null,
+      index: true,
+    },
+    /** Lifetime referral commission earned by this user (display / tracking) */
+    referralCommissionBalance: { type: Number, default: 0, min: 0 },
     /** Last calendar day (Asia/Dhaka YYYY-MM-DD) user claimed attendance bonus */
     lastAttendanceDate: { type: String, default: '', trim: true },
     quickStakes: {

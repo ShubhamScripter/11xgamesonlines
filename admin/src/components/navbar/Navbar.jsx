@@ -94,6 +94,9 @@ const navData = [
     roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
     children: [
       { label: "General Settings", icon: "FaCogs", path: "/general-setting" },
+      { label: "First Deposit Bonus", icon: "FaGift", path: "/bonus-settings/first-deposit" },
+      { label: "Daily Attendance", icon: "FaCalendarCheck", path: "/bonus-settings/attendance" },
+      { label: "User Referral", icon: "FaShareAlt", path: "/bonus-settings/referral" },
       { label: "Gift Coupons", icon: "FaGift", path: "/gift-coupons" },
       { label: "Affiliate / Agents", icon: "FaUsers", path: "/affiliate" },
     ]

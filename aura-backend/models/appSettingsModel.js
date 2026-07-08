@@ -69,6 +69,17 @@ const appSettingsSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+    /** Peer user→user referral: commission on referred user's losses */
+    userReferralModuleEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    userReferralCommissionPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
   },
   { timestamps: true }
 );
