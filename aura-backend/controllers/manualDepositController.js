@@ -30,6 +30,7 @@ import {
   buildOwnerAdminAccountFilter,
   countDepositAccounts,
   pickRandomDepositAccount,
+  resolveDepositOwnerAdmin,
 } from '../utils/depositAccountDistribution.js';
 import {
   claimFirstDepositBonusFlag,
@@ -335,8 +336,7 @@ export const getManualDepositAccountsForUser = async (req, res) => {
     if (!user || user.role !== 'user') {
       return res.status(404).json({ message: 'User not found.' });
     }
-    const ownerAdmin =
-      user.invite ? await SubAdmin.findOne({ code: user.invite }).lean() : null;
+    const ownerAdmin = await resolveDepositOwnerAdmin(user);
     if (!ownerAdmin) {
       return res.status(400).json({ message: 'User upline admin not found.' });
     }
@@ -427,8 +427,7 @@ export const createManualDepositRequest = async (req, res) => {
     if (!user || user.role !== 'user') {
       return res.status(404).json({ message: 'User not found.' });
     }
-    const ownerAdmin =
-      user.invite ? await SubAdmin.findOne({ code: user.invite }) : null;
+    const ownerAdmin = await resolveDepositOwnerAdmin(user);
     if (!ownerAdmin) {
       return res.status(400).json({ message: 'User upline admin not found.' });
     }

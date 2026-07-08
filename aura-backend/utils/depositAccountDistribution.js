@@ -1,4 +1,44 @@
 import { VALID_DEPOSIT_METHODS } from '../constants/manualDepositConstants.js';
+import SubAdmin from '../models/subAdminModel.js';
+
+/** Roles that typically own platform deposit accounts (not agents). */
+const DEPOSIT_OWNER_ROLES = new Set([
+  'superadmin',
+  'admin',
+  'subadmin',
+  'seniorSuper',
+]);
+
+/**
+ * Resolve which admin's deposit accounts a user should see.
+ * Agent-referred users have invite = agent code; walk up to superadmin/admin.
+ */
+export async function resolveDepositOwnerAdmin(user) {
+  if (!user?.invite) return null;
+
+  let code = String(user.invite).trim().toUpperCase();
+  const visited = new Set();
+  let directParent = null;
+
+  for (let depth = 0; depth < 20 && code && !visited.has(code); depth++) {
+    visited.add(code);
+    const parent = await SubAdmin.findOne({
+      code,
+      status: { $ne: 'delete' },
+    }).lean();
+    if (!parent) break;
+
+    if (!directParent) directParent = parent;
+
+    if (DEPOSIT_OWNER_ROLES.has(parent.role)) {
+      return parent;
+    }
+
+    code = parent.invite ? String(parent.invite).trim().toUpperCase() : '';
+  }
+
+  return directParent;
+}
 
 /** Accounts owned by the user's upline admin. */
 export function buildOwnerAdminAccountFilter(ownerAdmin, extra = {}) {
