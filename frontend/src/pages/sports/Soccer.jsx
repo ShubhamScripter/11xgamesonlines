@@ -73,7 +73,7 @@ function Soccer() {
   }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchSoccerData({ withOdds: true, oddsScope: 'all' }));
+    dispatch(fetchSoccerData({ withOdds: true, oddsScope: 'eligible' }));
     prefetchBetfairTvList();
   }, [dispatch]);
 

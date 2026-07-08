@@ -56,9 +56,7 @@ function ManualDepositAccounts() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await axiosInstance.get('/admin/deposit-accounts', {
-        params: { _: Date.now() },
-      });
+      const res = await axiosInstance.get('/admin/deposit-accounts');
       setAccounts(Array.isArray(res?.data?.data) ? sortAccounts(res.data.data) : []);
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to load accounts');
@@ -67,12 +65,15 @@ function ManualDepositAccounts() {
 
   useEffect(() => {
     fetchAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Refresh when user opens the View tab (not on initial add-tab mount)
   useEffect(() => {
     if (activeMainTab === 'view') {
       fetchAccounts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMainTab]);
 
   useEffect(() => {

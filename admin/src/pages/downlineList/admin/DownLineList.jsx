@@ -92,7 +92,7 @@ function DownLineList() {
   };
   const closeModal = () => {
     setIsModalOpen(false);
-    if (user?.id) dispatch(fetchDownlineTree(fetchParams()));
+    if (user?.id) dispatch(fetchDownlineTree({ ...fetchParams(), force: true }));
   };
 
   const closeAgentModal = () => {
@@ -100,7 +100,8 @@ function DownLineList() {
     refetch();
   };
 
-  const refetch = () => user?.id && dispatch(fetchDownlineTree(fetchParams()));
+  const refetch = () =>
+    user?.id && dispatch(fetchDownlineTree({ ...fetchParams(), force: true }));
 
   if (user?.role === 'agent') {
     return <Navigate to="/agent-dashboard" replace />;

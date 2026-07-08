@@ -330,9 +330,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
-import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
 import { fetchSoccerBatingData } from '../../features/sports/soccerSlice';
-import { getUser } from '../../features/auth/authSlice';
 import { div } from 'motion/react-client';
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
@@ -431,33 +429,8 @@ function Fullmarket1() {
     teamName: "",
   });
 
-  // ✅ Fetch once before using socket (optional)
+  // ✅ Fetch once before using socket
   useEffect(() => {
-    if (gameid) {
-      setLoader(true);
-      dispatch(fetchSoccerBatingData(gameid)).finally(() => {
-        setLoader(false);
-      });
-    }
-  }, [dispatch, gameid]);
-
-  useEffect(() => {
-    if (!gameid) return;
-    wsClient.send({ type: "subscribe", gameid, apitype: "soccer" });
-
-    const unsubscribe = wsClient.subscribe((message) => {
-      if (
-        message?.type === "bettingData" &&
-        String(message.gameid) === String(gameid)
-      ) {
-        setBettingData(message.data);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [gameid]);
-
-    useEffect(() => {
     let cancelled = false;
 
     if (gameid) {
@@ -490,17 +463,26 @@ function Fullmarket1() {
   }, [dispatch, gameid]);
 
   useEffect(() => {
+    if (!gameid) return;
+    wsClient.send({ type: "subscribe", gameid, apitype: "soccer" });
+
+    const unsubscribe = wsClient.subscribe((message) => {
+      if (
+        message?.type === "bettingData" &&
+        String(message.gameid) === String(gameid)
+      ) {
+        setBettingData(message.data);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [gameid]);
+
+  useEffect(() => {
     setBettingData(battingData);
   }, [battingData]);
 
-  // ✅ Use socket data for all lists
-  useEffect(() => {
-    // Only fetch user data if user is logged in
-    const token = localStorage.getItem("token");
-    if (token) {
-      dispatch(getUser());
-    }
-  }, [dispatch]);
+  // Header already loads user; getUser has TTL — skip remount fetch here
 
   // Fetch scorecard data when ScoreBoard is selected and auto-refresh
   // useEffect(() => {
@@ -582,7 +564,7 @@ function Fullmarket1() {
         if (json?.success && iframeUrl) {
           setScorecardUrl(iframeUrl);
           setScorecardHtml(
-            `<!doctype html><html><head><meta charset="utf-8" /></head><body style="margin:0;padding:0;"><iframe src="${iframeUrl}" style="border:0;width:100%;height:50vh;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" allowfullscreen></iframe></body></html>`
+            `<!doctype html><html><head><meta charset="utf-8" /></head><body style="margin:0;padding:0;"><iframe src="${iframeUrl}" style="border:0;width:100%;height:50vh;" allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"></iframe></body></html>`
           );
         } else {
           throw new Error(json?.message || "Failed to fetch live score");
@@ -1103,10 +1085,10 @@ const oddevenData =
                 src={liveStreamUrl}
                 title='Watch Live'
                 className='h-full w-full'
-                allowFullScreen
                 scrolling="no"
                 loading='eager'
-                allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
+                allow='autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope'
+                allowFullScreen={false}
               />
               </div>
             ) : (

@@ -328,10 +328,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import BetCard from './BetCard';
 import { wsClient } from '../../utils/wsClient';
-import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
-import { fetchSoccerBatingData } from '../../features/sports/soccerSlice';
-import {fetchTannisBatingData} from '../../features/sports/tennisSlice'
-import { getUser } from '../../features/auth/authSlice';
+import { fetchTannisBatingData} from '../../features/sports/tennisSlice'
 import Spinner from '../../components/Spinner';
 import { toast } from 'react-hot-toast';
 import {
@@ -484,14 +481,7 @@ function Fullmarket2() {
     setBettingData(battingData);
   }, [battingData]);
 
-  // ✅ Use socket data for all lists
-  useEffect(() => {
-    // Only fetch user data if user is logged in
-    const token = localStorage.getItem("token");
-    if (token) {
-      dispatch(getUser());
-    }
-  }, [dispatch]);
+  // Header already loads user; skip remount getUser (place-bet still refreshes)
 
   // Fetch scorecard data when ScoreBoard is selected and auto-refresh
   // useEffect(() => {
@@ -508,6 +498,7 @@ function Fullmarket2() {
   //       }
   //       let htmlContent = await response.text();
         
+
   //       // Check if the response is JSON-encoded (starts with quotes)
   //       if (htmlContent.startsWith('"') && htmlContent.endsWith('"')) {
   //         try {
@@ -1000,10 +991,10 @@ function Fullmarket2() {
                 src={liveStreamUrl}
                 title='Watch Live'
                 className='h-full w-full'
-                allowFullScreen
                 scrolling="no"
                 loading='eager'
-                allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
+                allow='autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope'
+                allowFullScreen={false}
               />
               </div>
             ) : (
@@ -1023,7 +1014,8 @@ function Fullmarket2() {
                 className="w-full h-[26vh]"
                 scrolling="no"
                 loading="lazy"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+                allow="autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
+                allowFullScreen={false}
               />
             </div>
           )}

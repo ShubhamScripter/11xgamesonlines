@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -7,8 +7,13 @@ const ProtectedRoute = () => {
   const token = useSelector(state => state.auth.token);
   const dispatch = useDispatch();
 
+  useEffect(() => {
+    if (!token) {
+      dispatch(logout());
+    }
+  }, [token, dispatch]);
+
   if (!token) {
-    dispatch(logout()); // Clear any invalid session
     return <Navigate to="/admin/login" replace />;
   }
 

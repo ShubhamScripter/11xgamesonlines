@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
 
 import axiosInstance from '../../utils/axiosInstance';
 import { formatIST } from '../../utils/time';
 import { resolveUploadUrl } from '../../utils/uploadUrl';
 import ImagePreviewLink from '../../components/ImagePreviewLink';
+import {
+  invalidateAdminBadges,
+  setDepositPending,
+  setWithdrawPending,
+} from '../../store/adminBadgesSlice';
 
 const formatKey = (key) =>
   String(key || '')
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (s) => s.toUpperCase());
 
+const LIST_POLL_MS = 45_000;
+
 function ManualDepositRequests({ requestType = 'deposit' }) {
+  const dispatch = useDispatch();
   const [requests, setRequests] = useState([]);
   const [status, setStatus] = useState('pending');
   const [loading, setLoading] = useState(false);
@@ -21,8 +30,18 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
   const statusOptions = ['pending', 'approved', 'rejected'];
   const isWithdrawPage = requestType === 'withdraw';
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  const syncBadgeFromList = (list) => {
+    if (status !== 'pending') return;
+    const count = Array.isArray(list) ? list.length : 0;
+    if (requestType === 'withdraw') {
+      dispatch(setWithdrawPending(count));
+    } else {
+      dispatch(setDepositPending(count));
+    }
+  };
+
+  const fetchRequests = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await axiosInstance.get('/admin/deposit-requests', {
         params: {
@@ -30,40 +49,43 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
           requestType,
         },
       });
-      setRequests(Array.isArray(res?.data?.data) ? res.data.data : []);
+      const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+      setRequests(list);
+      syncBadgeFromList(list);
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to load requests');
+      if (!silent) {
+        toast.error(error?.response?.data?.message || 'Failed to load requests');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRequests();
-  }, [status, requestType]);
-
-  useEffect(() => {
     let mounted = true;
 
-    const safeFetch = async () => {
+    const load = async (silent = false) => {
       if (!mounted) return;
-      await fetchRequests();
+      if (typeof document !== 'undefined' && document.hidden && silent) return;
+      await fetchRequests({ silent });
     };
 
-    const id = setInterval(safeFetch, 15000);
-    window.addEventListener('focus', safeFetch);
+    load(false);
+    const id = setInterval(() => load(true), LIST_POLL_MS);
+    const onFocus = () => load(true);
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') safeFetch();
+      if (document.visibilityState === 'visible') load(true);
     };
+    window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
       mounted = false;
       clearInterval(id);
-      window.removeEventListener('focus', safeFetch);
+      window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-    // keep it in sync with current filters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, requestType]);
 
   const reviewRequest = async (requestId, action, adminRemarkOverride) => {
@@ -79,6 +101,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
               : 'Rejected by admin',
       });
       toast.success(`Request ${action}d`);
+      dispatch(invalidateAdminBadges());
       await fetchRequests();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Review failed');

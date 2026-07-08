@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { GiHamburgerMenu } from "react-icons/gi";
-import { BiRefresh } from "react-icons/bi";
-import { motion } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { getUser, setLiveBalance } from "../../features/auth/authSlice";
-import Header from "./Header";
 import Logo from "../../assets/bajiLogo.png";
-
-// import Logonew from '../../assets/newdiamondlogo.png'
 import { wsClient } from "../../utils/wsClient";
 import { useLocation, useNavigate } from "react-router-dom";
-import { RiBankCardFill, RiWallet3Fill } from "react-icons/ri";
-import { HiOutlineChevronRight } from "react-icons/hi";
 import { GoPlus } from "react-icons/go";
 import { TfiReload } from "react-icons/tfi";
 import { currencySymbol } from "../../utils/currency";
+import { motion } from "framer-motion";
 
 function HeaderLogin({
   setSidebarOpen = () => {},
@@ -28,67 +22,55 @@ function HeaderLogin({
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const socketRef = useRef(null);
+  const balanceSyncTimer = useRef(null);
+  const refreshNeededTimer = useRef(null);
   const currentUserId = user?._id || user?.id || null;
-  // 🔁 Refresh handler
-  const handleRefresh = async () => {
-    
+
+  const handleRefresh = useCallback(async (force = true) => {
     setRefreshing(true);
     try {
-      await dispatch(getUser());
+      await dispatch(getUser({ force }));
     } catch (error) {
       console.error("Failed to refresh user data:", error);
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [dispatch]);
 
+  // Mount once — TTL in getUser prevents StrictMode double-hit from issuing 2 network calls
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (token) {
-      handleRefresh();
+      dispatch(getUser());
     }
-  }, []);
+  }, [dispatch]);
 
+  // WebSocket: trust live balance; only re-fetch on explicit refresh_needed (debounced)
   useEffect(() => {
-    if (location.pathname === "/" && user) {
-      handleRefresh();
-    }
-  }, [location.pathname]);
-
-  // 🔗 Setup WebSocket connection (shared singleton)
-  useEffect(() => {
-    // if (!user) return;
-
-    // Register listener and keep socket alive
     const unsubscribe = wsClient.subscribe((data) => {
-      console.log('[WS][HeaderLogin] message received', data);
       if (data?.type === "balance_update") {
         if (data?.userId && currentUserId && String(data.userId) !== String(currentUserId)) {
           return;
         }
-        console.log("balance update received in header login", data);
         if (typeof data?.newBalance !== "undefined") {
           dispatch(setLiveBalance(data.newBalance));
         }
-        // Keep UI instant via WS; sync from API shortly after.
-        setTimeout(() => {
-          handleRefresh();
-        }, 400);
+        // Optional light sync for exposure — debounced, uses cache if recent
+        if (balanceSyncTimer.current) clearTimeout(balanceSyncTimer.current);
+        balanceSyncTimer.current = setTimeout(() => {
+          dispatch(getUser());
+        }, 2500);
       } else if (data?.type === "user_refresh_needed") {
-        // Backend asks the client to re-fetch user details (balance/exposure/open bets)
         if (data?.userId && currentUserId && String(data.userId) !== String(currentUserId)) {
           return;
         }
-        // Avoid hammering API: small debounce
-        console.log('[WS][HeaderLogin] user_refresh_needed received. Triggering refresh...');
-        setTimeout(() => {
-          handleRefresh();
-        }, 250);
+        if (refreshNeededTimer.current) clearTimeout(refreshNeededTimer.current);
+        refreshNeededTimer.current = setTimeout(() => {
+          dispatch(getUser({ force: true }));
+        }, 400);
       }
     });
 
-    // Prefer registering by userId for backend targeting when available
     if (currentUserId) {
       wsClient.send({ type: "register", userId: currentUserId });
     }
@@ -101,9 +83,11 @@ function HeaderLogin({
       } catch {
         // ignore
       }
+      if (balanceSyncTimer.current) clearTimeout(balanceSyncTimer.current);
+      if (refreshNeededTimer.current) clearTimeout(refreshNeededTimer.current);
       socketRef.current = null;
     };
-  }, [currentUserId]);
+  }, [currentUserId, dispatch]);
 
   useEffect(() => {
     setShowActions(false);
@@ -117,7 +101,7 @@ function HeaderLogin({
   const handleClick = () => {
     navigate('/');
     closeMenu();
-  }
+  };
 
   return (
       <>
@@ -144,8 +128,9 @@ function HeaderLogin({
                     </span>
                     )
                   </span>
-                    <TfiReload className="text-white text-md cursor-pointer md:mr-3"
-                        onClick={handleRefresh}
+                    <TfiReload
+                      className={`text-white text-md cursor-pointer md:mr-3 ${refreshing ? 'animate-spin' : ''}`}
+                      onClick={() => handleRefresh(true)}
                     />
                   <button
                     type="button"
@@ -180,9 +165,6 @@ function HeaderLogin({
                 <div className="bg-[#14805e] rounded-sm flex justify-center items-center px-5 text-gray-200" onClick={()=>navigate('/register')}>Sign up</div>
               </div>
             )}
-
-
-
         </div>
         {showActions ? (
           <>
@@ -222,7 +204,6 @@ function HeaderLogin({
             </motion.div>
           </>
         ) : null}
-
       </>
   );
 }

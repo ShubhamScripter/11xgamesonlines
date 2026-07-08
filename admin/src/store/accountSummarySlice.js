@@ -1,111 +1,63 @@
-// import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-// import axios from '../utils/axiosInstance';
-
-// export const fetchAccountSummary = createAsyncThunk(
-//   'accountSummary/fetchAccountSummary',
-//   async (userId, { rejectWithValue }) => {
-//     try {
-//       const { data } = await axios.get(`/users/account-summary/${userId}`);
-//       return data.user;
-//     } catch (err) {
-//       return rejectWithValue(err.response?.data?.error || 'Failed to fetch account summary');
-//     }
-//   }
-// );
-
-// const accountSummarySlice = createSlice({
-//   name: 'accountSummary',
-//   initialState: {
-//     summary: null,
-//     loading: false,
-//     error: null,
-//   },
-//   reducers: {},
-//   extraReducers: builder => {
-//     builder
-//       .addCase(fetchAccountSummary.pending, state => {
-//         state.loading = true;
-//         state.error = null;
-//       })
-//       .addCase(fetchAccountSummary.fulfilled, (state, action) => {
-//         state.summary = action.payload;
-//         state.loading = false;
-//       })
-//       .addCase(fetchAccountSummary.rejected, (state, action) => {
-//         state.loading = false;
-//         state.error = action.payload;
-//       });
-//   }
-// });
-
-// export default accountSummarySlice.reducer;
-
-// import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-// import axios from '../utils/axiosInstance';
-
-// // POST request with userId in the body
-// export const fetchAccountSummary = createAsyncThunk(
-//   'accountSummary/fetchAccountSummary',
-//   async (userId, { rejectWithValue }) => {
-//     try {
-//       // Post body is { userId: ... }
-//       const { data } = await axios.post(
-//         '/users/account-summary',   // or your actual route
-//         { userId }
-//       );
-//       // The API returns { success, message, data: {...} }
-//       return data.data;
-//     } catch (err) {
-//       return rejectWithValue(
-//         err.response?.data?.error || 'Failed to fetch account summary'
-//       );
-//     }
-//   }
-// );
-
-// const accountSummarySlice = createSlice({
-//   name: 'accountSummary',
-//   initialState: {
-//     summary: null,
-//     loading: false,
-//     error: null,
-//   },
-//   reducers: {},
-//   extraReducers: builder => {
-//     builder
-//       .addCase(fetchAccountSummary.pending, state => {
-//         state.loading = true;
-//         state.error = null;
-//       })
-//       .addCase(fetchAccountSummary.fulfilled, (state, action) => {
-//         state.summary = action.payload; // full `data` object
-//         state.loading = false;
-//       })
-//       .addCase(fetchAccountSummary.rejected, (state, action) => {
-//         state.loading = false;
-//         state.error = action.payload;
-//       });
-//   },
-// });
-
-// export default accountSummarySlice.reducer;
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../utils/axiosInstance';
 
-// Fetch full profile data including balance
+const CACHE_MS = 25_000;
+const inflightByUserId = new Map();
+
+/**
+ * Lightweight header/banking balance fetch with in-flight dedupe + short TTL.
+ * Use force: true after transfers / manual refresh.
+ */
 export const fetchAccountSummary = createAsyncThunk(
   'accountSummary/fetchAccountSummary',
-  async (userId, { rejectWithValue }) => {
-    try {
-      const { data } = await axios.post('/sub-admin/profile-data', { userId });
-      if (data.success) {
-        return data.data; // full profile object
+  async (arg, { getState, rejectWithValue }) => {
+    const userId = typeof arg === 'object' && arg !== null ? arg.userId : arg;
+    const force = typeof arg === 'object' && arg !== null ? Boolean(arg.force) : false;
+
+    if (!userId) {
+      return rejectWithValue('User ID is required');
+    }
+
+    const state = getState().accountSummary;
+    if (
+      !force &&
+      state.summary &&
+      state.userId === userId &&
+      state.fetchedAt &&
+      Date.now() - state.fetchedAt < CACHE_MS
+    ) {
+      return { userId, summary: state.summary, fromCache: true };
+    }
+
+    if (!force && inflightByUserId.has(userId)) {
+      try {
+        const summary = await inflightByUserId.get(userId);
+        return { userId, summary, fromCache: false };
+      } catch (err) {
+        return rejectWithValue(
+          err?.response?.data?.error || err?.message || 'Failed to fetch profile'
+        );
       }
-      return rejectWithValue(data.message || 'Failed to fetch profile');
+    }
+
+    const request = axios
+      .post('/sub-admin/profile-light', { userId })
+      .then(({ data }) => {
+        if (data.success) return data.data;
+        throw new Error(data.message || 'Failed to fetch profile');
+      })
+      .finally(() => {
+        inflightByUserId.delete(userId);
+      });
+
+    inflightByUserId.set(userId, request);
+
+    try {
+      const summary = await request;
+      return { userId, summary, fromCache: false };
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.error || 'Failed to fetch profile'
+        err.response?.data?.error || err.message || 'Failed to fetch profile'
       );
     }
   }
@@ -114,20 +66,33 @@ export const fetchAccountSummary = createAsyncThunk(
 const accountSummarySlice = createSlice({
   name: 'accountSummary',
   initialState: {
-    summary: null,   // full profile data
+    userId: null,
+    summary: null,
+    fetchedAt: null,
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    invalidateAccountSummary: (state) => {
+      state.fetchedAt = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchAccountSummary.pending, (state) => {
-        state.loading = true;
+      .addCase(fetchAccountSummary.pending, (state, action) => {
+        const arg = action.meta.arg;
+        const userId = typeof arg === 'object' && arg !== null ? arg.userId : arg;
+        if (state.userId !== userId || !state.summary) {
+          state.loading = true;
+        }
         state.error = null;
       })
       .addCase(fetchAccountSummary.fulfilled, (state, action) => {
-        state.summary = action.payload;
         state.loading = false;
+        if (action.payload.fromCache) return;
+        state.userId = action.payload.userId;
+        state.summary = action.payload.summary;
+        state.fetchedAt = Date.now();
       })
       .addCase(fetchAccountSummary.rejected, (state, action) => {
         state.loading = false;
@@ -136,4 +101,5 @@ const accountSummarySlice = createSlice({
   },
 });
 
+export const { invalidateAccountSummary } = accountSummarySlice.actions;
 export default accountSummarySlice.reducer;

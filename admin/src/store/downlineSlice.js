@@ -168,15 +168,22 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../utils/axiosInstance';
 
 const DEFAULT_PAGE_SIZE = 8;
+const CACHE_MS = 15_000;
+const inflightByKey = new Map();
 
-// --- Async thunk --- (string userId = page 1; or { userId, page, limit, searchQuery })
+function downlineCacheKey(userId, page, limit, searchQuery) {
+  return `${userId}|${page}|${limit}|${searchQuery || ''}`;
+}
+
+// --- Async thunk --- (string userId = page 1; or { userId, page, limit, searchQuery, force })
 export const fetchDownlineTree = createAsyncThunk(
   'downline/fetchDownlineTree',
-  async (arg, { rejectWithValue }) => {
+  async (arg, { getState, rejectWithValue }) => {
     let userId;
     let page = 1;
     let limit = DEFAULT_PAGE_SIZE;
     let searchQuery = '';
+    let force = false;
     if (typeof arg === 'string') {
       userId = arg;
     } else if (arg && typeof arg === 'object') {
@@ -184,16 +191,47 @@ export const fetchDownlineTree = createAsyncThunk(
       page = arg.page ?? 1;
       limit = arg.limit ?? DEFAULT_PAGE_SIZE;
       searchQuery = arg.searchQuery ?? '';
+      force = Boolean(arg.force);
     } else {
       return rejectWithValue('Invalid arguments');
     }
-    try {
+
+    const key = downlineCacheKey(userId, page, limit, searchQuery);
+    const state = getState().downline;
+    if (
+      !force &&
+      state.cacheKey === key &&
+      state._lastPayload &&
+      state.fetchedAt &&
+      Date.now() - state.fetchedAt < CACHE_MS
+    ) {
+      return { ...state._lastPayload, fromCache: true };
+    }
+
+    if (!force && inflightByKey.has(key)) {
+      try {
+        const data = await inflightByKey.get(key);
+        return data;
+      } catch (err) {
+        return rejectWithValue(err?.message || 'Failed to fetch downline tree');
+      }
+    }
+
+    const request = (async () => {
       const q = encodeURIComponent(searchQuery || '');
       const { data } = await axios.post(
         `/get/all-user?page=${page}&limit=${limit}&searchQuery=${q}`,
         { id: userId }
       );
-      return data;
+      return { ...data, _cacheKey: key, fromCache: false };
+    })().finally(() => {
+      inflightByKey.delete(key);
+    });
+
+    inflightByKey.set(key, request);
+
+    try {
+      return await request;
     } catch (err) {
       return rejectWithValue(err.response?.data?.error || 'Failed to fetch downline tree');
     }
@@ -215,6 +253,9 @@ const downlineSlice = createSlice({
     pageSize: DEFAULT_PAGE_SIZE,
     totalUserDownlineBalance: 0,
     totalUserDownlineExposure: 0,
+    cacheKey: null,
+    fetchedAt: null,
+    _lastPayload: null,
   },
   reducers: {},
   extraReducers: builder => {
@@ -224,6 +265,11 @@ const downlineSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchDownlineTree.fulfilled, (state, action) => {
+  if (action.payload?.fromCache) {
+    state.loading = false;
+    return;
+  }
+
   const {
     data: downlineArray = [],
     selfData = {},
@@ -233,8 +279,12 @@ const downlineSlice = createSlice({
     totalUsers = 0,
     totalPages = 1,
     currentPage = 1,
+    _cacheKey = null,
   } = action.payload;
 
+  state._lastPayload = action.payload;
+  state.cacheKey = _cacheKey;
+  state.fetchedAt = Date.now();
   state.currentUser = selfData;
   state.ipWarnings = ipWarnings;
   state.totalUsers = totalUsers;

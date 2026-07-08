@@ -12,9 +12,13 @@ function MainBalanceCard() {
   const [currency, setcurrency] = useState('BDT')
   const usdtToBdtRate = useUsdtToBdtRate();
 
+  // Header already hydrates user; only force-refresh if we have no cached user
   useEffect(() => {
-    dispatch(getUser());
-  }, [dispatch]);
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      dispatch(getUser());
+    }
+  }, [dispatch, user]);
 
   useEffect(() => {
     if (user) {

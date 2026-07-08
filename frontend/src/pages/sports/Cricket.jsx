@@ -73,7 +73,8 @@ function Cricket() {
   }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchCricketData({ withOdds: true, oddsScope: 'all' }));
+    // Use same oddsScope as MainLayout prefetch so home cache is reused
+    dispatch(fetchCricketData({ withOdds: true, oddsScope: 'eligible' }));
     prefetchBetfairTvList();
   }, [dispatch]);
 

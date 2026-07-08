@@ -74,7 +74,7 @@ function Tennis() {
   }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchTennisData({ withOdds: true, oddsScope: 'all' }));
+    dispatch(fetchTennisData({ withOdds: true, oddsScope: 'eligible' }));
   }, [dispatch]);
 
   const sportMeta = SPORT_LIST_META.tennis;

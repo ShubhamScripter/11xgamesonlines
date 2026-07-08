@@ -197,6 +197,10 @@ export const changePassword = createAsyncThunk(
 );
 
 
+const GET_USER_CACHE_MS = 8_000;
+let getUserInflight = null;
+let getUserFetchedAt = 0;
+
 // Logout — clear httpOnly session cookie on server, then wipe client storage
 export const logout = createAsyncThunk("auth/logout", async () => {
   try {
@@ -206,18 +210,55 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   }
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  getUserFetchedAt = 0;
+  getUserInflight = null;
 });
 
 
+/**
+ * Fetch session user. Supports { force: true }.
+ * Short TTL + in-flight dedupe so Header / Fullmarket / BalanceCard
+ * don't hammer /get/user-details on the same tick.
+ */
 export const getUser = createAsyncThunk(
   "user/get-user",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await api.get("/get/user-details", {
-        withCredentials: true,
+  async (arg, { getState, rejectWithValue }) => {
+    const force = typeof arg === "object" && arg !== null ? Boolean(arg.force) : false;
+    const state = getState().auth;
+
+    if (
+      !force &&
+      state.user &&
+      getUserFetchedAt &&
+      Date.now() - getUserFetchedAt < GET_USER_CACHE_MS
+    ) {
+      return { data: state.user, fromCache: true };
+    }
+
+    if (!force && getUserInflight) {
+      try {
+        return await getUserInflight;
+      } catch (error) {
+        return rejectWithValue(
+          error?.response?.data || { message: "Something went wrong" }
+        );
+      }
+    }
+
+    const request = api
+      .get("/get/user-details", { withCredentials: true })
+      .then((response) => {
+        getUserFetchedAt = Date.now();
+        return { ...response.data, fromCache: false };
+      })
+      .finally(() => {
+        getUserInflight = null;
       });
-      const data = response.data;
-      return data;
+
+    getUserInflight = request;
+
+    try {
+      return await request;
     } catch (error) {
       return rejectWithValue(
         error.response?.data || { message: "Something went wrong" }
@@ -334,10 +375,9 @@ const authSlice = createSlice({
       })
       .addCase(getUser.fulfilled, (state, action) => {
         state.loading = false;
+        if (action.payload?.fromCache) return;
         state.userInfo = action.payload.data;
-        // ✅ Also update the user field that header components read from
         state.user = action.payload.data;
-        // ✅ Update localStorage with fresh data
         localStorage.setItem("user", JSON.stringify(action.payload.data));
       })
       .addCase(getUser.rejected, (state, action) => {

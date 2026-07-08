@@ -485,39 +485,6 @@ function BettingHistory() {
     }
   }, [role, selectedType]);
 
-  // Function to fetch casino data from API
-  const fetchCasinoData = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        `/casino/all-bet-history?id=${userId}&page=1&limit=100`
-      );
-
-      if (response.data.success && response.data.data.length > 0) {
-        // Transform casino data to match table format
-        const transformedData = response.data.data.map((bet) => ({
-          betId: bet.game_round || bet._id?.toString() || "-",
-          plId: bet.userName || "-",
-          date: formatIST(bet.provider_timestamp || bet.createdAt),
-          market: "Casino",
-          match: bet.game_uid || "Unknown Game",
-          stake: bet.bet_amount || 0,
-          profitLoss: bet.change || 0,
-          expanded: false
-        }));
-
-        setbettingData(transformedData);
-      } else {
-        setbettingData([]);
-      }
-    } catch (error) {
-      console.error('Error fetching casino data:', error);
-      setbettingData(casinodata);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fetch bet history from API without changing UI (dates optional, omitted)
   useEffect(() => {
     if (userId) {
@@ -525,7 +492,7 @@ function BettingHistory() {
     }
   }, [userId, dispatch]);
 
-  // Fetch casino history and show it together with sports history.
+  // Fetch casino history once; Casino tab reuses cached data
   useEffect(() => {
     if (!userId) return;
 
@@ -544,13 +511,25 @@ function BettingHistory() {
     fetchCasinoBetHistory();
   }, [userId]);
 
-  // Fetch casino data when Casino tab is selected
+  // When Casino tab is selected, map already-fetched casinoBetHistoryData into table
   useEffect(() => {
-    if (selectedType === "Casino" && userId) {
-      fetchCasinoData();
+    if (selectedType !== "Casino") return;
+    if (!casinoBetHistoryData?.length) {
+      setbettingData([]);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedType]);
+    const transformedData = casinoBetHistoryData.map((bet) => ({
+      betId: bet.game_round || bet._id?.toString() || "-",
+      plId: bet.userName || "-",
+      date: formatIST(bet.provider_timestamp || bet.createdAt),
+      market: "Casino",
+      match: bet.game_uid || "Unknown Game",
+      stake: bet.bet_amount || 0,
+      profitLoss: bet.change || 0,
+      expanded: false
+    }));
+    setbettingData(transformedData);
+  }, [selectedType, casinoBetHistoryData]);
 
   // Map API data to the table's expected shape; fallback to static sets per tab
   useEffect(() => {

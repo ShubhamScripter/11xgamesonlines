@@ -268,12 +268,7 @@ function BetList() {
       );
     };
 
-    useEffect(() => {
-      fetchData();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Auto-fetch when filters change
+    // Fetch on mount and whenever filters change (single effect avoids double call)
     useEffect(() => {
       fetchData();
       // eslint-disable-next-line react-hooks/exhaustive-deps

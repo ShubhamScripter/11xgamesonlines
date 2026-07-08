@@ -7,6 +7,7 @@ import {
   getManualDepositAccountsForAdmin,
   getManualDepositAccountsForUser,
   getManualDepositRequestsForAdmin,
+  getManualDepositPendingCounts,
   getMyManualDepositRequests,
   getFirstDepositBonusInfo,
   reviewManualDepositRequest,
@@ -59,6 +60,11 @@ router.get(
   '/admin/deposit-requests',
   adminAuthMiddleware,
   getManualDepositRequestsForAdmin
+);
+router.get(
+  '/admin/deposit-pending-counts',
+  adminAuthMiddleware,
+  getManualDepositPendingCounts
 );
 router.patch(
   '/admin/deposit-requests/:requestId/review',

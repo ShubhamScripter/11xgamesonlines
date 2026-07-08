@@ -804,7 +804,7 @@ function Fullmarkett() {
   const [liveStreamUrl, setLiveStreamUrl] = useState("");
   const [scorecardUrl, setScorecardUrl] = useState("");
   const [scorecardAllow, setScorecardAllow] = useState(
-    "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+    "autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
   );
   const { loading, successMessage, errorMessage } = useSelector(
     (state) => state.bet
@@ -924,14 +924,7 @@ function Fullmarkett() {
     }
   }, [battingData, battingGameId, cachedPremiumFancy, cachedProviderCGameId, gameid]);
 
-  // ✅ Use socket data for all lists
-  useEffect(() => {
-    // Only fetch user data if user is logged in
-    const token = localStorage.getItem("token");
-    if (token) {
-      dispatch(getUser());
-    }
-  }, [dispatch]);
+  // Header already loads user; skip remount getUser (place-bet still refreshes)
 
   const setValue = (xValue, team, otype, fancyScore) => {
     setBetOdds(xValue);
@@ -967,7 +960,7 @@ function Fullmarkett() {
     // Only fetch user data if user is logged in
     const token = localStorage.getItem("token");
     if (token) {
-      await dispatch(getUser()); // Then fetch updated user data
+      await dispatch(getUser({ force: true })); // Then fetch updated user data
       dispatch(getPendingBetAmo(gameid));
     }
     setSelectedRun(null, null); // Reset selected run after placing bet
@@ -994,7 +987,7 @@ function Fullmarkett() {
       // Only fetch user data if user is logged in
       const token = localStorage.getItem("token");
       if (token) {
-        await dispatch(getUser()); // Then fetch updated user data
+        await dispatch(getUser({ force: true })); // Then fetch updated user data
         dispatch(getPendingBetAmo(gameid));
       }
     } catch (error) {
@@ -1333,7 +1326,13 @@ const sportsbookData = Array.isArray(dataSource)
     if (json?.success && iframeUrl) {
       setScorecardUrl(iframeUrl);
       if (json?.iframe?.allow) {
-        setScorecardAllow(json.iframe.allow);
+        // Block fullscreen even if provider response includes it
+        setScorecardAllow(
+          String(json.iframe.allow)
+            .replace(/fullscreen\s*;?/gi, "")
+            .replace(/;\s*;/g, ";")
+            .trim()
+        );
       }
       setScorecardHtml(null);
     } else {
@@ -1345,7 +1344,7 @@ const sportsbookData = Array.isArray(dataSource)
       setScorecardHtml(null);
       setScorecardUrl("");
       setScorecardAllow(
-        "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+        "autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
       );
     }
   } finally {
@@ -1362,7 +1361,7 @@ const sportsbookData = Array.isArray(dataSource)
       setScorecardHtml(null);
       setScorecardUrl("");
       setScorecardAllow(
-        "autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope"
+        "autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope"
       );
     }
 
@@ -1625,10 +1624,10 @@ const sportsbookData = Array.isArray(dataSource)
                     src={liveStreamUrl}
                     title='Watch Live'
                     className='h-full w-full'
-                    allowFullScreen
                     scrolling="no"
                     loading='eager'
-                    allow='autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope'
+                    allow='autoplay; encrypted-media; picture-in-picture; accelerometer; gyroscope'
+                    allowFullScreen={false}
                   />
                   </div>
                 ) : (
@@ -1649,7 +1648,7 @@ const sportsbookData = Array.isArray(dataSource)
                   style={{ height: "300px" }}
                   scrolling="no"
                   loading="lazy"
-                  allowFullScreen
+                  allowFullScreen={false}
                   allow={scorecardAllow}
                 />
               </div>

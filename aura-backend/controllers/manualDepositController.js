@@ -791,6 +791,68 @@ export const getManualDepositRequestsForAdmin = async (req, res) => {
   }
 };
 
+/** Lightweight badge counts — avoids fetching full deposit/withdraw lists for navbar. */
+export const getManualDepositPendingCounts = async (req, res) => {
+  try {
+    const baseFilter = {
+      ownerAdminId: req.id,
+      method: { $in: VALID_DEPOSIT_METHODS },
+      status: 'pending',
+    };
+
+    let depositPending = await ManualDepositRequest.countDocuments({
+      ...baseFilter,
+      requestType: 'deposit',
+    });
+    let withdrawPending = await ManualDepositRequest.countDocuments({
+      ...baseFilter,
+      requestType: 'withdraw',
+    });
+
+    try {
+      const admin = await SubAdmin.findById(req.id).select('code').lean();
+      if (admin?.code) {
+        const downlineUsers = await SubAdmin.find({
+          invite: admin.code,
+          role: 'user',
+        })
+          .select('_id')
+          .lean();
+        const ids = downlineUsers.map((u) => u._id);
+        if (ids.length) {
+          const legacyBase = {
+            ownerAdminId: null,
+            userId: { $in: ids },
+            method: { $in: VALID_DEPOSIT_METHODS },
+            status: 'pending',
+          };
+          const [legacyDeposit, legacyWithdraw] = await Promise.all([
+            ManualDepositRequest.countDocuments({
+              ...legacyBase,
+              requestType: 'deposit',
+            }),
+            ManualDepositRequest.countDocuments({
+              ...legacyBase,
+              requestType: 'withdraw',
+            }),
+          ]);
+          depositPending += legacyDeposit;
+          withdrawPending += legacyWithdraw;
+        }
+      }
+    } catch {
+      // ignore legacy count failures
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { depositPending, withdrawPending },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 export const reviewManualDepositRequest = async (req, res) => {
   try {
     const { requestId } = req.params;

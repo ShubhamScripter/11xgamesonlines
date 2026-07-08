@@ -81,12 +81,13 @@ const authSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(fetchAccountSummary.fulfilled, (state, action) => {
-        if (!state.user) return;
-        const payload = action.payload;
-        const fin = payload?.financialInfo;
+        if (!state.user || action.payload?.fromCache) return;
+        const profile = action.payload?.summary || action.payload;
+        const fin = profile?.financialInfo;
         if (!fin) return;
         const sessionId = state.user._id || state.user.id;
-        const payloadUserId = payload?.basicInfo?.id;
+        const payloadUserId =
+          action.payload?.userId || profile?.basicInfo?.id;
         if (payloadUserId && sessionId && String(payloadUserId) !== String(sessionId)) {
           return;
         }

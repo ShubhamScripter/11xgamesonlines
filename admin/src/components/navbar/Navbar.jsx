@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import * as Icons from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutAsync } from "../../store/authSlice";
-import axiosInstance from "../../utils/axiosInstance";
+import { fetchAdminBadges } from "../../store/adminBadgesSlice";
 
 const ADMIN_ROLES = new Set(["superadmin", "admin", "subadmin", "seniorSuper"]);
-const AGENT_ROLES = new Set(["agent", "superAgent"]);
+
+const BADGE_REFRESH_MS = 60_000;
 
 const navData = [
   {
@@ -120,7 +121,7 @@ function filterNavByRole(items, role) {
 }
 
 const SidebarItem = ({ item, badges, depth = 0 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
   const Icon = Icons[item.icon] || Icons.FaQuestionCircle;
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -181,56 +182,35 @@ const SidebarItem = ({ item, badges, depth = 0 }) => {
 const Navbar = () => {
   const user = useSelector((state) => state.auth.user);
   const role = user?.role || "";
-  const [badges, setBadges] = useState({ depositPending: 0, withdrawPending: 0, deviceAlerts: 0 });
+  const badges = useSelector((state) => state.adminBadges);
+  const dispatch = useDispatch();
 
   const visibleNav = useMemo(() => filterNavByRole(navData, role), [role]);
 
   useEffect(() => {
     if (!ADMIN_ROLES.has(role)) return;
-    let mounted = true;
 
-    const fetchBadges = async () => {
-      try {
-        const [depositRes, withdrawRes, deviceRes] = await Promise.all([
-          axiosInstance.get("/admin/deposit-requests", {
-            params: { status: "pending", requestType: "deposit" },
-          }),
-          axiosInstance.get("/admin/deposit-requests", {
-            params: { status: "pending", requestType: "withdraw" },
-          }),
-          axiosInstance.get("/fraud-clusters").catch(() => null),
-        ]);
-
-        const depositList = Array.isArray(depositRes?.data?.data) ? depositRes.data.data : [];
-        const withdrawList = Array.isArray(withdrawRes?.data?.data) ? withdrawRes.data.data : [];
-        const deviceCount = Number(deviceRes?.data?.stats?.flaggedClusters || 0);
-        if (mounted) {
-          setBadges((prev) => ({
-            ...prev,
-            depositPending: depositList.length,
-            withdrawPending: withdrawList.length,
-            deviceAlerts: deviceCount,
-          }));
-        }
-      } catch {
-        // keep last value if API fails
-      }
+    const refresh = (force = false) => {
+      if (typeof document !== "undefined" && document.hidden && !force) return;
+      dispatch(fetchAdminBadges({ force }));
     };
 
-    fetchBadges();
-    const id = setInterval(fetchBadges, 15000);
-    window.addEventListener("focus", fetchBadges);
+    refresh(false);
+    const id = setInterval(() => refresh(false), BADGE_REFRESH_MS);
+
+    const onFocus = () => refresh(false);
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") fetchBadges();
+      if (document.visibilityState === "visible") refresh(false);
     };
+    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
-      mounted = false;
       clearInterval(id);
-      window.removeEventListener("focus", fetchBadges);
+      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [role]);
+  }, [role, dispatch]);
 
   return (
     <div className="w-64 bg-black text-white shadow-lg h-[calc(100vh-80px)] overflow-y-auto hide-scrollbar">

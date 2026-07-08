@@ -6,6 +6,7 @@ import activityLogReducer from './activityLogSlice';
 import transactionsReducer from './transactionsSlice';
 import subadminReducer from './subadminSlice';
 import myAccountReducer from './myAccountSlice';
+import adminBadgesReducer from './adminBadgesSlice';
 import { setLogoutHandler } from '../utils/axiosInstance';
 
 const store = configureStore({
@@ -17,6 +18,7 @@ const store = configureStore({
     transactions: transactionsReducer,
     subadmin: subadminReducer,
     myAccount: myAccountReducer,
+    adminBadges: adminBadgesReducer,
   },
 });
 

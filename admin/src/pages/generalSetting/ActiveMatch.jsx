@@ -16,30 +16,52 @@ const DEFAULT_SECTIONS = Object.fromEntries(
   MATCH_SECTIONS.map((s) => [s.id, true])
 );
 
+/** Session cache so switching sports doesn't re-hit all match APIs */
+const sportsMatchCache = {
+  cricket: null,
+  soccer: null,
+  tennis: null,
+  all: null,
+};
+let sectionSettingsCached = null;
+
 function ActiveMatch() {
   const user = useSelector((state) => state.auth.user);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSport, setSelectedSport] = useState("all");
+  const [selectedSport, setSelectedSport] = useState("cricket");
   const [matchData, setMatchData] = useState([]);
   const [sectionSettingsMap, setSectionSettingsMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [actionMatchId, setActionMatchId] = useState(null);
   const [sectionActionKey, setSectionActionKey] = useState(null);
 
-  const fetchSectionSettings = useCallback(async (sport) => {
+  const fetchSectionSettings = useCallback(async (sport, { force = false } = {}) => {
+    if (!force && sectionSettingsCached) {
+      setSectionSettingsMap(sectionSettingsCached);
+      return sectionSettingsCached;
+    }
     try {
       const response = await axiosInstance.get("/admin/match-section-settings", {
         params: sport && sport !== "all" ? { sport } : undefined,
       });
-      setSectionSettingsMap(response.data?.data || {});
+      const data = response.data?.data || {};
+      sectionSettingsCached = data;
+      setSectionSettingsMap(data);
+      return data;
     } catch (error) {
       console.error("Error fetching match section settings:", error);
       setSectionSettingsMap({});
+      return {};
     }
   }, []);
 
-  const fetchSportData = useCallback(async (sport) => {
+  const fetchSportData = useCallback(async (sport, { force = false } = {}) => {
     try {
+      if (!force && sportsMatchCache[sport]) {
+        setMatchData(sportsMatchCache[sport]);
+        await fetchSectionSettings(sport);
+        return;
+      }
       setLoading(true);
       let endpoint = "";
 
@@ -95,6 +117,7 @@ function ActiveMatch() {
         }));
       }
 
+      sportsMatchCache[sport] = transformedData;
       setMatchData(transformedData);
     } catch (error) {
       console.error(`Error fetching ${sport} data:`, error);
@@ -104,8 +127,13 @@ function ActiveMatch() {
     }
   }, [fetchSectionSettings]);
 
-  const fetchAllSportsData = useCallback(async () => {
+  const fetchAllSportsData = useCallback(async ({ force = false } = {}) => {
     try {
+      if (!force && sportsMatchCache.all) {
+        setMatchData(sportsMatchCache.all);
+        await fetchSectionSettings("all");
+        return;
+      }
       setLoading(true);
       const [cricketRes, soccerRes, tennisRes] = await Promise.all([
         axiosInstance.get("/cricket/matches").catch(() => ({ data: { matches: [] } })),
@@ -155,6 +183,10 @@ function ActiveMatch() {
         });
       }
 
+      sportsMatchCache.cricket = transformedData.filter((m) => m.sport === "cricket");
+      sportsMatchCache.soccer = transformedData.filter((m) => m.sport === "soccer");
+      sportsMatchCache.tennis = transformedData.filter((m) => m.sport === "tennis");
+      sportsMatchCache.all = transformedData;
       setMatchData(transformedData);
     } catch (error) {
       console.error("Error fetching all sports data:", error);
@@ -202,9 +234,9 @@ function ActiveMatch() {
         });
 
         if (selectedSport === "all") {
-          await fetchAllSportsData();
+          await fetchAllSportsData({ force: true });
         } else {
-          await fetchSportData(selectedSport);
+          await fetchSportData(selectedSport, { force: true });
         }
 
         toast.success("Match deactivated.");
@@ -241,7 +273,7 @@ function ActiveMatch() {
           disabledSections: nextDisabled,
         });
 
-        await fetchSectionSettings(selectedSport);
+        await fetchSectionSettings(selectedSport, { force: true });
         toast.success(
           currentlyEnabled
             ? `${MATCH_SECTIONS.find((s) => s.id === sectionId)?.label || sectionId} disabled`

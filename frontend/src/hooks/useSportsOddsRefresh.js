@@ -1,29 +1,49 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { fetchSportWithOdds } from '../utils/prefetchSportsListings';
 
-const POLL_MS = 30_000;
+const POLL_MS = 60_000;
 
-/** Load & refresh matches + odds together (single API call per sport). */
+/**
+ * Soft refresh of list odds. Prefer socket for live updates;
+ * only force-bypass cache every few ticks to avoid REST storms.
+ */
 export function useSportsOddsRefresh(
   sports = [],
   oddsScope = 'eligible',
   { skipInitial = false } = {}
 ) {
   const dispatch = useDispatch();
+  const tickRef = useRef(0);
   const key = `${sports.join(',')}:${oddsScope}:${skipInitial ? 1 : 0}`;
 
   useEffect(() => {
     if (!sports.length) return undefined;
+    tickRef.current = 0;
 
     const refresh = (force = false) => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       sports.forEach((sport) => {
         fetchSportWithOdds(dispatch, sport, oddsScope, force);
       });
     };
 
-    if (!skipInitial) refresh();
-    const poll = setInterval(() => refresh(true), POLL_MS);
-    return () => clearInterval(poll);
+    if (!skipInitial) refresh(false);
+
+    const poll = setInterval(() => {
+      tickRef.current += 1;
+      // Force every 3rd tick (~3 min) so stale cache eventually clears
+      refresh(tickRef.current % 3 === 0);
+    }, POLL_MS);
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh(false);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [dispatch, key, oddsScope, skipInitial]);
 }

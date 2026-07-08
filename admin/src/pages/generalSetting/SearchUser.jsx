@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import ChangePassword from "./changePassword";
 import ChangeStatusPopup from "./ChangeStatusPopup";
 import { IoSearchSharp } from "react-icons/io5";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { fetchDownlineTree } from "../../store/downlineSlice";
 import { fetchAccountSummary } from "../../store/accountSummarySlice";
 import { useSelector, useDispatch } from "react-redux";
 import { displayUserCurrency } from "../../utils/userCurrency";
@@ -33,16 +32,9 @@ function SearchUser() {
 
   const refreshBalances = () => {
     if (user?.id) {
-      dispatch(fetchDownlineTree(user.id));
-      dispatch(fetchAccountSummary(user.id)); // refresh own summary too
+      dispatch(fetchAccountSummary({ userId: user.id, force: true }));
     }
   };
-  useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchDownlineTree(user.id));
-      dispatch(fetchAccountSummary(user.id)); // refresh own summary too
-    }
-  }, [user?.id, dispatch]);
   const handleSearch = async () => {
     setError("");
     setLoading(true);

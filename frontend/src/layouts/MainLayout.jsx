@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import HeaderLogin from '../components/Header/HeaderLogin';
 import Navbar from '../components/Header/Navbar';
-import MobNavbar from '../components/Header/MobNavbar';
 import Footer from '../components/Footer/Footer';
 import SiteFooter from '../components/Footer/SiteFooter';
 import ScrollToTop from '../components/ScrollToTop';
@@ -45,17 +44,8 @@ function MainLayout() {
     return [];
   }, [location.pathname]);
 
-  const oddsScope = useMemo(() => {
-    const path = (location.pathname || '').toLowerCase();
-    if (
-      path.startsWith('/cricket') ||
-      path.startsWith('/football') ||
-      path.startsWith('/tennis')
-    ) {
-      return 'all';
-    }
-    return 'eligible';
-  }, [location.pathname]);
+  // Keep one oddsScope everywhere so home prefetch cache is reused on sport pages
+  const oddsScope = 'eligible';
 
   useSportsOddsRefresh(pollSports, oddsScope, {
     skipInitial: isHomePath(location.pathname),

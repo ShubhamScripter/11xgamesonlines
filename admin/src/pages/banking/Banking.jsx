@@ -153,7 +153,6 @@ function Banking() {
   const user = useSelector((state) => state.auth.user);
   const { summary } = useSelector((state) => state.accountSummary);
   const { downlines } = useSelector((state) => state.downline);
-  console.log("summary", summary);
   const dispatch = useDispatch();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -163,7 +162,7 @@ function Banking() {
 
   useEffect(() => {
     if (user?.id) {
-      dispatch(fetchAccountSummary(user.id));
+      // Header already polls balance; only load downline tree here
       dispatch(fetchDownlineTree(user.id));
     }
   }, [user?.id, dispatch]);
@@ -198,7 +197,7 @@ function Banking() {
   const refreshBalances = () => {
     if (user?.id) {
       dispatch(fetchDownlineTree(user.id));
-      dispatch(fetchAccountSummary(user.id)); // refresh own summary too
+      dispatch(fetchAccountSummary({ userId: user.id, force: true }));
     }
   };
 
