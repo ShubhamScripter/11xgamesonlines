@@ -1067,9 +1067,20 @@ function Fullmarkett() {
           status: market.status,
         }))
     : [];
+  const isBookmakerItem = (item) => {
+    const label = String(
+      item?.name || item?.mname || item?.marketName || ''
+    ).toLowerCase();
+    const mtype = String(item?.mtype || '').toUpperCase();
+    return (
+      (label.includes('bookmaker') && !label.includes('mini')) ||
+      mtype === 'BOOKMAKER'
+    );
+  };
+
   const BookmakerList = Array.isArray(dataSource)
     ? dataSource
-        .filter((item) => item?.name === "BOOKMAKER" || item?.mname === "Bookmaker")
+        .filter(isBookmakerItem)
         .map((market) => ({
           ...market,
           section: normalizeRunnersToSection(market),

@@ -354,12 +354,13 @@ export function isFancySessionMarket(market) {
   return false;
 }
 
-/** Provider D full-market UI: Match Odds + Fancy only. */
+/** Provider D full-market UI: Match Odds + Bookmaker + Fancy (exclude tied / duplicate match odds). */
 export function filterProviderDFullMarketMarkets(markets = []) {
   if (!Array.isArray(markets)) return [];
   return markets.filter(
     (m) =>
       (isMatchOddsMarket(m) && !isFancyApiMatchOddsDuplicate(m)) ||
+      isBookmakerMarket(m) ||
       isFancySessionMarket(m)
   );
 }

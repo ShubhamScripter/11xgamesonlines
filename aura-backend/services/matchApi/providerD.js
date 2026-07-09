@@ -393,7 +393,7 @@ export function createProviderD() {
   };
 
   /**
-   * Full-market page: Match Odds + Fancy only (no tied match / bookmaker / other exchange).
+   * Full-market page: Match Odds + Bookmaker + Fancy (no tied match / duplicate exchange).
    */
   const buildMarketsForEvent = async (eventId) => {
     const metaList = await resolveMarketListForEvent(eventId);
