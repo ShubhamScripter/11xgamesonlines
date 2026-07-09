@@ -151,6 +151,7 @@ function PremiumFancy({
                             isFancy: true,
                             isPremium: true,
                             providerCGameId: providerCGameId || gameid,
+                            premiumBetSource: market.betSource || 'providerC',
                           });
                         }
                       }}

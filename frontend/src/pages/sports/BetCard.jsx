@@ -375,6 +375,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
       fancyScore: isFancyBet ? parseFloat(betOdds) : odds?.fancyScore,
       isPremium: odds?.isPremium === true,
       providerCGameId: odds?.providerCGameId,
+      premiumBetSource: odds?.premiumBetSource,
     };
 
     try {

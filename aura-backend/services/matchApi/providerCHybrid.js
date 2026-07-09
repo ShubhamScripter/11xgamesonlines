@@ -18,13 +18,119 @@ function getProviderC() {
 export function isPremiumFancyEnabled(activeProviderName) {
   const p = String(activeProviderName || '').toLowerCase();
   const isProviderD = p === 'providerd' || p === 'provider_d';
-  const hasProviderC =
-    Boolean(process.env.PROVIDER_C_API_KEY || process.env.API_KEY) &&
-    Boolean(process.env.PROVIDER_C_API_URL || process.env.API_URL);
   const disabled =
     String(process.env.PREMIUM_FANCY_ENABLED || 'true').toLowerCase() ===
     'false';
-  return isProviderD && hasProviderC && !disabled;
+  if (disabled) return false;
+  if (isProviderD) return true;
+  const hasProviderC =
+    Boolean(process.env.PROVIDER_C_API_KEY || process.env.API_KEY) &&
+    Boolean(process.env.PROVIDER_C_API_URL || process.env.API_URL);
+  return hasProviderC;
+}
+
+function normalizeEventLabel(value = '') {
+  return String(value)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\/\s*.*$/, '')
+    .trim();
+}
+
+function listProviderDMatches(listPayload) {
+  if (!listPayload?.success) return [];
+  return [...(listPayload.data?.t1 || []), ...(listPayload.data?.t2 || [])];
+}
+
+async function resolveProviderCGameId(eventId, sportId = CRICKET_SPORT_ID) {
+  const eventKey = String(eventId);
+  const providerC = getProviderC();
+
+  const tryFetchPremium = async (gameId) => {
+    const raw = await withTimeout(
+      providerC.fetchMatchData(String(gameId), sportId),
+      PREMIUM_FETCH_TIMEOUT_MS,
+      'premium-fancy-timeout'
+    );
+    const premiumFancy = extractProviderCPremiumFancy(extractMarketsArray(raw));
+    return premiumFancy.length
+      ? { providerCGameId: String(gameId), premiumFancy }
+      : null;
+  };
+
+  try {
+    const direct = await tryFetchPremium(eventKey);
+    if (direct) return direct;
+  } catch {
+    // try name-based mapping below
+  }
+
+  try {
+    const { createProviderD } = await import('./providerD.js');
+    const providerD = createProviderD();
+    const [dList, cList] = await Promise.all([
+      providerD.fetchMatchList(sportId),
+      providerC.fetchMatchList(sportId),
+    ]);
+    const dMatches = listProviderDMatches(dList);
+    const cMatches = listProviderDMatches(cList);
+    const dMatch = dMatches.find(
+      (m) =>
+        String(m.gmid) === eventKey ||
+        String(m.beventId) === eventKey ||
+        String(m.oldgmid) === eventKey
+    );
+    if (!dMatch?.ename) return null;
+
+    const target = normalizeEventLabel(dMatch.ename);
+    const cMatch = cMatches.find((m) => {
+      const label = normalizeEventLabel(m.ename);
+      if (!label) return false;
+      return label === target || label.includes(target) || target.includes(label);
+    });
+    if (!cMatch?.gmid) return null;
+    return await tryFetchPremium(cMatch.gmid);
+  } catch (err) {
+    console.warn(
+      `[PremiumFancy] Provider C gameId resolve for eventId=${eventKey}:`,
+      err.message
+    );
+    return null;
+  }
+}
+
+/** Premium markets from Winkaro fancy API — exclude normal/fancy1 (already on Fancy tab). */
+export function extractProviderDPremiumFancyFallback(markets) {
+  if (!Array.isArray(markets)) return [];
+  return markets
+    .filter((market) => {
+      if (!isProviderCPremiumFancyMarket(market)) return false;
+      const mname = String(market.mname || market.name || '').toLowerCase();
+      const gtype = String(market.gtype || '').toLowerCase();
+      if (mname === 'normal' || mname === 'fancy1' || gtype === 'fancy1') {
+        return false;
+      }
+      return true;
+    })
+    .map((market) => ({
+      ...market,
+      _betSource: 'providerD',
+      _isPremium: true,
+    }));
+}
+
+async function fetchPremiumFromProviderD(eventId, sportId = CRICKET_SPORT_ID) {
+  const eventKey = String(eventId);
+  const { createProviderD } = await import('./providerD.js');
+  const providerD = createProviderD();
+  const result = await providerD.fetchFancyMarketsForEvent(eventKey, sportId);
+  const markets = Array.isArray(result?.data) ? result.data : [];
+  const premiumFancy = extractProviderDPremiumFancyFallback(markets);
+  return {
+    providerCGameId: eventKey,
+    premiumFancy,
+    premiumSource: premiumFancy.length ? 'providerD' : null,
+  };
 }
 
 function extractMarketsArray(raw) {
@@ -43,6 +149,7 @@ export const PREMIUM_FANCY_GTYPES = new Set([
   'line',
   'meter',
   'oddeven',
+  'cricketcasino',
 ]);
 
 export function isProviderCPremiumFancyMarket(item) {
@@ -83,7 +190,7 @@ function withTimeout(promise, ms, label = 'timeout') {
 }
 
 /**
- * Cricket only: Provider D eventId → Provider C getPriveteData → ball/khado/fancy markets.
+ * Cricket only: Provider C getPriveteData when available, else Winkaro fancy fallback.
  */
 export async function fetchProviderCPremiumFancy(
   eventId,
@@ -96,16 +203,10 @@ export async function fetchProviderCPremiumFancy(
   const eventKey = String(eventId);
 
   try {
-    const raw = await withTimeout(
-      getProviderC().fetchMatchData(eventKey, CRICKET_SPORT_ID),
-      PREMIUM_FETCH_TIMEOUT_MS,
-      'premium-fancy-timeout'
-    );
-    const premiumFancy = extractProviderCPremiumFancy(extractMarketsArray(raw));
-    return {
-      providerCGameId: eventKey,
-      premiumFancy,
-    };
+    const fromC = await resolveProviderCGameId(eventKey, sportId);
+    if (fromC?.premiumFancy?.length) {
+      return { ...fromC, premiumSource: 'providerC' };
+    }
   } catch (err) {
     if (err.message !== 'premium-fancy-timeout') {
       console.warn(
@@ -113,8 +214,24 @@ export async function fetchProviderCPremiumFancy(
         err.message
       );
     }
-    return { providerCGameId: eventKey, premiumFancy: [] };
   }
+
+  try {
+    const fromD = await fetchPremiumFromProviderD(eventKey, sportId);
+    if (fromD.premiumFancy.length) {
+      console.log(
+        `[PremiumFancy] Using Provider D fallback for eventId=${eventKey} (${fromD.premiumFancy.length} markets)`
+      );
+      return fromD;
+    }
+  } catch (err) {
+    console.warn(
+      `[PremiumFancy] Provider D fallback for eventId=${eventKey}:`,
+      err.message
+    );
+  }
+
+  return { providerCGameId: eventKey, premiumFancy: [] };
 }
 
 export async function fetchProviderCMatchMarkets(

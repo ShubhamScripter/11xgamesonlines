@@ -237,6 +237,7 @@ export function mapPremiumGtypeToGameType(gtype, mname) {
   if (g === 'line') return 'line';
   if (g === 'meter') return 'meter';
   if (g === 'oddeven' || m === 'oddeven') return 'Normal';
+  if (g === 'cricketcasino') return 'Normal';
   return 'Normal';
 }
 
@@ -265,6 +266,7 @@ export function mapPremiumFancyData(fancyList, gameid, providerCGameId) {
           : sec.marketId || sec.market_id || market.mid,
       event_id: eventId,
       isPremium: true,
+      betSource: market._betSource || 'providerC',
     }));
   });
 }

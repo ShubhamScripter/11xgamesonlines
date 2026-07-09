@@ -299,8 +299,7 @@ export function isBookmakerMarket(market) {
   return (
     name.includes('bookmaker') ||
     mtype === 'BOOKMAKER' ||
-    mname === 'BOOKMAKER' ||
-    mname === 'Bookmaker'
+    mname.includes('BOOKMAKER')
   );
 }
 

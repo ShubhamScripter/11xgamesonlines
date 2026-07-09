@@ -130,10 +130,27 @@ async function validateFancyMarket(
   });
 }
 
-/** Fancy tab = Provider D; Premium tab = Provider C (cricket hybrid). */
-function resolveFancyBetRouting(isPremiumBet, hybridCricketFancy) {
+/** Fancy tab = Provider D; Premium tab = Provider C when available, else Winkaro fallback. */
+function resolveFancyBetRouting(
+  isPremiumBet,
+  hybridCricketFancy,
+  premiumBetSource
+) {
+  const useProviderDPremium =
+    String(premiumBetSource || '').toLowerCase() === 'providerd';
+
   if (hybridCricketFancy) {
     if (isPremiumBet) {
+      if (useProviderDPremium) {
+        return {
+          section: 'PREMIUM',
+          betSource: 'providerD',
+          incomingProvider: 'providerD',
+          settleProvider: 'providerD',
+          incomingApi: 'Provider D local DB (winkaro/bsettle)',
+          settleApi: 'Provider D POST /result/fancy (winkaro/bsettle)',
+        };
+      }
       return {
         section: 'PREMIUM',
         betSource: 'providerC',
@@ -1431,6 +1448,7 @@ export const placeFancyBet = async (req, res) => {
       fancyId: reqFancyId,
       isPremium,
       providerCGameId: reqProviderCGameId,
+      premiumBetSource,
     } = req.body;
 
     const isPremiumBet = isPremium === true || isPremium === 'true';
@@ -1438,7 +1456,11 @@ export const placeFancyBet = async (req, res) => {
     const hybridCricketFancy =
       isPremiumFancyEnabled(getProviderName()) && Number(sid) === 4;
 
-    const routing = resolveFancyBetRouting(isPremiumBet, hybridCricketFancy);
+    const routing = resolveFancyBetRouting(
+      isPremiumBet,
+      hybridCricketFancy,
+      premiumBetSource
+    );
     const { section, betSource, incomingProvider, incomingApi } = routing;
 
     // Validate required fields
@@ -1504,8 +1526,10 @@ export const placeFancyBet = async (req, res) => {
     const existingExact = await betModel.findOne(uniqueKey);
 
     const fancyMeta = fancyCheck.marketMeta || {};
+    const useProviderDPremium =
+      String(premiumBetSource || '').toLowerCase() === 'providerd';
     const premiumEventId =
-      isPremiumBet && reqProviderCGameId
+      isPremiumBet && reqProviderCGameId && !useProviderDPremium
         ? String(reqProviderCGameId)
         : effectiveGameId;
     const fancyEventId = isPremiumBet ? premiumEventId : effectiveGameId;

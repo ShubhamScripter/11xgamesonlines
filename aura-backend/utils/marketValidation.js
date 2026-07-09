@@ -593,14 +593,36 @@ export async function validatePremiumFancyMarket(
     const markets = await fetchProviderCMatchMarkets(cGameId, sid);
     const premiumMarkets = markets.filter(isProviderCPremiumFancyMarket);
 
-    return validateFancyAgainstMarkets(premiumMarkets, {
-      gameId: cGameId,
-      teamName,
-      xValue,
-      otype,
-      fancyScore,
-      oname,
-    });
+    if (premiumMarkets.length) {
+      return validateFancyAgainstMarkets(premiumMarkets, {
+        gameId: cGameId,
+        teamName,
+        xValue,
+        otype,
+        fancyScore,
+        oname,
+      });
+    }
+
+    const { createProviderD } = await import('../services/matchApi/providerD.js');
+    const { extractProviderDPremiumFancyFallback } = await import(
+      '../services/matchApi/providerCHybrid.js'
+    );
+    const providerD = createProviderD();
+    const fromD = await providerD.fetchFancyMarketsForEvent(String(gameId), sid);
+    const fallbackMarkets = extractProviderDPremiumFancyFallback(
+      Array.isArray(fromD?.data) ? fromD.data : []
+    );
+    if (fallbackMarkets.length) {
+      return validateFancyAgainstMarkets(fallbackMarkets, {
+        gameId: String(gameId),
+        teamName,
+        xValue,
+        otype,
+        fancyScore,
+        oname,
+      });
+    }
   } catch (err) {
     const cacheKey = `${gameId}_${apitype}`;
     const cacheEntry = cachedData[cacheKey];

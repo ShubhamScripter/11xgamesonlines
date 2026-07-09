@@ -248,25 +248,29 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
     );
   }
 
-  // Transform backend bookmaker data
+  // Transform backend bookmaker data (all bookmaker markets, e.g. Bookmaker + Bookmaker 2)
   const bookmakerData =
-    Array.isArray(BookmakerList) &&
-    BookmakerList.length > 0 &&
-    BookmakerList[0].section
-      ? BookmakerList[0].section.map((sec) => {
+    Array.isArray(BookmakerList) && BookmakerList.length > 0
+      ? BookmakerList.flatMap((bmMarket) => {
+          if (!Array.isArray(bmMarket.section) || bmMarket.section.length === 0) {
+            return [];
+          }
+          return bmMarket.section.map((sec) => {
           const back3 = sec.odds?.find((o) => o.oname === "back3");
           const back2 = sec.odds?.find((o) => o.oname === "back2");
           const back1 = sec.odds?.find((o) => o.oname === "back1");
           const lay1 = sec.odds?.find((o) => o.oname === "lay1");
           const lay2 = sec.odds?.find((o) => o.oname === "lay2");
           const lay3 = sec.odds?.find((o) => o.oname === "lay3");
-          const marketStatus = BookmakerList[0]?.status;
+          const marketStatus = bmMarket?.status;
 
           return {
             team: sec.nat || "-",
             sid: sec.sid,
             gstatus: sec.gstatus,
             marketStatus,
+            marketLabel: bmMarket.mname || bmMarket.name || "Bookmaker",
+            sourceMarket: bmMarket,
             values: [
               { value: back3?.odds ?? "-", odds: back3?.size ?? "-", type: 'back', oname: 'back3' },
               { value: back2?.odds ?? "-", odds: back2?.size ?? "-", type: 'back', oname: 'back2' },
@@ -275,9 +279,10 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
               { value: lay2?.odds ?? "-", odds: lay2?.size ?? "-", type: 'lay', oname: 'lay2' },
               { value: lay3?.odds ?? "-", odds: lay3?.size ?? "-", type: 'lay', oname: 'lay3' },
             ],
-            max: getMarketMaxLimit(BookmakerList[0]),
-            min: getMarketMinLimit(BookmakerList[0]),
+            max: getMarketMaxLimit(bmMarket),
+            min: getMarketMinLimit(bmMarket),
           };
+        });
         })
       : [];
 
@@ -378,12 +383,12 @@ function Bookmakers({ openBetSlip, BookmakerList, gameid, match, selectedBetData
                             gameId: gameid,
                             eventName: match,
                             gameType: "Bookmaker",
-                            marketName: "Bookmaker",
+                            marketName: market.marketLabel || "Bookmaker",
                             gameName: gameName || "Cricket Game",
-                            min: bookmakerData?.[0]?.min ?? 0,
-                            max: getMarketMaxLimit(BookmakerList?.[0]),
+                            min: market.min ?? 0,
+                            max: getMarketMaxLimit(market.sourceMarket),
                             sid: 4,
-                            marketId: BookmakerList?.[0]?.id,
+                            marketId: market.sourceMarket?.id || market.sourceMarket?.mid,
                           });
                         }
                       }}
