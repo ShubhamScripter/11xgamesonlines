@@ -1,5 +1,28 @@
 /** Infer inplay when provider flag missing but market is open and match started. */
+function getInPlayMaxMs(sportKey) {
+  if (sportKey === 'cricket') return 10 * 3600 * 1000;
+  if (sportKey === 'soccer') return 3 * 3600 * 1000;
+  return 5 * 3600 * 1000;
+}
+
+function isStaleOrFutureMatch(match, sportKey) {
+  const startMs = new Date(match?.stime || match?.date || 0).getTime();
+  if (!Number.isFinite(startMs)) return false;
+  const now = Date.now();
+  if (startMs > now) return true;
+  return now - startMs > getInPlayMaxMs(sportKey);
+}
+
 export function inferListMatchInplay(match, sportKey) {
+  const status = String(match?.status ?? '').toUpperCase();
+  if (status === 'CLOSED' || status === 'COMPLETE' || status === 'SUSPENDED') {
+    return { ...match, inplay: false, iplay: false };
+  }
+
+  if (isStaleOrFutureMatch(match, sportKey)) {
+    return { ...match, inplay: false, iplay: false };
+  }
+
   if (match?.inplay === true || match?.iplay === true) {
     return { ...match, inplay: true, iplay: true };
   }
@@ -8,18 +31,8 @@ export function inferListMatchInplay(match, sportKey) {
   if (!Number.isFinite(startMs) || startMs > Date.now()) return match;
 
   const elapsed = Date.now() - startMs;
-  const maxMs =
-    sportKey === 'cricket'
-      ? 10 * 3600 * 1000
-      : sportKey === 'soccer'
-        ? 3 * 3600 * 1000
-        : 5 * 3600 * 1000;
+  const maxMs = getInPlayMaxMs(sportKey);
   if (elapsed > maxMs) return match;
-
-  const status = String(match?.status ?? '').toUpperCase();
-  if (status === 'CLOSED' || status === 'COMPLETE' || status === 'SUSPENDED') {
-    return match;
-  }
 
   if (
     status === 'OPEN' ||

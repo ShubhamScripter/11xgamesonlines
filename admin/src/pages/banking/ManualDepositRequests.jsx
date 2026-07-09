@@ -17,6 +17,38 @@ const formatKey = (key) =>
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (s) => s.toUpperCase());
 
+const formatBdPhoneFull = (phone) => {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('880')) digits = digits.slice(3);
+  if (digits.length === 10) {
+    return `+880 ${digits.slice(0, 4)}-${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return `+880 ${digits.slice(1, 5)}-${digits.slice(5, 8)} ${digits.slice(8)}`;
+  }
+  return `+880 ${digits}`;
+};
+
+const resolveSenderPhone = (request) => {
+  let phone = '';
+  if (request?.senderPhone) phone = formatBdPhoneFull(request.senderPhone);
+  else {
+    const note = String(request?.paymentNote || '');
+    const match = note.match(/Sender:\s*\+?(\d+)/i);
+    if (match) phone = formatBdPhoneFull(match[1]);
+  }
+  const last4 = String(request?.senderPhoneLast4 || '').replace(/\D/g, '');
+  if (phone && last4) return `${phone} ···${last4}`;
+  return phone;
+};
+
+const resolveReceiverPhone = (request) => {
+  const details = request?.accountSnapshot?.details || {};
+  const raw = details.phoneNumber || details.accountNumber || '';
+  return formatBdPhoneFull(raw);
+};
+
 const LIST_POLL_MS = 45_000;
 
 function ManualDepositRequests({ requestType = 'deposit' }) {
@@ -29,6 +61,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
   const [rejectReason, setRejectReason] = useState('');
   const statusOptions = ['pending', 'approved', 'rejected'];
   const isWithdrawPage = requestType === 'withdraw';
+  const tableColSpan = isWithdrawPage ? 9 : 11;
 
   const syncBadgeFromList = (list) => {
     if (status !== 'pending') return;
@@ -150,7 +183,7 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
         </div>
       </div>
       <div className="bg-white border rounded-lg overflow-auto shadow-sm">
-        <table className="w-full text-xs min-w-[760px]">
+        <table className="w-full text-xs min-w-[980px]">
           <thead className="bg-[#e4e4e4]">
             <tr>
               <th className="p-2 text-left">Date</th>
@@ -160,6 +193,12 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
               {isWithdrawPage ? <th className="p-2 text-left">Bank Details</th> : null}
               <th className="p-2 text-left">Amount</th>
               <th className="p-2 text-left">Ref</th>
+              {!isWithdrawPage ? (
+                <>
+                  <th className="p-2 text-left whitespace-nowrap">Money Sent From</th>
+                  <th className="p-2 text-left whitespace-nowrap">Tk Received From</th>
+                </>
+              ) : null}
               {!isWithdrawPage ? <th className="p-2 text-left">Screenshot</th> : null}
               <th className="p-2 text-left">Status</th>
               <th className="p-2 text-left">Actions</th>
@@ -167,9 +206,9 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td className="p-3 text-center" colSpan={9}>Loading...</td></tr>
+              <tr><td className="p-3 text-center" colSpan={tableColSpan}>Loading...</td></tr>
             ) : requests.length === 0 ? (
-              <tr><td className="p-3 text-center" colSpan={9}>No requests found</td></tr>
+              <tr><td className="p-3 text-center" colSpan={tableColSpan}>No requests found</td></tr>
             ) : (
               requests.map((r) => (
                 <tr key={r._id} className="border-t">
@@ -198,6 +237,16 @@ function ManualDepositRequests({ requestType = 'deposit' }) {
                   ) : null}
                   <td className="p-2">{Number(r.amount || 0).toFixed(2)}</td>
                   <td className="p-2">{r.referenceId || '-'}</td>
+                  {!isWithdrawPage ? (
+                    <>
+                      <td className="p-2 whitespace-nowrap font-medium">
+                        {resolveSenderPhone(r) || '-'}
+                      </td>
+                      <td className="p-2 whitespace-nowrap font-medium">
+                        {resolveReceiverPhone(r) || '-'}
+                      </td>
+                    </>
+                  ) : null}
                   {!isWithdrawPage ? (
                     <td className="p-2">
                       {r.paymentImageUrl ? (

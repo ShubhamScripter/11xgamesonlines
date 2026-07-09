@@ -29,6 +29,8 @@ function initials(name) {
     .join('');
 }
 
+const formatUserId = (id) => String(id || '').trim();
+
 function RiskBadge({ score, label }) {
   const tone =
     label === 'High'
@@ -333,12 +335,14 @@ function RiskFraud() {
                       <p className="font-mono text-xs text-[#2563eb] font-semibold">
                         {cluster.clusterId}
                       </p>
-                      <p className="text-[#111827] font-medium mt-0.5">
-                        {cluster.primaryUserName}
+                      <p className="text-[#111827] font-medium mt-0.5 font-mono text-xs break-all">
+                        {formatUserId(cluster.primaryUserId || cluster.accounts?.[0]?._id) ||
+                          cluster.primaryUserName}
                         {cluster.extraCount > 0 && (
                           <span className="text-gray-500"> +{cluster.extraCount}</span>
                         )}
                       </p>
+                      <p className="text-[10px] text-gray-500">{cluster.primaryUserName}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
@@ -359,7 +363,7 @@ function RiskFraud() {
                         {cluster.accounts.slice(0, 4).map((acc) => (
                           <span
                             key={acc._id}
-                            title={acc.userName}
+                            title={formatUserId(acc._id)}
                             className="w-8 h-8 rounded-full bg-[#243a48] border-2 border-white flex items-center justify-center text-[10px] font-bold text-white"
                           >
                             {initials(acc.userName)}
@@ -450,7 +454,13 @@ function RiskFraud() {
                     className="flex items-center justify-between gap-2 bg-[#f8fafc] border border-[#e5e7eb] rounded-lg p-3"
                   >
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#243a48] truncate">{acc.userName}</p>
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">
+                        User ID
+                      </p>
+                      <p className="font-semibold text-[#243a48] break-all font-mono text-xs">
+                        {formatUserId(acc._id)}
+                      </p>
+                      <p className="text-[11px] text-gray-500 truncate mt-1">{acc.userName}</p>
                       <p className="text-[11px] text-gray-500 truncate">{acc.email}</p>
                       <p className="text-[11px] text-gray-500">
                         Last login: {acc.lastLogin ? formatIST(acc.lastLogin) : 'Never'}

@@ -348,6 +348,29 @@ export const getManualDepositAccountsForUser = async (req, res) => {
 
       const methodFilter = buildOwnerAdminAccountFilter(ownerAdmin, { method });
       const poolSize = await countDepositAccounts(ManualDepositAccount, methodFilter);
+      const returnAll =
+        req.query.all === '1' ||
+        req.query.all === 'true' ||
+        req.query.pickMode === 'all';
+
+      if (returnAll) {
+        const allAccounts = await ManualDepositAccount.find(methodFilter).sort({
+          createdAt: -1,
+        });
+        const resolvedAccounts = allAccounts.map((account) =>
+          withResolvedAccountImage(req, account)
+        );
+        return res.status(200).json({
+          success: true,
+          data: resolvedAccounts,
+          meta: {
+            pickMode: 'all',
+            method,
+            poolSize,
+          },
+        });
+      }
+
       const picked = await pickRandomDepositAccount(ManualDepositAccount, methodFilter);
 
       const resolvedAccounts = picked
@@ -398,6 +421,7 @@ export const createManualDepositRequest = async (req, res) => {
       withdrawDetails,
       accountPassword,
       senderPhone,
+      senderPhoneLast4,
     } = req.body;
     const uploadedImage = req.file;
 
@@ -419,7 +443,7 @@ export const createManualDepositRequest = async (req, res) => {
     if (!VALID_METHODS.includes(normalizedMethod)) {
       return res.status(400).json({ message: 'Invalid deposit method.' });
     }
-    if (depositScreenshotRequired(normalizedMethod, requestType) && !uploadedImage) {
+    if (depositScreenshotRequired() && !uploadedImage) {
       return res.status(400).json({ message: 'Payment screenshot is required.' });
     }
 
@@ -435,6 +459,8 @@ export const createManualDepositRequest = async (req, res) => {
     let finalAccountId = null;
     let accountSnapshot = {};
     let trimmedDepositRef = '';
+    let savedSenderPhone = '';
+    let savedSenderPhoneLast4 = '';
 
     if (requestType === 'withdraw') {
       if (!String(accountPassword || '').trim()) {
@@ -504,13 +530,15 @@ export const createManualDepositRequest = async (req, res) => {
         amount: amt,
         referenceId,
         senderPhone,
+        senderPhoneLast4,
         accountDetails: account.details,
-        hasScreenshot: Boolean(uploadedImage),
       });
       if (!depositCheck.ok) {
         return res.status(400).json({ message: depositCheck.message });
       }
       trimmedDepositRef = depositCheck.referenceId;
+      savedSenderPhone = depositCheck.senderPhone || '';
+      savedSenderPhoneLast4 = depositCheck.senderPhoneLast4 || '';
     }
 
     if (requestType === 'deposit' && trimmedDepositRef) {
@@ -574,6 +602,8 @@ export const createManualDepositRequest = async (req, res) => {
         accountSnapshot,
         referenceId:
           requestType === 'deposit' ? trimmedDepositRef : referenceId,
+        senderPhone: savedSenderPhone || undefined,
+        senderPhoneLast4: savedSenderPhoneLast4 || undefined,
         paymentNote: mergedNote || paymentNote,
         bonusType,
         paymentImageUrl,

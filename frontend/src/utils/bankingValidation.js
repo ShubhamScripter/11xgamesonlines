@@ -26,8 +26,8 @@ export function validateDepositForm({
   mobileMethod,
   amount,
   senderPhone,
+  senderPhoneLast4,
   referenceId,
-  paymentImage,
   selectedAccount,
   isUsdtUser,
 }) {
@@ -47,14 +47,24 @@ export function validateDepositForm({
     if (sender.length < 10) {
       return { ok: false, message: 'Enter your mobile number (10–11 digits).' };
     }
+    const last4 = String(senderPhoneLast4 || '').replace(/\D/g, '');
+    if (!/^\d{4}$/.test(last4)) {
+      return { ok: false, message: 'Enter the last 4 digits of your mobile number.' };
+    }
+    if (!sender.endsWith(last4)) {
+      return { ok: false, message: 'Last 4 digits do not match your mobile number.' };
+    }
     const trx = String(referenceId).replace(/\s/g, '').toUpperCase();
     if (!/^[A-Z0-9]{8,20}$/.test(trx)) {
       return { ok: false, message: 'TrxID must be 8–20 characters (from SMS).' };
     }
-    if (!paymentImage) {
-      return { ok: false, message: 'Upload payment screenshot.' };
-    }
-    return { ok: true, method, referenceId: trx, senderPhone: sender };
+    return {
+      ok: true,
+      method,
+      referenceId: trx,
+      senderPhone: sender,
+      senderPhoneLast4: last4,
+    };
   }
 
   const hash = String(referenceId).replace(/\s/g, '');

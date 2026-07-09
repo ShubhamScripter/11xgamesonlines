@@ -76,9 +76,8 @@ function ManualDeposit() {
 
   const [amount, setAmount] = useState('1000');
   const [senderPhone, setSenderPhone] = useState('');
+  const [senderPhoneLast4, setSenderPhoneLast4] = useState('');
   const [referenceId, setReferenceId] = useState('');
-  const [paymentImage, setPaymentImage] = useState(null);
-  const [paymentImagePreview, setPaymentImagePreview] = useState('');
   const [receivePhone, setReceivePhone] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -141,7 +140,7 @@ function ManualDeposit() {
     setLoading(true);
     try {
       const res = await api.get('/user/deposit-accounts', {
-        params: { method: activeMethod, _: Date.now() },
+        params: { method: activeMethod, all: '1', _: Date.now() },
       });
       const list = Array.isArray(res?.data?.data) ? res.data.data : [];
       setAccounts(list);
@@ -212,11 +211,12 @@ function ManualDeposit() {
     loadWagering();
   }, [requestType]);
 
-  useEffect(() => {
-    return () => {
-      if (paymentImagePreview) URL.revokeObjectURL(paymentImagePreview);
-    };
-  }, [paymentImagePreview]);
+  const cycleDepositAccount = () => {
+    if (accounts.length < 2) return;
+    const idx = accounts.findIndex((a) => a._id === selectedAccountId);
+    const next = accounts[(idx + 1) % accounts.length];
+    setSelectedAccountId(next?._id || accounts[0]?._id || '');
+  };
 
   const destinationNumber =
     selectedAccount?.details?.phoneNumber ||
@@ -236,8 +236,8 @@ function ManualDeposit() {
       mobileMethod,
       amount,
       senderPhone,
+      senderPhoneLast4,
       referenceId,
-      paymentImage,
       selectedAccount,
       isUsdtUser,
     });
@@ -256,16 +256,14 @@ function ManualDeposit() {
       formData.append('referenceId', check.referenceId);
       if (mainTab === 'mobile_banking') {
         formData.append('senderPhone', check.senderPhone);
+        formData.append('senderPhoneLast4', check.senderPhoneLast4);
       }
-      if (paymentImage) formData.append('paymentImage', paymentImage);
 
       await api.post('/user/deposit-requests', formData);
       toast.success('Deposit submitted — verification usually under 2 min');
       setReferenceId('');
       setSenderPhone('');
-      if (paymentImagePreview) URL.revokeObjectURL(paymentImagePreview);
-      setPaymentImage(null);
-      setPaymentImagePreview('');
+      setSenderPhoneLast4('');
       await loadMyRequests();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Submit failed');
@@ -482,12 +480,6 @@ function ManualDeposit() {
                       </p>
                     ) : (
                       <>
-                        {accountPoolSize > 1 && (
-                          <p className="text-[11px] text-[#19A044]/90 mt-2">
-                            A {methodLabel(mobileMethod)} number is assigned automatically from{' '}
-                            {accountPoolSize} active accounts.
-                          </p>
-                        )}
                         <p className="text-2xl font-bold tracking-wide mt-2">
                           {formatBdPhoneDisplay(destinationNumber)}
                         </p>
@@ -495,17 +487,28 @@ function ManualDeposit() {
                           {selectedAccount?.details?.accountType || 'Personal'} ·{' '}
                           {selectedAccount?.details?.note || 'Send Money only'}
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => copyText(destinationNumber)}
-                          className="mt-2 px-4 py-1.5 rounded-lg bg-[#19A044] text-white text-sm font-semibold"
-                        >
-                          Copy
-                        </button>
-                        <p className="text-xs text-gray-500 mt-3">
-                          Open {methodLabel(mobileMethod)} → Send Money → enter the number
-                          above → send exactly {sym}
-                          {parsedAmount || amount}.
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => copyText(destinationNumber)}
+                            className="px-4 py-1.5 rounded-lg bg-[#19A044] text-white text-sm font-semibold"
+                          >
+                            Copy
+                          </button>
+                          {accounts.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={cycleDepositAccount}
+                              className="px-4 py-1.5 rounded-lg bg-[#1e2428] border border-[#252b31] text-white text-sm font-semibold"
+                            >
+                              Change Number
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+                          {methodLabel(mobileMethod)} অ্যাপ খুলে Send Money-তে যান → উপরের নম্বরে
+                          ঠিক {sym}
+                          {parsedAmount || amount} পাঠান।
                         </p>
                       </>
                     )}
@@ -585,24 +588,44 @@ function ManualDeposit() {
 
             <form onSubmit={submitDeposit} className="space-y-4">
               {mainTab === 'mobile_banking' && (
-                <div>
-                  <label className="text-xs text-gray-500 font-semibold tracking-wider">
-                    YOUR {methodLabel(mobileMethod).toUpperCase()} NUMBER<Req />
-                  </label>
-                  <div className="flex mt-2 gap-2">
-                    <span className="flex items-center px-3 bg-[#141a1f] border border-[#252b31] rounded-xl text-sm">
-                      🇧🇩 +880
-                    </span>
+                <>
+                  <div>
+                    <label className="text-xs text-gray-500 font-semibold tracking-wider">
+                      YOUR {methodLabel(mobileMethod).toUpperCase()} NUMBER<Req />
+                    </label>
+                    <div className="flex mt-2 gap-2">
+                      <span className="flex items-center px-3 bg-[#141a1f] border border-[#252b31] rounded-xl text-sm">
+                        🇧🇩 +880
+                      </span>
+                      <input
+                        type="tel"
+                        value={senderPhone}
+                        onChange={(e) => setSenderPhone(e.target.value)}
+                        placeholder="1712-345 678"
+                        className="flex-1 bg-[#141a1f] border border-[#252b31] rounded-xl px-3 py-3 outline-none focus:border-[#19A044]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 font-semibold tracking-wider">
+                      LAST 4 DIGITS OF YOUR {methodLabel(mobileMethod).toUpperCase()} NUMBER<Req />
+                    </label>
                     <input
                       type="tel"
-                      value={senderPhone}
-                      onChange={(e) => setSenderPhone(e.target.value)}
-                      placeholder="1712-345 678"
-                      className="flex-1 bg-[#141a1f] border border-[#252b31] rounded-xl px-3 py-3 outline-none focus:border-[#19A044]"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={senderPhoneLast4}
+                      onChange={(e) =>
+                        setSenderPhoneLast4(e.target.value.replace(/\D/g, '').slice(0, 4))
+                      }
+                      placeholder="6789"
+                      className="w-full mt-2 bg-[#141a1f] border border-[#252b31] rounded-xl px-3 py-3 outline-none focus:border-[#19A044] tracking-widest"
                       required
                     />
                   </div>
-                </div>
+                </>
               )}
 
               <div>
@@ -624,36 +647,6 @@ function ManualDeposit() {
                   required
                 />
               </div>
-
-              {mainTab === 'mobile_banking' && (
-                <div>
-                  <label className="text-sm font-semibold">
-                    Payment screenshot<Req />
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      if (paymentImagePreview) URL.revokeObjectURL(paymentImagePreview);
-                      setPaymentImage(file);
-                      setPaymentImagePreview(file ? URL.createObjectURL(file) : '');
-                    }}
-                    className="w-full mt-2 text-sm file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#19A044] file:text-white"
-                  />
-                  {paymentImagePreview && (
-                    <div className="mt-2 flex flex-col items-center">
-                      <p className="text-[10px] text-gray-500 mb-1">Tap preview for full image</p>
-                      <ImagePreviewLink
-                        href={paymentImagePreview}
-                        thumbnail
-                        alt="Payment screenshot preview"
-                        thumbnailClassName="max-h-32 rounded-lg cursor-pointer hover:opacity-95 hover:ring-2 hover:ring-[#19A044] transition"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
 
               <p className="text-xs text-gray-500 flex items-center gap-2">
                 <span className="text-[#19A044]">✓</span>

@@ -41,6 +41,10 @@ const manualDepositRequestSchema = new mongoose.Schema(
       default: {},
     },
     referenceId: { type: String, trim: true },
+    /** User's bKash/Nagad/Rocket number used to send the deposit. */
+    senderPhone: { type: String, trim: true },
+    /** Last 4 digits of sender mobile (quick admin verification). */
+    senderPhoneLast4: { type: String, trim: true },
     paymentNote: { type: String, trim: true },
     bonusType: { type: String, trim: true },
     bonusAmount: { type: Number, default: 0, min: 0 },

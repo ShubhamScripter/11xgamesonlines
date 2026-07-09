@@ -123,10 +123,23 @@ export function validateDepositReferenceId(method, referenceId) {
   return { ok: false, message: 'Invalid deposit method.' };
 }
 
-export function depositScreenshotRequired(method, requestType) {
-  if (requestType !== 'deposit') return false;
-  const m = String(method || '').toLowerCase();
-  return m !== 'crypto';
+export function depositScreenshotRequired() {
+  return false;
+}
+
+export function validateSenderPhoneLast4(senderPhone, last4) {
+  const digits = String(last4 ?? '').replace(/\D/g, '');
+  if (!/^\d{4}$/.test(digits)) {
+    return { ok: false, message: 'Enter the last 4 digits of your mobile number.' };
+  }
+  const phone = normalizeBdPhone(senderPhone);
+  if (!phone.endsWith(digits)) {
+    return {
+      ok: false,
+      message: 'Last 4 digits do not match your mobile number.',
+    };
+  }
+  return { ok: true, value: digits };
 }
 
 export function validateUserDepositRequest({
@@ -134,8 +147,8 @@ export function validateUserDepositRequest({
   amount,
   referenceId,
   senderPhone,
+  senderPhoneLast4,
   accountDetails,
-  hasScreenshot,
 }) {
   const m = String(method || '').toLowerCase();
   if (!isActiveDepositMethod(m)) {
@@ -158,10 +171,14 @@ export function validateUserDepositRequest({
   if (isMobileBankingMethod(m)) {
     const phone = validateBdMobilePhone(senderPhone, 'Your mobile number');
     if (!phone.ok) return phone;
-    if (!hasScreenshot) {
-      return { ok: false, message: 'Payment screenshot is required.' };
-    }
-    return { ok: true, referenceId: refCheck.value, senderPhone: phone.value };
+    const last4Check = validateSenderPhoneLast4(phone.value, senderPhoneLast4);
+    if (!last4Check.ok) return last4Check;
+    return {
+      ok: true,
+      referenceId: refCheck.value,
+      senderPhone: phone.value,
+      senderPhoneLast4: last4Check.value,
+    };
   }
 
   if (m === 'crypto') {

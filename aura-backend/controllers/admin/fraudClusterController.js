@@ -23,7 +23,7 @@ export const getFraudClusters = async (req, res) => {
       status: { $ne: 'delete' },
     })
       .select(
-        'userName email phone lastIP deviceIds lastDevice status lastLogin createdAt'
+        'userName code email phone lastIP deviceIds lastDevice status lastLogin createdAt'
       )
       .lean();
 

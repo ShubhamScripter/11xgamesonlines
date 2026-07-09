@@ -74,27 +74,35 @@ const isOpenLiveStatus = (match) => {
   );
 };
 
-/** API flag + OPEN market + started window + live odds. */
+/** API flag + OPEN market + started window + live odds (stale inplay flags ignored). */
 export const isMatchInPlay = (match, sport) => {
-  if (parseInPlayFlag(match)) return true;
-
-  const startMs = getMatchStartMs(match);
-  if (startMs == null) return false;
-  const now = Date.now();
-  if (startMs > now) return false;
-
-  const elapsed = now - startMs;
-  const maxMs = getInPlayMaxMs(sport);
-  if (elapsed > maxMs) return false;
-
   const status = String(match?.status ?? '').toUpperCase();
   if (status === 'CLOSED' || status === 'COMPLETE' || status === 'SUSPENDED') {
     return false;
   }
 
+  const startMs = getMatchStartMs(match);
+  const now = Date.now();
+
+  if (startMs != null) {
+    if (startMs > now) return false;
+    const elapsed = now - startMs;
+    const maxMs = getInPlayMaxMs(sport);
+    if (elapsed > maxMs) return false;
+  } else if (!parseInPlayFlag(match)) {
+    return false;
+  }
+
+  if (parseInPlayFlag(match)) {
+    return startMs != null || hasActiveOdds(match, sport) || isOpenLiveStatus(match);
+  }
+
+  if (startMs == null) return false;
+
   if (isOpenLiveStatus(match)) return true;
   if (hasActiveOdds(match, sport)) return true;
 
+  const elapsed = now - startMs;
   const recentMs =
     sport === 'cricket' || sport === 'tennis'
       ? 4 * 60 * 60 * 1000

@@ -200,6 +200,8 @@ export function buildFraudClusters(users, depositByUserId = new Map()) {
     clusters.push({
       clusterId: shortClusterId(userIds),
       primaryUserName: sortedUsers[0]?.userName || 'unknown',
+      primaryUserId: String(sortedUsers[0]?._id || ''),
+      primaryUserCode: sortedUsers[0]?.code || '',
       extraCount: group.length - 1,
       sharedSignals,
       primaryIp,
@@ -207,6 +209,7 @@ export function buildFraudClusters(users, depositByUserId = new Map()) {
       accounts: sortedUsers.map((u) => ({
         _id: u._id,
         userName: u.userName,
+        code: u.code,
         email: u.email,
         phone: u.phone,
         status: u.status,
@@ -255,7 +258,9 @@ export function filterClusters(clusters, search = '') {
     if (cluster.primaryDevice.toLowerCase().includes(q)) return true;
     return cluster.accounts.some((acc) => {
       return (
+        String(acc._id || '').toLowerCase().includes(q) ||
         String(acc.userName || '').toLowerCase().includes(q) ||
+        String(acc.code || '').toLowerCase().includes(q) ||
         String(acc.email || '').toLowerCase().includes(q) ||
         String(acc.phone || '').includes(q) ||
         String(acc.lastIP || '').toLowerCase().includes(q)
