@@ -57,9 +57,17 @@ export function buildOwnerAdminAccountFilter(ownerAdmin, extra = {}) {
  * Pick one random active deposit account for a method (MongoDB $sample).
  * Used so multiple Nagad/bKash/etc. accounts are load-balanced across users.
  */
-export async function pickRandomDepositAccount(ManualDepositAccount, filter) {
+export async function pickRandomDepositAccount(
+  ManualDepositAccount,
+  filter,
+  { excludeId } = {}
+) {
+  const match = { ...filter };
+  if (excludeId) {
+    match._id = { $ne: excludeId };
+  }
   const rows = await ManualDepositAccount.aggregate([
-    { $match: filter },
+    { $match: match },
     { $sample: { size: 1 } },
   ]);
   if (!rows.length) return null;

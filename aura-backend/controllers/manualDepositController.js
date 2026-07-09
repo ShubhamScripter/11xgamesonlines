@@ -346,12 +346,21 @@ export const getManualDepositAccountsForUser = async (req, res) => {
         return res.status(400).json({ message: 'Invalid deposit method.' });
       }
 
+      const excludeAccountId = String(req.query.excludeAccountId || '').trim();
       const methodFilter = buildOwnerAdminAccountFilter(ownerAdmin, { method });
-      const poolSize = await countDepositAccounts(ManualDepositAccount, methodFilter);
+      if (excludeAccountId && mongoose.Types.ObjectId.isValid(excludeAccountId)) {
+        methodFilter._id = { $ne: excludeAccountId };
+      }
+
+      const poolSize = await countDepositAccounts(
+        ManualDepositAccount,
+        buildOwnerAdminAccountFilter(ownerAdmin, { method })
+      );
       const returnAll =
-        req.query.all === '1' ||
-        req.query.all === 'true' ||
-        req.query.pickMode === 'all';
+        !excludeAccountId &&
+        (req.query.all === '1' ||
+          req.query.all === 'true' ||
+          req.query.pickMode === 'all');
 
       if (returnAll) {
         const allAccounts = await ManualDepositAccount.find(methodFilter).sort({
@@ -371,7 +380,16 @@ export const getManualDepositAccountsForUser = async (req, res) => {
         });
       }
 
-      const picked = await pickRandomDepositAccount(ManualDepositAccount, methodFilter);
+      const picked = await pickRandomDepositAccount(
+        ManualDepositAccount,
+        methodFilter,
+        {
+          excludeId:
+            excludeAccountId && mongoose.Types.ObjectId.isValid(excludeAccountId)
+              ? excludeAccountId
+              : undefined,
+        }
+      );
 
       const resolvedAccounts = picked
         ? [withResolvedAccountImage(req, picked)]

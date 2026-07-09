@@ -71,6 +71,7 @@ function ManualDeposit() {
   const [accountPoolSize, setAccountPoolSize] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [changingAccount, setChangingAccount] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requests, setRequests] = useState([]);
 
@@ -143,8 +144,9 @@ function ManualDeposit() {
         params: { method: activeMethod, all: '1', _: Date.now() },
       });
       const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+      const poolSize = Number(res?.data?.meta?.poolSize) || list.length;
       setAccounts(list);
-      setAccountPoolSize(Number(res?.data?.meta?.poolSize) || list.length);
+      setAccountPoolSize(poolSize);
       setSelectedAccountId(list[0]?._id || '');
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Accounts load failed');
@@ -211,11 +213,45 @@ function ManualDeposit() {
     loadWagering();
   }, [requestType]);
 
-  const cycleDepositAccount = () => {
-    if (accounts.length < 2) return;
-    const idx = accounts.findIndex((a) => a._id === selectedAccountId);
-    const next = accounts[(idx + 1) % accounts.length];
-    setSelectedAccountId(next?._id || accounts[0]?._id || '');
+  const canChangeDepositNumber = accountPoolSize > 1;
+
+  const cycleDepositAccount = async () => {
+    if (!canChangeDepositNumber) return;
+
+    if (accounts.length > 1) {
+      const idx = accounts.findIndex((a) => a._id === selectedAccountId);
+      const next = accounts[(idx + 1) % accounts.length];
+      setSelectedAccountId(next?._id || accounts[0]?._id || '');
+      return;
+    }
+
+    if (!selectedAccountId) return;
+
+    setChangingAccount(true);
+    try {
+      const res = await api.get('/user/deposit-accounts', {
+        params: {
+          method: activeMethod,
+          excludeAccountId: selectedAccountId,
+          _: Date.now(),
+        },
+      });
+      const next = Array.isArray(res?.data?.data) ? res.data.data[0] : null;
+      if (!next?._id || next._id === selectedAccountId) {
+        toast.error('No alternate number available right now');
+        return;
+      }
+      setAccounts((prev) => {
+        if (prev.some((a) => a._id === next._id)) return prev;
+        return [...prev, next];
+      });
+      setSelectedAccountId(next._id);
+      setAccountPoolSize(Number(res?.data?.meta?.poolSize) || accountPoolSize);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Could not load another number');
+    } finally {
+      setChangingAccount(false);
+    }
   };
 
   const destinationNumber =
@@ -495,13 +531,14 @@ function ManualDeposit() {
                           >
                             Copy
                           </button>
-                          {accounts.length > 1 && (
+                          {canChangeDepositNumber && (
                             <button
                               type="button"
                               onClick={cycleDepositAccount}
-                              className="px-4 py-1.5 rounded-lg bg-[#1e2428] border border-[#252b31] text-white text-sm font-semibold"
+                              disabled={changingAccount}
+                              className="px-4 py-1.5 rounded-lg bg-[#1e2428] border border-[#19A044]/50 text-[#19A044] text-sm font-semibold disabled:opacity-50"
                             >
-                              Change Number
+                              {changingAccount ? 'Loading...' : 'Change Number'}
                             </button>
                           )}
                         </div>
