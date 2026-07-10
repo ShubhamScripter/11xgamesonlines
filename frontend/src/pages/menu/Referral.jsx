@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdArrowBackIos } from 'react-icons/md';
-import { FiCopy, FiUsers } from 'react-icons/fi';
+import { FiCopy, FiUsers, FiSave } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/axiosConfig';
 import { currencySymbol } from '../../utils/currency';
@@ -13,13 +13,19 @@ function Referral() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [editCode, setEditCode] = useState('');
+  const [savingCode, setSavingCode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await api.get('/user/referral');
-        if (!cancelled) setData(res?.data?.data || null);
+        if (!cancelled) {
+          const payload = res?.data?.data || null;
+          setData(payload);
+          setEditCode(payload?.myCode || '');
+        }
       } catch (err) {
         if (!cancelled) {
           toast.error(err?.response?.data?.message || t('page.referral.fetchFailed'));
@@ -44,7 +50,45 @@ function Referral() {
     }
   };
 
+  const saveCode = async () => {
+    const next = String(editCode || '')
+      .trim()
+      .toUpperCase();
+    if (!/^[A-Z0-9]{4,12}$/.test(next)) {
+      toast.error(t('page.referral.codeInvalid'));
+      return;
+    }
+    if (next === String(data?.myCode || '').toUpperCase()) {
+      toast.success(t('page.referral.codeUnchanged'));
+      return;
+    }
+
+    setSavingCode(true);
+    try {
+      const res = await api.put('/user/referral/code', { code: next });
+      const updated = res?.data?.data || {};
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              myCode: updated.myCode || next,
+              referralLink: updated.referralLink || prev.referralLink,
+            }
+          : prev
+      );
+      setEditCode(updated.myCode || next);
+      toast.success(res?.data?.message || t('page.referral.codeUpdated'));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || t('page.referral.codeUpdateFailed'));
+    } finally {
+      setSavingCode(false);
+    }
+  };
+
   const sym = currencySymbol(data?.currency);
+  const codeDirty =
+    String(editCode || '').trim().toUpperCase() !==
+    String(data?.myCode || '').toUpperCase();
 
   return (
     <div className="min-h-screen bg-[#0b0e11] text-white pb-24">
@@ -74,9 +118,34 @@ function Referral() {
 
             <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] p-4 space-y-3">
               <p className="text-sm text-gray-400">{t('page.referral.yourCode')}</p>
-              <p className="text-2xl font-mono font-bold tracking-widest text-[#19A044]">
-                {data.myCode || '—'}
-              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={editCode}
+                  onChange={(e) =>
+                    setEditCode(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, '')
+                        .slice(0, 12)
+                    )
+                  }
+                  maxLength={12}
+                  spellCheck={false}
+                  className="flex-1 min-w-0 bg-[#0b0e11] border border-[#2a323a] rounded-xl px-3 py-3 text-xl font-mono font-bold tracking-widest text-[#19A044] outline-none focus:border-[#19A044]"
+                  aria-label={t('page.referral.yourCode')}
+                />
+                <button
+                  type="button"
+                  onClick={saveCode}
+                  disabled={savingCode || !codeDirty}
+                  className="shrink-0 px-4 rounded-xl bg-[#1e2428] border border-[#19A044]/50 text-[#19A044] font-bold disabled:opacity-40 flex items-center gap-1.5"
+                >
+                  <FiSave />
+                  {savingCode ? t('common.loading') : t('page.referral.saveCode')}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-500">{t('page.referral.codeHint')}</p>
               <p className="text-xs text-gray-500 break-all">{data.referralLink}</p>
               <button
                 type="button"
@@ -117,7 +186,9 @@ function Referral() {
                       <div>
                         <p className="font-semibold">{u.userName}</p>
                         <p className="text-xs text-gray-500">
-                          {t('page.referral.joined', { date: u.joinedAt ? formatIST(u.joinedAt) : '—' })}
+                          {t('page.referral.joined', {
+                            date: u.joinedAt ? formatIST(u.joinedAt) : '—',
+                          })}
                         </p>
                       </div>
                       <div className="text-right">
@@ -141,7 +212,12 @@ function Referral() {
                   {data.recentCommissions.map((c) => (
                     <li key={c._id} className="px-4 py-3 flex justify-between gap-3 text-sm">
                       <div>
-                        <p>{t('page.referral.userLost', { userName: c.userName, amount: `${sym} ${Number(c.userLossAmount).toFixed(2)}` })}</p>
+                        <p>
+                          {t('page.referral.userLost', {
+                            userName: c.userName,
+                            amount: `${sym} ${Number(c.userLossAmount).toFixed(2)}`,
+                          })}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {c.createdAt ? formatIST(c.createdAt) : '—'} · {c.commissionPercent}%
                         </p>

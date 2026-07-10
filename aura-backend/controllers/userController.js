@@ -156,7 +156,12 @@ export const registerSelf = async (req, res) => {
       });
     }
 
-    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    let code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    for (let i = 0; i < 5; i++) {
+      const exists = await SubAdmin.findOne({ code }).select('_id').lean();
+      if (!exists) break;
+      code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    }
     const displayName = name && name.trim() ? name.trim() : normalizedUserName;
     const phoneNum = phone != null && phone !== '' ? Number(phone) : undefined;
 
@@ -821,6 +826,70 @@ export const getMyReferralStats = async (req, res) => {
     });
   } catch (error) {
     console.error('getMyReferralStats error:', error);
+    return res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
+const REFERRAL_CODE_REGEX = /^[A-Z0-9]{4,12}$/;
+
+/** User can customize their referral/invite code (must be unique across all accounts). */
+export const updateMyReferralCode = async (req, res) => {
+  try {
+    const me = await SubAdmin.findById(req.id).select('role code userName');
+    if (!me || me.role !== 'user') {
+      return res.status(403).json({ message: 'Only users can update referral code.' });
+    }
+
+    const nextCode = String(req.body?.code || '')
+      .trim()
+      .toUpperCase();
+
+    if (!REFERRAL_CODE_REGEX.test(nextCode)) {
+      return res.status(400).json({
+        message:
+          'Referral code must be 4–12 characters (A–Z and 0–9 only).',
+      });
+    }
+
+    if (nextCode === String(me.code || '').toUpperCase()) {
+      const referralLink = buildUserRegisterReferralLink(nextCode, req);
+      return res.json({
+        success: true,
+        data: { myCode: nextCode, referralLink },
+        message: 'Referral code unchanged.',
+      });
+    }
+
+    const taken = await SubAdmin.findOne({
+      code: nextCode,
+      _id: { $ne: me._id },
+      status: { $ne: 'delete' },
+    })
+      .select('_id role')
+      .lean();
+
+    if (taken) {
+      return res.status(409).json({
+        message: 'This referral code is already taken. Choose another.',
+      });
+    }
+
+    me.code = nextCode;
+    await me.save();
+
+    const referralLink = buildUserRegisterReferralLink(nextCode, req);
+    return res.json({
+      success: true,
+      data: { myCode: nextCode, referralLink },
+      message: 'Referral code updated.',
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        message: 'This referral code is already taken. Choose another.',
+      });
+    }
+    console.error('updateMyReferralCode error:', error);
     return res.status(500).json({ message: error.message || 'Server error' });
   }
 };

@@ -14,6 +14,7 @@ import {
   updateUserLanguage,
   user_logout,
   getMyReferralStats,
+  updateMyReferralCode,
 } from '../controllers/userController.js';
 import {
   getPublicAppSettings,
@@ -63,4 +64,5 @@ router.post('/user/attendance/claim', authMiddleware, claimAttendanceBonus);
 router.get('/user/wagering-status', authMiddleware, getUserWageringStatus);
 router.post('/user/coupon/claim', authMiddleware, claimCoupon);
 router.get('/user/referral', authMiddleware, getMyReferralStats);
+router.put('/user/referral/code', authMiddleware, updateMyReferralCode);
 export default router;
