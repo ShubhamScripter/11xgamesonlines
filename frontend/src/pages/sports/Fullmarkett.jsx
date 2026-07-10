@@ -755,10 +755,6 @@ import {
 } from '../../utils/bettingPayloadUtils';
 import { useTranslation } from '../../i18n/LanguageContext';
 
-// Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
-let lastBetToastKey = null;
-let lastBetToastAt = 0;
-
 function Fullmarkett() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -1093,16 +1089,7 @@ function Fullmarkett() {
     : [];
   useEffect(() => {
     if (successMessage) {
-      const now = Date.now();
-      // block rapid duplicate toasts
-      if (now - lastBetToastAt < 1500) return;
-
-      const toastKey = `success:${successMessage}`;
-      if (lastBetToastKey !== toastKey) {
-        lastBetToastKey = toastKey;
-        lastBetToastAt = now;
-        toast.success(successMessage);
-      }
+      // Toast is shown once from BetCard (avoid Fullmarkett + dual BetCard duplicates)
       setSelectedRun(null);
       dispatch(messageClear());
     }

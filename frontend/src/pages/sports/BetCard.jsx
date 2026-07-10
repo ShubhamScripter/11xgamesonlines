@@ -399,17 +399,19 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   };
 
   useEffect(() => {
-    if (successMessage) {
-      toast.success(successMessage);
+    if (successMessage && odds) {
+      // Stable id so desktop + mobile BetCard mounts only show one toast
+      toast.success(successMessage, { id: 'bet-placed-success' });
       dispatch(messageClear());
       setTimeout(() => {
         onClose?.();
       }, 500);
     }
-    if (errorMessage) {
+    if (errorMessage && odds) {
+      toast.error(errorMessage, { id: 'bet-placed-error' });
       dispatch(messageClear());
     }
-  }, [successMessage, errorMessage, dispatch, onClose]);
+  }, [successMessage, errorMessage, dispatch, onClose, odds]);
 
   return (
     <div className="w-full shadow-2xl rounded-xl border border-gray-700 overflow-hidden flex flex-col">
