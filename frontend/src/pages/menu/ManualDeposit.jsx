@@ -417,8 +417,8 @@ function ManualDeposit() {
               <p className="text-xs text-gray-500 font-semibold tracking-wider mb-2">
                 {t('deposit.amount')} ({sym})
               </p>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+              <div className="flex items-stretch rounded-xl border border-[#252b31] bg-[#141a1f] overflow-hidden focus-within:border-[#19A044]">
+                <span className="shrink-0 flex items-center px-3 sm:px-4 text-sm font-bold text-gray-400 bg-[#1a2127] border-r border-[#252b31]">
                   {sym}
                 </span>
                 <input
@@ -426,24 +426,24 @@ function ManualDeposit() {
                   min={minAmount}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-[#141a1f] border border-[#252b31] rounded-xl py-3 pl-10 pr-24 text-lg font-semibold outline-none focus:border-[#19A044]"
+                  className="min-w-0 flex-1 bg-transparent py-3 px-3 text-lg font-semibold outline-none"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                  {t('deposit.min')} {sym}
-                  {minAmount}
-                </span>
               </div>
+              <p className="mt-1.5 text-xs text-gray-500">
+                {t('deposit.min')} {sym}
+                {minAmount}
+              </p>
               {mainTab === 'mobile_banking' && !isUsdtUser && (
-                <div className="flex gap-2 mt-3">
+                <div className="grid grid-cols-4 gap-2 mt-3">
                   {QUICK_AMOUNTS_BDT.map((q) => (
                     <button
                       key={q}
                       type="button"
                       onClick={() => setAmount(String(q))}
-                      className={`flex-1 py-2 text-sm font-semibold rounded-lg border ${
+                      className={`py-2.5 text-sm font-semibold rounded-xl border transition-colors ${
                         Number(amount) === q
                           ? 'border-[#19A044] text-[#19A044] bg-[#19A044]/10'
-                          : 'border-[#252b31] text-gray-300'
+                          : 'border-[#252b31] text-gray-300 hover:border-[#3a454f]'
                       }`}
                     >
                       {q.toLocaleString()}
@@ -457,39 +457,43 @@ function ManualDeposit() {
                 firstDepositBonus.percent > 0 && (
                   <div className="mt-3 rounded-xl border border-[#19A044]/40 bg-[#19A044]/10 p-3">
                     <p className="text-sm font-semibold text-[#19A044]">
-                      🎁 First deposit bonus — {firstDepositBonus.percent}% extra
+                      🎁 {t('deposit.bonus.title', { percent: firstDepositBonus.percent })}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      On approval you receive deposit + bonus (one time only).
+                      {t('deposit.bonus.onApproval')}
                     </p>
                     {parsedAmount > 0 && (
                       <p className="text-xs text-gray-300 mt-2">
-                        {sym}
-                        {parsedAmount.toLocaleString()} deposit + {sym}
-                        {bonusPreviewAmount.toLocaleString()} bonus ={' '}
+                        {t('deposit.bonus.calcBefore', {
+                          deposit: `${sym}${parsedAmount.toLocaleString()}`,
+                          bonus: `${sym}${bonusPreviewAmount.toLocaleString()}`,
+                        })}{' '}
                         <span className="text-[#19A044] font-bold">
                           {sym}
                           {totalWithBonus.toLocaleString()}
                         </span>{' '}
-                        total
+                        {t('deposit.bonus.calcTotal')}
                       </p>
                     )}
                     {wageringTargetPreview > 0 && (
                       <p className="text-xs text-amber-300/90 mt-2">
-                        Wagering lock: play {sym}
-                        {wageringTargetPreview.toLocaleString()} ({firstDepositBonus.wageringPercent}%
-                        of deposit+bonus) before withdrawal.
+                        {t('deposit.bonus.wageringLock', {
+                          amount: `${sym}${wageringTargetPreview.toLocaleString()}`,
+                          percent: firstDepositBonus.wageringPercent,
+                        })}
                       </p>
                     )}
                   </div>
                 )}
               {requestType === 'deposit' && wagering.withdrawalLocked && (
                 <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-                  <p className="text-sm font-semibold text-amber-300">Wagering in progress</p>
+                  <p className="text-sm font-semibold text-amber-300">{t('deposit.bonus.wageringInProgress')}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {sym}{wagering.currentWageredAmount.toFixed(2)} / {sym}
-                    {wagering.requiredWagering.toFixed(2)} played — {sym}
-                    {wagering.remainingWagering.toFixed(2)} remaining to unlock withdrawal.
+                    {t('deposit.bonus.wageringProgress', {
+                      current: `${sym}${wagering.currentWageredAmount.toFixed(2)}`,
+                      required: `${sym}${wagering.requiredWagering.toFixed(2)}`,
+                      remaining: `${sym}${wagering.remainingWagering.toFixed(2)}`,
+                    })}
                   </p>
                 </div>
               )}
@@ -509,14 +513,15 @@ function ManualDeposit() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">
-                      Send Money to this {methodLabel(mobileMethod)} number
+                      {t('deposit.sendMoneyTo', { method: methodLabel(mobileMethod) })}
                     </p>
                     {loading ? (
                       <p className="text-gray-500 text-sm mt-2">{t('common.loading')}</p>
                     ) : !destinationNumber ? (
                       <p className="text-red-400 text-sm mt-2">
-                        No account configured. Ask admin to add {methodLabel(mobileMethod)}{' '}
-                        accounts.
+                        {t('deposit.noAccountConfigured', {
+                          method: methodLabel(mobileMethod),
+                        })}
                       </p>
                     ) : (
                       <>
@@ -524,8 +529,8 @@ function ManualDeposit() {
                           {formatBdPhoneDisplay(destinationNumber)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {selectedAccount?.details?.accountType || 'Personal'} ·{' '}
-                          {selectedAccount?.details?.note || 'Send Money only'}
+                          {selectedAccount?.details?.accountType || t('deposit.personal')} ·{' '}
+                          {selectedAccount?.details?.note || t('deposit.sendMoneyOnly')}
                         </p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <button
@@ -538,7 +543,7 @@ function ManualDeposit() {
                             }
                             className="px-4 py-1.5 rounded-lg bg-[#19A044] text-white text-sm font-semibold"
                           >
-                            Copy
+                            {t('deposit.copy')}
                           </button>
                           {canChangeDepositNumber && (
                             <button
@@ -552,9 +557,10 @@ function ManualDeposit() {
                           )}
                         </div>
                         <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-                          {methodLabel(mobileMethod)} অ্যাপ খুলে Send Money-তে যান → উপরের নম্বরে
-                          ঠিক {sym}
-                          {parsedAmount || amount} পাঠান।
+                          {t('deposit.sendMoneyHint', {
+                            method: methodLabel(mobileMethod),
+                            amount: `${sym}${parsedAmount || amount}`,
+                          })}
                         </p>
                       </>
                     )}

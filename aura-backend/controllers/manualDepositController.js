@@ -21,7 +21,6 @@ import {
   VALID_DEPOSIT_METHODS,
   DUPLICATE_TRANSACTION_ID_MESSAGE,
   buildDuplicateDepositReferenceFilter,
-  depositScreenshotRequired,
   isMobileBankingMethod,
   validateAdminAccountDetails,
   validateDepositReferenceId,
@@ -458,9 +457,6 @@ export const createManualDepositRequest = async (req, res) => {
         : String(method || '');
     if (!VALID_METHODS.includes(normalizedMethod)) {
       return res.status(400).json({ message: 'Invalid deposit method.' });
-    }
-    if (depositScreenshotRequired() && !uploadedImage) {
-      return res.status(400).json({ message: 'Payment screenshot is required.' });
     }
 
     const user = await SubAdmin.findById(userId);

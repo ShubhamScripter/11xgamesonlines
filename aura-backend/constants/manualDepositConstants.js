@@ -148,6 +148,7 @@ export function validateDepositReferenceId(method, referenceId) {
 }
 
 export function depositScreenshotRequired() {
+  // Payment screenshot UI removed — image is optional if uploaded.
   return false;
 }
 

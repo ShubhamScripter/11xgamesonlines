@@ -7,7 +7,7 @@ export const SECTION_HELP = {
     title: 'bKash deposit account',
     required: ['Account title', 'Mobile number (11 digits)'],
     optional: ['Account type', 'Note shown to user', 'Min deposit amount'],
-    userNeeds: ['Amount', 'Sender bKash number', 'TrxID from SMS', 'Payment screenshot'],
+    userNeeds: ['Amount', 'Sender bKash number', 'TrxID from SMS'],
     distribution:
       'Multiple bKash accounts are shown to users at random so deposits are spread across all numbers.',
   },
@@ -15,7 +15,7 @@ export const SECTION_HELP = {
     title: 'Nagad deposit account',
     required: ['Account title', 'Mobile number (11 digits)'],
     optional: ['Account type', 'Note', 'Min deposit amount'],
-    userNeeds: ['Amount', 'Sender Nagad number', 'TrxID', 'Payment screenshot'],
+    userNeeds: ['Amount', 'Sender Nagad number', 'TrxID'],
     distribution:
       'Multiple Nagad accounts are shown to users at random so deposits are spread across all numbers.',
   },
@@ -23,7 +23,7 @@ export const SECTION_HELP = {
     title: 'Rocket deposit account',
     required: ['Account title', 'Mobile number (11 digits)'],
     optional: ['Account type', 'Note', 'Min deposit amount'],
-    userNeeds: ['Amount', 'Sender Rocket number', 'TrxID', 'Payment screenshot'],
+    userNeeds: ['Amount', 'Sender Rocket number', 'TrxID'],
     distribution:
       'Multiple Rocket accounts are shown to users at random so deposits are spread across all numbers.',
   },
