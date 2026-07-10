@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { IoChevronDown, IoClose } from 'react-icons/io5';
-import { BET_FILTER_OPTIONS } from '../../utils/betCategory';
+import { useTranslation } from '../../i18n/LanguageContext';
+import { getBetFilterOptions } from '../../i18n/i18nHelpers';
 
 function BetTypeFilters({ value = ['all'], onChange, counts = {} }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+
+  const filterOptions = useMemo(() => getBetFilterOptions(t), [t]);
 
   const selected = useMemo(() => {
     const list = Array.isArray(value) ? value : value ? [value] : ['all'];
@@ -50,14 +54,14 @@ function BetTypeFilters({ value = ['all'], onChange, counts = {} }) {
 
   const summaryLabel = useMemo(() => {
     if (selected.includes('all') || selected.length === 0) {
-      return 'All bet types';
+      return t('bet.allBetTypes');
     }
     if (selected.length === 1) {
-      const opt = BET_FILTER_OPTIONS.find((o) => o.key === selected[0]);
-      return opt?.label || 'Filtered';
+      const opt = filterOptions.find((o) => o.key === selected[0]);
+      return opt?.label || t('common.filtered');
     }
-    return `${selected.length} types selected`;
-  }, [selected]);
+    return t('bet.typesSelected', { count: selected.length });
+  }, [selected, filterOptions, t]);
 
   const selectedCount = selected.includes('all') ? 0 : selected.length;
 
@@ -72,7 +76,7 @@ function BetTypeFilters({ value = ['all'], onChange, counts = {} }) {
       >
         <span className="flex flex-col min-w-0 flex-1">
           <span className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
-            Bet type
+            {t('bet.betType')}
           </span>
           <span className="truncate font-medium text-[13px]">{summaryLabel}</span>
         </span>
@@ -98,19 +102,19 @@ function BetTypeFilters({ value = ['all'], onChange, counts = {} }) {
               sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 sm:bottom-auto sm:top-full sm:mt-1 sm:w-full sm:max-h-[min(70vh,320px)] sm:rounded-lg"
           >
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-700 sm:hidden">
-              <span className="text-sm font-semibold text-white">Filter bet types</span>
+              <span className="text-sm font-semibold text-white">{t('bet.filterBetTypes')}</span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="p-2 -mr-1 text-gray-400 touch-manipulation"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <IoClose className="text-xl" />
               </button>
             </div>
 
             <div className="overflow-y-auto overscroll-contain flex-1 p-2 space-y-0.5">
-              {BET_FILTER_OPTIONS.map(({ key, label }) => {
+              {filterOptions.map(({ key, label }) => {
                 const isAll = key === 'all';
                 const checked = isAll
                   ? selected.includes('all') || selected.length === 0
@@ -145,14 +149,14 @@ function BetTypeFilters({ value = ['all'], onChange, counts = {} }) {
                 onClick={selectAllTypes}
                 className="flex-1 min-h-[44px] px-3 py-2 text-xs font-semibold rounded-md border border-gray-600 text-gray-200 touch-manipulation"
               >
-                Select all
+                {t('common.selectAll')}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="flex-1 min-h-[44px] px-3 py-2 text-xs font-semibold rounded-md bg-[#17934e] text-white touch-manipulation"
               >
-                Apply{selectedCount > 0 ? ` (${selectedCount})` : ''}
+                {t('common.apply')}{selectedCount > 0 ? ` (${selectedCount})` : ''}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { formatAppDateTime24 } from '../../utils/time';
 
 function formatHeaderDate(log) {
@@ -27,6 +28,8 @@ function statusClass(status) {
 }
 
 function ActivelogCard({ logdata }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col gap-3 pb-6 mx-auto w-full">
       {logdata.map((log, idx) => {
@@ -45,25 +48,25 @@ function ActivelogCard({ logdata }) {
             </div>
             <div className="divide-y divide-gray-600 text-sm">
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-400">Login Status</span>
+                <span className="text-gray-400">{t('activelog.loginStatus')}</span>
                 <span className={`text-right ${statusClass(log.status)}`}>
                   {log.status || '—'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-400">IP Address</span>
+                <span className="text-gray-400">{t('activelog.ipAddress')}</span>
                 <span className="text-right font-medium text-gray-200 break-all">
                   {log.ip || '—'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-400">ISP</span>
+                <span className="text-gray-400">{t('activelog.isp')}</span>
                 <span className="text-right font-medium text-gray-200 break-all">
                   {isp}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 px-3 py-3">
-                <span className="text-gray-400">City/State/Country</span>
+                <span className="text-gray-400">{t('activelog.location')}</span>
                 <span className="text-right font-medium text-gray-200">
                   {loc || '—'}
                 </span>

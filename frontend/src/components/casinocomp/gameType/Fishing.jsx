@@ -1,9 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { casinoData } from "../data/CasinoData";
+import { useTranslation } from "../../../i18n/LanguageContext";
 
 function Fishing() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fishProviders = Object.entries(casinoData.providers)
     .filter(([_, games]) =>
@@ -24,7 +26,7 @@ function Fishing() {
             className="flex flex-col items-center justify-center py-3 rounded cursor-pointer bg-[#222424] text-gray-400"
           >
             <span className="text-[13px] uppercase font-semibold">
-             {p === "all" ? "All" : p}
+             {p === "all" ? t('casino.all') : p}
             </span>
           </div>
         ))}

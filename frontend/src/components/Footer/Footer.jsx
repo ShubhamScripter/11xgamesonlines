@@ -11,11 +11,14 @@ import depositIcon from '../../assets/icon/icon-deposit.png'
 import profileIcon from '../../assets/icon/icon-profile.png'
 import casinoIcon from '../../assets/icon/icon-casinoColor.png'
 import { useSelector } from 'react-redux';
+import { useTranslation } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../../i18n/LanguageSwitcher';
 
 function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,setProfileOpen, closeHeaderActions = () => {} }) {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useSelector((state) => state.auth);
+    const { t } = useTranslation();
 
     const isItemActive = (item) => {
         if (!item.path) return false;
@@ -26,11 +29,11 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
         return location.pathname.startsWith(item.path);
     };
     const items = [
-        { label: "Menu", icon: menuIcon },
-        { label: "Casino", icon: casinoIcon, path: "/casino/casino/all" },
-        { label: "Home", path: "/", homeIcon: true },
-        { label: "My Bets", icon: depositIcon, path: "/mybets" },
-        ...(user ? [{ label: "Profile", icon: profileIcon }] : [])
+        { id: 'menu', label: t('nav.menu'), icon: menuIcon },
+        { id: 'casino', label: t('nav.casino'), icon: casinoIcon, path: "/casino/casino/all" },
+        { id: 'home', label: t('nav.home'), path: "/", homeIcon: true },
+        { id: 'mybets', label: t('nav.myBets'), icon: depositIcon, path: "/mybets" },
+        ...(user ? [{ id: 'profile', label: t('nav.profile'), icon: profileIcon }] : [])
     ];
 
     useEffect(() => {
@@ -58,11 +61,11 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
                 <div className="h-20 w-full flex justify-around items-center">
                     {items.map(item => (
                         <div
-                            key={item.label}
+                            key={item.id}
                             onClick={() => {
-                                if (item.label === "Menu") {
+                                if (item.id === "menu") {
                                     openMenu();
-                                } else if (item.label === "Profile") {
+                                } else if (item.id === "profile") {
                                     openProfile();
                                 } else {
                                     setActiveTab(item.path);
@@ -73,7 +76,7 @@ function Footer({ activeTab, setActiveTab , menuOpen, setMenuOpen, profileOpen,s
                                 }
                             }}
                             className={`flex flex-col justify-center items-center cursor-pointer
-                                ${item.label === "Menu" && menuOpen ? 'text-[#19A044]' : item.label === "Profile" && profileOpen ? 'text-[#19A044]' : isItemActive(item) ? 'text-[#19A044]' : 'text-gray-400'}
+                                ${item.id === "menu" && menuOpen ? 'text-[#19A044]' : item.id === "profile" && profileOpen ? 'text-[#19A044]' : isItemActive(item) ? 'text-[#19A044]' : 'text-gray-400'}
                             `}
                         >
                             {item.homeIcon ? (

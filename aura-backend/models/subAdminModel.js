@@ -106,6 +106,12 @@ const subAdminSchema = new mongoose.Schema(
       type: String,
       default: 'blueGreen',
     },
+    /** User app UI language: English, Bengali, Hindi */
+    preferredLanguage: {
+      type: String,
+      enum: ['en', 'bn', 'hn'],
+      default: 'en',
+    },
   },
   { timestamps: true }
 );

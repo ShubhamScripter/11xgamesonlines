@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchCricketData } from "../../features/sports/cricketSlice";
 import { fetchSoccerData } from "../../features/sports/soccerSlice";
 import { fetchTennisData } from "../../features/sports/tennisSlice";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 const sportRouteFor = (sport) => {
   if (sport === "cricket") return (m) => `/sports/fullmarket/${encodeURIComponent(m.match)}/${m.id}`;
@@ -17,6 +18,7 @@ const sportRouteFor = (sport) => {
 function All({ selected, setSelected }) {
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const { t } = useTranslation();
     const cricket = useSelector((s) => s.cricket?.matches || []);
     const soccer = useSelector((s) => s.soccer?.soccerData || []);
     const tennis = useSelector((s) => s.tennis?.data || []);
@@ -37,7 +39,7 @@ function All({ selected, setSelected }) {
     const leagues = useMemo(() => {
       const map = new Map();
       for (const m of allMatches) {
-        const key = (m?.title || m?.cname || "Unknown League").toString().trim() || "Unknown League";
+        const key = (m?.title || m?.cname || t('leagues.unknownLeague')).toString().trim() || t('leagues.unknownLeague');
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(m);
       }
@@ -45,7 +47,7 @@ function All({ selected, setSelected }) {
       return [...map.entries()]
         .map(([title, matches]) => ({ title, matches }))
         .sort((a, b) => b.matches.length - a.matches.length);
-    }, [allMatches]);
+    }, [allMatches, t]);
 
     if (selected) {
       const selectedLeague = leagues.find((l) => l.title === selected);
@@ -62,14 +64,14 @@ function All({ selected, setSelected }) {
           className="mb-4 px-4 py-2 bg-[#19A044] text-white rounded"
           onClick={() => setSelected(null)}
         >
-          Back
+          {t('leagues.back')}
         </button>
         <h3 className='text-xl font-semibold'>{selected}</h3>
         </div>
         <div className='bg-[#f0f8ff]'>
         <div className='p-2 flex flex-col gap-1'>
             {matches.length === 0 ? (
-              <div className="bg-white p-4 rounded-lg text-center">No matches</div>
+              <div className="bg-white p-4 rounded-lg text-center">{t('leagues.noMatches')}</div>
             ) : (
               matches.map((m, idx) => (
                 <div
@@ -81,7 +83,7 @@ function All({ selected, setSelected }) {
                   }}
                 >
                   <span className="text-xs bg-[#e2eaef] w-fit pl-2 pr-2">
-                    {m.date || "-"} &nbsp; Matched{m.matched ?? 0}
+                    {m.date || "-"} &nbsp; {t('leagues.matched')}{m.matched ?? 0}
                   </span>
                   <div className="flex justify-between items-center">
                     <span className="md:text-xl">{m.match}</span>
@@ -99,7 +101,7 @@ function All({ selected, setSelected }) {
   return (
     <div className='bg-[#f0f8ff] min-h-[80vh]'>
         <div className='p-4 flex flex-col gap-1'>
-            <h3 className='text-xl font-semibold mb-2'>Popular</h3>
+            <h3 className='text-xl font-semibold mb-2'>{t('leagues.popular')}</h3>
             {leagues.map((l) => (
               <div
                 key={l.title}

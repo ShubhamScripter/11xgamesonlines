@@ -19,6 +19,7 @@ import {
   mapSportsBetForCard,
   sortBetsByTimeDesc,
 } from '../../utils/betCategory';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 
 
@@ -30,6 +31,7 @@ const FETCH_LIMIT = 500;
 
 function BetHistory() {
 
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
@@ -194,7 +196,7 @@ function BetHistory() {
 
   return (
 
-    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full pb-24">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full min-w-0 pb-8">
 
       <div className="bg-[#000] h-10 flex items-center">
 
@@ -204,7 +206,7 @@ function BetHistory() {
 
         </div>
 
-        <span className="text-[18px] font-bold">My Bets</span>
+        <span className="text-[18px] font-bold">{t('page.myBets')}</span>
 
       </div>
 
@@ -220,7 +222,7 @@ function BetHistory() {
 
           <div className="flex justify-center items-center h-64">
 
-            <div className="text-lg font-semibold text-gray-600">Loading bet history...</div>
+            <div className="text-lg font-semibold text-gray-600">{t('page.loadingBetHistory')}</div>
 
           </div>
 
@@ -228,7 +230,7 @@ function BetHistory() {
 
           <div className="flex justify-center items-center h-64">
 
-            <div className="text-lg font-semibold text-red-600">Error: {errorMessage}</div>
+            <div className="text-lg font-semibold text-red-600">{t('common.error', { message: errorMessage })}</div>
 
           </div>
 
@@ -254,13 +256,13 @@ function BetHistory() {
 
                 >
 
-                  Previous
+                  {t('common.previous')}
 
                 </button>
 
                 <span>
 
-                  Page {currentPage} of {totalPages} · {filteredBets.length} bets
+                  {t('common.pageBets', { current: currentPage, total: totalPages, count: filteredBets.length })}
 
                 </span>
 
@@ -276,7 +278,7 @@ function BetHistory() {
 
                 >
 
-                  Next
+                  {t('common.next')}
 
                 </button>
 

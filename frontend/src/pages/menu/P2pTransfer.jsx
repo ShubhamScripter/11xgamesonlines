@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { MdArrowBackIos } from 'react-icons/md';
-import HeaderLogin from '../../components/Header/HeaderLogin';
 import { BsCopy } from 'react-icons/bs';
 import { ToastContainer, toast } from 'react-toastify';
 import { getUser } from '../../features/auth/authSlice';
 import api from '../../utils/axiosConfig';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function P2pTransfer() {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
 
@@ -42,11 +43,11 @@ function P2pTransfer() {
     e.preventDefault();
     const amt = Number(transferAmount);
     if (!walletId.trim()) {
-      toast.error('Enter recipient wallet ID');
+      toast.error(t('page.p2p.enterRecipient'));
       return;
     }
     if (!Number.isFinite(amt) || amt < 0.01) {
-      toast.error('Enter a valid amount (min 0.01)');
+      toast.error(t('page.p2p.invalidAmount'));
       return;
     }
 
@@ -57,14 +58,14 @@ function P2pTransfer() {
         amount: amt,
         remark: remark.trim(),
       });
-      toast.success('Transfer successful');
+      toast.success(t('page.p2p.success'));
       clearForm();
       await dispatch(getUser());
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        'Transfer failed';
+        t('page.p2p.failed');
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -73,18 +74,17 @@ function P2pTransfer() {
 
   return (
     <div>
-      <HeaderLogin />
       <div className="bg-[#000] h-10 flex items-center px-5 relative">
         <div onClick={() => window.history.back()}>
           <MdArrowBackIos className="text-white text-2xl font-semibold" />
         </div>
         <span className="text-white text-sm  md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
-          P2P Transfer
+          {t('page.p2p.title')}
         </span>
       </div>
       <div className="bg-[#f1f7ff] min-h-[80vh]">
         <div className="p-2">
-          <h3 className="p-2 text-lg font-semibold">My Wallet Id</h3>
+          <h3 className="p-2 text-lg font-semibold">{t('page.p2p.myWalletId')}</h3>
           <div className="bg-white rounded-lg p-4 m-2 flex gap-2 items-center">
             <div className="bg-[#d4e0e5] flex-1 p-2 rounded-lg break-all">
               {myWalletId || '—'}
@@ -95,7 +95,7 @@ function P2pTransfer() {
               disabled={!myWalletId}
               onClick={() => {
                 navigator.clipboard.writeText(myWalletId);
-                toast.success('Copied to clipboard');
+                toast.success(t('common.copied'));
               }}
             >
               <BsCopy className="text-2xl" />
@@ -103,7 +103,7 @@ function P2pTransfer() {
           </div>
         </div>
         <div className="p-2">
-          <h3 className="p-2 text-lg font-semibold">Transfer To</h3>
+          <h3 className="p-2 text-lg font-semibold">{t('page.p2p.transferTo')}</h3>
           <div className="bg-white rounded-lg p-4 m-2  gap-2 items-center">
             <form onSubmit={handleSubmit}>
               <div
@@ -117,7 +117,7 @@ function P2pTransfer() {
                       : 'top-1/2 transform -translate-y-1/2 text-gray-400'}
                   `}
                 >
-                  Recipient wallet ID
+                  {t('page.p2p.recipientId')}
                 </label>
                 <input
                   type="text"
@@ -143,7 +143,7 @@ function P2pTransfer() {
                       : 'top-1/2 transform -translate-y-1/2 text-gray-400'}
                   `}
                 >
-                  Transfer Amount
+                  {t('page.p2p.amount')}
                 </label>
                 <input
                   type="number"
@@ -169,7 +169,7 @@ function P2pTransfer() {
                       : 'top-1/2 transform -translate-y-1/2 text-gray-400'}
                   `}
                 >
-                  Remark
+                  {t('page.p2p.remark')}
                 </label>
                 <input
                   type="text"
@@ -188,14 +188,14 @@ function P2pTransfer() {
                   onClick={clearForm}
                   disabled={submitting}
                 >
-                  Clear
+                  {t('common.clear')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="flex-1 border rounded-lg  px-2 py-3 mb-6 bg-yellow-400 font-semibold transition-colors duration-300 ease-in hover:bg-white border-[#19A044] disabled:opacity-60 "
                 >
-                  {submitting ? 'Please wait…' : 'Transfer'}
+                  {submitting ? t('common.pleaseWait') : t('common.transfer')}
                 </button>
               </div>
             </form>

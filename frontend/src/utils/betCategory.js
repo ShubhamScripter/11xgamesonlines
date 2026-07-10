@@ -1,4 +1,5 @@
 import { formatAppDateTime } from './time';
+import { getBetCategoryLabel } from '../i18n/i18nHelpers';
 
 /** @typedef {'all'|'casino'|'match_odds'|'bookmaker'|'fancy'|'premium'} BetFilterKey */
 
@@ -76,7 +77,7 @@ export function getSportsBetCategory(bet) {
   return 'other';
 }
 
-export function mapSportsBetForCard(bet, { unsettledOnly = false } = {}) {
+export function mapSportsBetForCard(bet, { unsettledOnly = false, t } = {}) {
   if (!bet) return null;
   const status = Number(bet.status);
   if (unsettledOnly && status !== 0) return null;
@@ -88,7 +89,9 @@ export function mapSportsBetForCard(bet, { unsettledOnly = false } = {}) {
   return {
     betKind: 'sports',
     betCategory: category,
-    categoryLabel: BET_CATEGORY_LABELS[category] || BET_CATEGORY_LABELS.other,
+    categoryLabel: t
+      ? getBetCategoryLabel(t, category)
+      : BET_CATEGORY_LABELS[category] || BET_CATEGORY_LABELS.other,
     gameType: bet.gameType || '',
     betSource: bet.betSource || null,
     id: bet._id || bet.id || `sports-${created.getTime()}`,
@@ -106,13 +109,20 @@ export function mapSportsBetForCard(bet, { unsettledOnly = false } = {}) {
     time: formatAppDateTime(created),
     placedTs: created.getTime(),
     selection: bet.teamName || '',
-    otype: bet.otype === 'back' ? 'Back' : 'Lay',
+    otype:
+      bet.otype === 'back'
+        ? t
+          ? t('bet.back')
+          : 'Back'
+        : t
+          ? t('bet.lay')
+          : 'Lay',
     betResult: bet.betResult || '—',
     fancyScore: bet.fancyScore ?? bet.fancy_score ?? null,
   };
 }
 
-export function mapCasinoBetForCard(bet, idx = 0, { unsettledOnly = false } = {}) {
+export function mapCasinoBetForCard(bet, idx = 0, { unsettledOnly = false, t } = {}) {
   if (!bet) return null;
   if (unsettledOnly) return null;
 
@@ -122,12 +132,12 @@ export function mapCasinoBetForCard(bet, idx = 0, { unsettledOnly = false } = {}
   return {
     betKind: 'casino',
     betCategory: 'casino',
-    categoryLabel: BET_CATEGORY_LABELS.casino,
+    categoryLabel: t ? getBetCategoryLabel(t, 'casino') : BET_CATEGORY_LABELS.casino,
     id: bet._id || bet.game_round || `casino-${idx}`,
     gameName:
       (bet.game_name && String(bet.game_name).trim()) ||
       bet.game_uid ||
-      'Casino',
+      (t ? t('bet.filter.casino') : 'Casino'),
     betAmount: Number(bet.bet_amount ?? 0),
     profitLoss:
       bet?.change >= 0

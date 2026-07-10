@@ -14,8 +14,10 @@ import SportsBetting from "../../components/casinocomp/gameType/SportsBetting";
 import Sports from "../../components/sports/Sports";
 import MostRatedGames from "../../components/casinocomp/mostRated/MostRatedGames";
 import ExclusiveGames from "../../components/casinocomp/exclusive/ExclusiveGames";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function Home() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState("Popular");
 
   let content;
@@ -40,12 +42,12 @@ function Home() {
     content = <Lottery />;
   } else {
     content = (
-      <div className="p-4 text-gray-400 bg-[#141515]">No Games for {selected}</div>
+      <div className="p-4 text-gray-400 bg-[#141515]">{t('home.noGamesFor', { category: selected })}</div>
     );
   }
 
   return (
-    <div className="bg-[#141515] min-h-screen">
+    <div className="bg-[#141515] min-h-screen w-full min-w-0 overflow-x-hidden">
       <Slider />
       <Category active={selected} setActive={setSelected} />
       {content}

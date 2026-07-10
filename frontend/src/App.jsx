@@ -87,7 +87,7 @@ function App() {
     <div className="relative flex justify-center items-center">
       <div className="w-full flex flex-col shadow-lg bg-[#141515] relative">
         <Toaster position="top-right" reverseOrder={false} />
-        <main className='flex-grow no-scrollbar fixed w-full'>
+        <main className='flex-grow no-scrollbar w-full min-h-screen'>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />

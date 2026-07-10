@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { fetchCricketBatingData } from '../../features/sports/cricketSlice';
 import { fetchSoccerBatingData } from '../../features/sports/soccerSlice';
 import { fetchTannisBatingData } from '../../features/sports/tennisSlice';
@@ -62,6 +63,7 @@ function OddsColumn({ column }) {
 const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const handleClick = () => {
     const route = sportType === 'cricket' ? 'fullmarket' : sportType;
@@ -102,7 +104,7 @@ const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
             </p>
             {live && (
               <span className="bg-red-600 text-white text-[9px] leading-none px-1.5 py-1 rounded-sm font-bold shrink-0 uppercase tracking-wide">
-                In Play
+                {t('common.inPlay')}
               </span>
             )}
           </div>
@@ -131,7 +133,7 @@ const MatchRow = ({ match, sportType, hideOdds = false, columnLabels }) => {
           {live && (
             <span className="shrink-0 inline-flex items-center gap-0.5 rounded px-1 py-0.5 bg-red-600/90 text-white text-[7px] font-bold uppercase">
               <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              In Play
+              {t('common.inPlay')}
             </span>
           )}
         </div>

@@ -6,9 +6,11 @@ import { toast } from 'react-hot-toast';
 import api from '../../utils/axiosConfig';
 import { currencySymbol } from '../../utils/currency';
 import { formatIST } from '../../utils/time';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function Referral() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
@@ -20,7 +22,7 @@ function Referral() {
         if (!cancelled) setData(res?.data?.data || null);
       } catch (err) {
         if (!cancelled) {
-          toast.error(err?.response?.data?.message || 'Failed to load referrals');
+          toast.error(err?.response?.data?.message || t('page.referral.fetchFailed'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -29,16 +31,16 @@ function Referral() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const copyLink = async () => {
     const link = data?.referralLink || '';
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
-      toast.success('Referral link copied');
+      toast.success(t('page.referral.linkCopied'));
     } catch {
-      toast.error('Could not copy');
+      toast.error(t('common.copyFailed'));
     }
   };
 
@@ -50,29 +52,28 @@ function Referral() {
         <button type="button" onClick={() => navigate(-1)} className="text-gray-300">
           <MdArrowBackIos />
         </button>
-        <h1 className="text-lg font-bold">My Referrals</h1>
+        <h1 className="text-lg font-bold">{t('page.referral.title')}</h1>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
         {loading ? (
-          <p className="text-center text-gray-400 py-10">Loading...</p>
+          <p className="text-center text-gray-400 py-10">{t('common.loading')}</p>
         ) : !data ? (
-          <p className="text-center text-gray-400 py-10">Unable to load referral data</p>
+          <p className="text-center text-gray-400 py-10">{t('page.referral.loadFailed')}</p>
         ) : (
           <>
             {!data.enabled ? (
               <div className="rounded-2xl border border-amber-700/40 bg-amber-900/20 p-4 text-sm text-amber-100">
-                Referral rewards are currently off. You can still share your link —
-                commission will start when admin enables the module.
+                {t('page.referral.offNotice')}
               </div>
             ) : (
               <div className="rounded-2xl border border-[#19A044]/40 bg-[#19A044]/10 p-4 text-sm text-green-100">
-                Earn {data.commissionPercent}% when someone you referred loses a bet.
+                {t('page.referral.earnNotice', { percent: data.commissionPercent })}
               </div>
             )}
 
             <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] p-4 space-y-3">
-              <p className="text-sm text-gray-400">Your referral code</p>
+              <p className="text-sm text-gray-400">{t('page.referral.yourCode')}</p>
               <p className="text-2xl font-mono font-bold tracking-widest text-[#19A044]">
                 {data.myCode || '—'}
               </p>
@@ -82,19 +83,19 @@ function Referral() {
                 onClick={copyLink}
                 className="w-full flex items-center justify-center gap-2 bg-[#19A044] text-white font-bold py-3 rounded-xl"
               >
-                <FiCopy /> Copy invite link
+                <FiCopy /> {t('page.referral.copyLink')}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] p-4">
                 <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
-                  <FiUsers /> Referred
+                  <FiUsers /> {t('page.referral.referred')}
                 </div>
                 <p className="text-2xl font-bold">{data.totalReferred || 0}</p>
               </div>
               <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] p-4">
-                <p className="text-gray-400 text-xs mb-1">Commission earned</p>
+                <p className="text-gray-400 text-xs mb-1">{t('page.referral.commissionEarned')}</p>
                 <p className="text-2xl font-bold text-[#19A044]">
                   {sym} {Number(data.totalCommissionEarned || 0).toFixed(2)}
                 </p>
@@ -103,11 +104,11 @@ function Referral() {
 
             <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] overflow-hidden">
               <div className="px-4 py-3 border-b border-[#252b31] font-semibold">
-                People you referred
+                {t('page.referral.peopleReferred')}
               </div>
               {(data.referredUsers || []).length === 0 ? (
                 <p className="p-4 text-sm text-gray-500">
-                  No one has signed up with your link yet.
+                  {t('page.referral.noReferrals')}
                 </p>
               ) : (
                 <ul className="divide-y divide-[#252b31]">
@@ -116,14 +117,14 @@ function Referral() {
                       <div>
                         <p className="font-semibold">{u.userName}</p>
                         <p className="text-xs text-gray-500">
-                          Joined {u.joinedAt ? formatIST(u.joinedAt) : '—'}
+                          {t('page.referral.joined', { date: u.joinedAt ? formatIST(u.joinedAt) : '—' })}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-[#19A044] font-semibold">
                           {sym} {Number(u.commissionEarned || 0).toFixed(2)}
                         </p>
-                        <p className="text-[11px] text-gray-500">from you</p>
+                        <p className="text-[11px] text-gray-500">{t('page.referral.fromYou')}</p>
                       </div>
                     </li>
                   ))}
@@ -134,13 +135,13 @@ function Referral() {
             {(data.recentCommissions || []).length > 0 ? (
               <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#252b31] font-semibold">
-                  Recent commission
+                  {t('page.referral.recentCommission')}
                 </div>
                 <ul className="divide-y divide-[#252b31]">
                   {data.recentCommissions.map((c) => (
                     <li key={c._id} className="px-4 py-3 flex justify-between gap-3 text-sm">
                       <div>
-                        <p>{c.userName} lost {sym} {Number(c.userLossAmount).toFixed(2)}</p>
+                        <p>{t('page.referral.userLost', { userName: c.userName, amount: `${sym} ${Number(c.userLossAmount).toFixed(2)}` })}</p>
                         <p className="text-xs text-gray-500">
                           {c.createdAt ? formatIST(c.createdAt) : '—'} · {c.commissionPercent}%
                         </p>

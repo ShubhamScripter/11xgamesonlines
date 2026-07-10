@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { MdPlayArrow, MdKeyboardArrowRight } from "react-icons/md";
 import DetailsCard from "./DetailsCard";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function Exchange({ betdata }) {
+  const { t } = useTranslation();
   const [showdetails, setshowdetails] = useState(false);
   const [selectedBet, setSelectedBet] = useState(null);
 
@@ -11,8 +13,8 @@ function Exchange({ betdata }) {
       {betdata.length === 0 && (
         <div className="flex flex-col gap-4 pt-4">
           <div className="bg-white p-4 rounded-lg shadow-md">
-            <h2 className="text-lg font-semibold">Bet Details</h2>
-            <p className="text-gray-700">No current bets available.</p>
+            <h2 className="text-lg font-semibold">{t('parlay.betDetails')}</h2>
+            <p className="text-gray-700">{t('parlay.noCurrentBets')}</p>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import banner1 from '../../assets/mainhome/banner1.webp';
 import banner2 from '../../assets/mainhome/banner2.webp';
 import banner3 from '../../assets/mainhome/banner3.webp';
 import banner4 from '../../assets/mainhome/banner4.webp';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const bannerImages = {
   All: banner1,
@@ -19,8 +20,16 @@ const SPORT_PATHS = {
   Tennis: '/tennis',
 };
 
+const SPORT_LABEL_KEYS = {
+  All: 'home.all',
+  Cricket: 'home.cricket',
+  Soccer: 'home.soccer',
+  Tennis: 'home.tennis',
+};
+
 function Inplay({ data }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const banners = [
     { name: 'All', total: data.all.length },
@@ -41,7 +50,7 @@ function Inplay({ data }) {
           }
         >
           <div className="flex flex-col p-3">
-            <span className="text-[17px] font-semibold">{banner.name}</span>
+            <span className="text-[17px] font-semibold">{t(SPORT_LABEL_KEYS[banner.name])}</span>
             <span className="text-[40px] font-bold">{banner.total}</span>
           </div>
         </div>

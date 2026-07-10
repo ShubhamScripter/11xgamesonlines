@@ -12,7 +12,8 @@ import Inplay from './Inplay';
 import Today from './Today';
 import Tomorrow from './Tomorrow';
 import Spinner from '../Spinner';
-// Utility: safely parse date to YYYY-MM-DD
+import { useTranslation } from '../../i18n/LanguageContext';
+
 const normalizeDate = (dateString) => {
   if (!dateString) return null;
   try {
@@ -38,27 +39,24 @@ const filterMatches = (matches, filterType) => {
   return matches;
 };
 
-const categories = [
-  { name: "In Play", icon: <IoAlarmSharp size={35} /> },
-  { name: "Today", icon: <FaCalendar size={35} /> },
-  { name: "Tomorrow", icon: <FaCalendarAlt size={35} /> },
-  { name: "League", icon: <HiTrophy size={35} /> },
-  { name: "Parlay", icon: <ImShield size={35} /> },
-];
-
 function Main() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const cricket = useSelector(state => state.cricket.matches || []);
   const soccer = useSelector(state => state.soccer.soccerData || []);
   const tennis = useSelector(state => state.tennis.data || []);
 
-  // const cricket = []
-  // const soccer = []
-  // const tennis = []
-
   const [Filter, setFilter] = useState("In Play");
+
+  const categories = [
+    { id: "In Play", labelKey: "home.inPlay", icon: <IoAlarmSharp size={35} /> },
+    { id: "Today", labelKey: "home.today", icon: <FaCalendar size={35} /> },
+    { id: "Tomorrow", labelKey: "home.tomorrow", icon: <FaCalendarAlt size={35} /> },
+    { id: "League", labelKey: "home.league", icon: <HiTrophy size={35} /> },
+    { id: "Parlay", labelKey: "home.parlay", icon: <ImShield size={35} /> },
+  ];
 
   useEffect(() => {
     dispatch(fetchCricketData());
@@ -66,7 +64,6 @@ function Main() {
     dispatch(fetchTennisData());
   }, [dispatch]);
 
-  // If data hasn't loaded yet, show loading
   if (
     !cricket.length &&
     !soccer.length &&
@@ -79,6 +76,11 @@ function Main() {
   const cricketInplay = cricket.filter(m => m?.inplay === true);
   const soccerInplay = soccer.filter(m => m?.inplay === true || m?.iplay === true);
   const tennisInplay = tennis.filter(m => m?.inplay === true || m?.iplay === true);
+  const allInplaySports = [
+    ...cricketInplay,
+    ...soccerInplay,
+    ...tennisInplay,
+  ];
 
   const filteredData = {
     all: Filter === "In Play" ? allInplaySports : filterMatches(allSports, Filter),
@@ -102,22 +104,20 @@ function Main() {
 
   return (
     <div className='bg-[#f0f8ff] w-full flex gap-1'>
-      {/* Sidebar */}
       <div className='bg-white flex flex-col p-1 ml-2 mt-2 rounded-2xl gap-4 h-fit'>
         {categories.map((cat) => (
           <div
-            key={cat.name}
+            key={cat.id}
             className={`flex flex-col items-center justify-center p-1 rounded-md cursor-pointer
-            ${Filter === cat.name ? 'bg-[#19A044] text-white' : ''}`}
-            onClick={() => setFilter(cat.name)}
+            ${Filter === cat.id ? 'bg-[#19A044] text-white' : ''}`}
+            onClick={() => setFilter(cat.id)}
           >
             {cat.icon}
-            <span className='text-[10px]'>{cat.name}</span>
+            <span className='text-[10px]'>{t(cat.labelKey)}</span>
           </div>
         ))}
       </div>
 
-      {/* Content */}
       <div className='flex-1 h-full flex-col p-1 mt-1 mb-2 rounded-2xl gap-4'>
         {content}
       </div>

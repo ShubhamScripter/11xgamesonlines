@@ -8,6 +8,7 @@ import SportsBookCardArt from "../sports/SportsBookCardArt";
 import { launchCasinoGameForUser } from "../../services/casinoService";
 import { motion } from "framer-motion";
 import { IoIosArrowDown } from "react-icons/io";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 import slot from '../../assets/icon/icon-slot.png'
 import slotColor from '../../assets/icon/icon-slotColor.png'
@@ -25,6 +26,7 @@ import tableColor from '../../assets/icon/icon-tableColor.png'
 function CasinoProvider() {
   const { category, provider } = useParams();
   const { user } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [gameOption, setGameOption] = useState(false);
   const navigate = useNavigate();
@@ -34,13 +36,13 @@ function CasinoProvider() {
       : casinoData.providers?.[provider];
 
   const categoryDisplay = {
-    slot: "Slots",
-    casino: "Casino",
-    table: "Table",
-    fishing: "Fishing",
-    arcade: "Arcade",
-    crash: "Crash",
-    sports: "Sports",
+    slot: t('casino.slots'),
+    casino: t('casino.casino'),
+    table: t('casino.table'),
+    fishing: t('casino.fishing'),
+    arcade: t('casino.arcade'),
+    crash: t('casino.crash'),
+    sports: t('casino.sports'),
   };
 
 const categoryIcons = {
@@ -61,11 +63,11 @@ const categoryIconsColor = {
   crash: crashColor,
 };
 
-  const categoryLabel = categoryDisplay[category] || "Slots";
+  const categoryLabel = categoryDisplay[category] || t('casino.slots');
   const categoryOptions = Object.entries(categoryDisplay);
 
   if (!games) {
-    return <div className="text-white">Invalid provider</div>;
+    return <div className="text-white">{t('casino.invalidProvider')}</div>;
   }
 
     const filteredGames = games.filter((game) => {
@@ -82,17 +84,17 @@ const categoryIconsColor = {
 
   const handleGameClick = async (game) => {
     if (!user) {
-      toast.error("Please login");
+      toast.error(t('casino.pleaseLogin'));
       return;
     }
 
     setLoading(true);
     try {
       const res = await launchCasinoGameForUser(user, game.game_uid);
-      toast.success(`${game.game_name} launching…`);
+      toast.success(t('casino.launching', { name: game.game_name }));
       window.location.assign(res.gameUrl);
     } catch (err) {
-      toast.error(err.message || "Game launch failed");
+      toast.error(err.message || t('casino.launchFailed'));
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,7 @@ const categoryIconsColor = {
   if (!filteredGames.length) {
     return (
       <div className="text-white text-center mt-10">
-        No games found
+        {t('casino.noGamesFound')}
       </div>
     );
   }
@@ -143,7 +145,7 @@ const categoryIconsColor = {
           </motion.div>
         )}
       </div>
-      <div className="p-4 grid grid-cols-3 md:grid-cols-8 gap-2">
+      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-2">
         {loading && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/40">
             <Spinner />

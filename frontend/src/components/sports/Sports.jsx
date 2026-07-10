@@ -12,12 +12,13 @@ import {
 } from "../../utils/sportOddsUtils";
 import { persistHomeSportsCache } from "../../utils/homeSportsHydrate";
 import { isMatchInPlay } from "../../utils/sportMatchFilters";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./Sports.css";
 
 const SIDEBAR_SPORTS = [
-  { id: "CRICKET", label: "Cricket", Icon: GiCricketBat },
-  { id: "TENNIS", label: "Tennis", Icon: GiTennisBall },
-  { id: "FOOTBALL", label: "Football", Icon: GiSoccerBall },
+  { id: "CRICKET", labelKey: "menu.cricket", Icon: GiCricketBat },
+  { id: "TENNIS", labelKey: "menu.tennis", Icon: GiTennisBall },
+  { id: "FOOTBALL", labelKey: "menu.football", Icon: GiSoccerBall },
 ];
 
 const SPORT_ICONS = {
@@ -134,7 +135,7 @@ function OddsPair({ back, lay }) {
   );
 }
 
-function CricketMatchCard({ match, onClick }) {
+function CricketMatchCard({ match, onClick, sportLabel, inPlayLabel, matchOddsLabel }) {
   const [team1, team2] = parseTeamNames(match.teams);
   const o0 = match.odds?.[0];
   const o2 = match.odds?.[2] || match.odds?.[1];
@@ -156,11 +157,11 @@ function CricketMatchCard({ match, onClick }) {
           <span className="sport-icon">
             <GiCricketBat />
           </span>
-          <span className="sport-info-sport">Cricket</span>
+          <span className="sport-info-sport">{sportLabel}</span>
           <span className="sport-info-league">{match.league}</span>
         </div>
         {isMatchInPlay(match.raw, 'cricket') ? (
-          <span className="live-tag live-tag--active">In Play</span>
+          <span className="live-tag live-tag--active">{inPlayLabel}</span>
         ) : null}
       </div>
 
@@ -187,7 +188,7 @@ function CricketMatchCard({ match, onClick }) {
         </div>
 
         <div className="cricket-match-odds">
-          <div className="match-odds-label">Match Odds</div>
+          <div className="match-odds-label">{matchOddsLabel}</div>
           <div className="odds-container odds-container--match">
             {hasOdds(o0) || hasOdds(o2) ? (
               <>
@@ -213,7 +214,7 @@ function CricketMatchCard({ match, onClick }) {
   );
 }
 
-function SoccerMatchCard({ match, onClick }) {
+function SoccerMatchCard({ match, onClick, sportLabel, inPlayLabel, matchOddsLabel }) {
   const o0 = match.odds?.[0];
   const o1 = match.odds?.[1];
   const o2 = match.odds?.[2];
@@ -236,11 +237,11 @@ function SoccerMatchCard({ match, onClick }) {
           <span className="sport-icon">
             <GiSoccerBall />
           </span>
-          <span className="sport-info-sport">Football</span>
+          <span className="sport-info-sport">{sportLabel}</span>
           <span className="sport-info-league">{match.league}</span>
         </div>
         {isMatchInPlay(match.raw, 'soccer') ? (
-          <span className="live-tag live-tag--active">In Play</span>
+          <span className="live-tag live-tag--active">{inPlayLabel}</span>
         ) : null}
       </div>
       <div className="match-card-body">
@@ -249,7 +250,7 @@ function SoccerMatchCard({ match, onClick }) {
           <span className="match-time-text">{match.time}</span>
         </div>
         <div className="match-card-odds-footer">
-          <div className="match-odds-label">Match Odds</div>
+          <div className="match-odds-label">{matchOddsLabel}</div>
           <div className="odds-container">
             {hasOdds(o0) || hasOdds(o1) || hasOdds(o2) ? (
               <>
@@ -275,17 +276,37 @@ function SoccerMatchCard({ match, onClick }) {
   );
 }
 
-function MatchCard({ match, onClick }) {
+function MatchCard({ match, onClick, labels }) {
   const SportIcon = SPORT_ICONS[match.sport] || GiSoccerBall;
   const visibleOdds = (match.odds || []).filter(hasRealOdds);
+  const { inPlayLabel, matchOddsLabel, cricket: cricketLabel, football: footballLabel, tennis: tennisLabel } = labels;
 
   if (match.sport === "CRICKET") {
-    return <CricketMatchCard match={match} onClick={onClick} />;
+    return (
+      <CricketMatchCard
+        match={match}
+        onClick={onClick}
+        sportLabel={cricketLabel}
+        inPlayLabel={inPlayLabel}
+        matchOddsLabel={matchOddsLabel}
+      />
+    );
   }
 
   if (match.sport === "FOOTBALL") {
-    return <SoccerMatchCard match={match} onClick={onClick} />;
+    return (
+      <SoccerMatchCard
+        match={match}
+        onClick={onClick}
+        sportLabel={footballLabel}
+        inPlayLabel={inPlayLabel}
+        matchOddsLabel={matchOddsLabel}
+      />
+    );
   }
+
+  const sportLabel =
+    match.sport === "TENNIS" ? tennisLabel : match.sport;
 
   return (
     <div
@@ -300,12 +321,12 @@ function MatchCard({ match, onClick }) {
           <span className="sport-icon">
             <SportIcon />
           </span>
-          <span className="sport-info-sport">{match.sport}</span>
+          <span className="sport-info-sport">{sportLabel}</span>
           <span className="sport-info-divider">|</span>
           <span className="sport-info-league">{match.league}</span>
         </div>
         {isMatchInPlay(match.raw, match.sport === 'TENNIS' ? 'tennis' : 'soccer') ? (
-          <span className="live-tag live-tag--active">In Play</span>
+          <span className="live-tag live-tag--active">{inPlayLabel}</span>
         ) : null}
       </div>
       <div className="match-card-body">
@@ -340,8 +361,32 @@ function MatchCard({ match, onClick }) {
 const Sports = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [activeSport, setActiveSport] = useState("CRICKET");
   const [activeLeague, setActiveLeague] = useState("ALL");
+
+  const cardLabels = useMemo(
+    () => ({
+      inPlayLabel: t("sports.inPlay"),
+      matchOddsLabel: t("sports.matchOdds"),
+      cricket: t("menu.cricket"),
+      football: t("menu.football"),
+      tennis: t("menu.tennis"),
+    }),
+    [t]
+  );
+
+  const sportLabelById = useMemo(
+    () => ({
+      CRICKET: t("menu.cricket"),
+      FOOTBALL: t("menu.football"),
+      TENNIS: t("menu.tennis"),
+    }),
+    [t]
+  );
+
+  const todayTimeLabel = t("common.today");
+  const tomorrowTimeLabel = t("common.tomorrow");
 
   const {
     matches: cricketMatches = [],
@@ -469,7 +514,7 @@ const Sports = () => {
       sport: "CRICKET",
       league: (m.cname || m.title || "Cricket").trim(),
       teams: (m.match || m.title || "—").trim(),
-      time: formatMatchTime(m.date),
+      time: formatMatchTime(m.date, todayTimeLabel, tomorrowTimeLabel),
       odds: (m.odds || []).slice(0, 3).map((o) => ({
         back: {
           price: formatOddsPrice(o?.home),
@@ -488,7 +533,7 @@ const Sports = () => {
       sport: "FOOTBALL",
       league: (m.title || m.cname || "Football").trim(),
       teams: (m.match || m.title || "—").trim(),
-      time: formatMatchTime(m.date),
+      time: formatMatchTime(m.date, todayTimeLabel, tomorrowTimeLabel),
       odds: (m.odds || []).slice(0, 3).map((o) => ({
         back: {
           price: formatOddsPrice(o?.home),
@@ -507,7 +552,7 @@ const Sports = () => {
       sport: "TENNIS",
       league: (m.title || m.cname || "Tennis").trim(),
       teams: (m.match || m.cname || m.title || "—").trim(),
-      time: formatMatchTime(m.date),
+      time: formatMatchTime(m.date, todayTimeLabel, tomorrowTimeLabel),
       odds: (m.odds || []).slice(0, 3).map((o) => ({
         back: {
           price: formatOddsPrice(o?.home),
@@ -558,7 +603,7 @@ const Sports = () => {
     };
 
     return [...cricket, ...soccer, ...tennis].sort(sortMatches);
-  }, [cricketMatches, soccerMatches, tennisMatches]);
+  }, [cricketMatches, soccerMatches, tennisMatches, todayTimeLabel, tomorrowTimeLabel]);
 
   const sportMatches = useMemo(
     () => allMatches.filter((m) => m.sport === activeSport),
@@ -614,7 +659,7 @@ const Sports = () => {
   if (!listReady) {
     return (
       <div className="sports-section">
-        <p className="sports-loading-text">Loading matches…</p>
+        <p className="sports-loading-text">{t("sports.loadingMatches")}</p>
       </div>
     );
   }
@@ -622,9 +667,7 @@ const Sports = () => {
   if (fetchError && !hasRawMatches) {
     return (
       <div className="sports-section">
-        <p className="sports-empty-text">
-          Could not load matches. Check backend is running.
-        </p>
+        <p className="sports-empty-text">{t("sports.loadFailed")}</p>
       </div>
     );
   }
@@ -633,7 +676,8 @@ const Sports = () => {
     <div className="sports-section">
       <div className="sports-body">
         <aside className="sports-sidebar" aria-label="Sport categories">
-          {SIDEBAR_SPORTS.map(({ id, Icon, label }) => {
+          {SIDEBAR_SPORTS.map(({ id, Icon, labelKey }) => {
+            const label = t(labelKey);
             const isActive = activeSport === id;
             const count = allMatches.filter((m) => m.sport === id).length;
             const sportKey =
@@ -666,7 +710,7 @@ const Sports = () => {
               onClick={() => setActiveLeague("ALL")}
               className={`sports-league-chip ${activeLeague === "ALL" ? "sports-league-chip--active" : ""}`}
             >
-              All
+              {t("common.all")}
             </button>
             {leagues.map((league) => (
               <button
@@ -684,19 +728,24 @@ const Sports = () => {
           {filteredMatches.length === 0 ? (
             <p className="sports-empty-text">
               {!activeSportSettled
-                ? `Loading ${activeSport.toLowerCase()} matches…`
-                : `No ${activeSport.toLowerCase()} matches right now`}
+                ? t("sports.loadingSportMatches", {
+                    sport: sportLabelById[activeSport] || activeSport,
+                  })
+                : t("sports.noSportMatches", {
+                    sport: sportLabelById[activeSport] || activeSport,
+                  })}
             </p>
           ) : (
             <div className="matches-scroll-container">
               {activeSportLoadingOdds ? (
-                <p className="sports-odds-hint">Updating odds…</p>
+                <p className="sports-odds-hint">{t("sports.updatingOdds")}</p>
               ) : null}
               {filteredMatches.map((match) => (
                 <MatchCard
                   key={match.id}
                   match={match}
                   onClick={handleMatchClick}
+                  labels={cardLabels}
                 />
               ))}
             </div>

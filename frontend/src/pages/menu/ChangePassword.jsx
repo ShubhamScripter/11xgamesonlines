@@ -201,11 +201,13 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { changePassword } from "../../features/auth/authSlice";   // ✅ removed unused reset
 import toast, { Toaster } from "react-hot-toast";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function ChangePassword() {
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [oldPasswordFocus, setOldPasswordFocus] = useState(false);
   const [passwordFocus, setPasswordFocus] = useState(false);
@@ -223,12 +225,12 @@ function ChangePassword() {
     e.preventDefault();
 
     if (!oldPassword || !password || !confirmPassword) {
-      toast.error("All fields are required");
+      toast.error(t("page.changePassword.allFieldsRequired"));
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("New password and confirm password must match");
+      toast.error(t("page.changePassword.passwordMismatch"));
       return;
     }
 
@@ -238,19 +240,19 @@ function ChangePassword() {
     )
       .unwrap()
       .then((res) => {
-        toast.success(res.message || "Password changed successfully");
+        toast.success(res.message || t("page.changePassword.success"));
         setOldPassword("");
         setPassword("");
         setConfirmPassword("");
         navigate("/user/profile");
       })
       .catch((err) => {
-        toast.error(err || "Failed to change password");
+        toast.error(err || t("page.changePassword.failed"));
       });
   };
 
   return (
-    <div className="bg-[#141515] text-white space-y-3 w-[90%] md:w-[50%] mx-auto md:mt-12 fixed md:static top-0 left-0 w-full z-40">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full min-w-0 pb-8">
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* Back Button */}
@@ -259,7 +261,7 @@ function ChangePassword() {
           className="text-white w-6 h-6"
           onClick={() => window.history.back()}
         />
-        ChangePassword
+        {t("page.changePassword.title")}
       </div>
 
       {/* Form Section */}
@@ -268,7 +270,7 @@ function ChangePassword() {
         <form className="flex flex-col px-2" onSubmit={handleSubmit}>
           {/* Old Password */}
           <div>
-            <label className="text-gray-500 my-2 block">Old Password</label>
+            <label className="text-gray-500 my-2 block">{t("page.changePassword.oldPassword")}</label>
             <input
               type="password"
               id="oldPassword"
@@ -277,13 +279,13 @@ function ChangePassword() {
               onBlur={() => setOldPasswordFocus(false)}
               onChange={(e) => setOldPassword(e.target.value)}
               className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-              placeholder="Enter your password"
+              placeholder={t("page.changePassword.enterPassword")}
             />
           </div>
 
           {/* New Password */}
           <div className="mt-2"> 
-            <label className="text-gray-500 my-2 block">New Password</label>
+            <label className="text-gray-500 my-2 block">{t("page.changePassword.newPassword")}</label>
             <input
               type="password"
               id="password"
@@ -292,13 +294,13 @@ function ChangePassword() {
               onBlur={() => setPasswordFocus(false)}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-              placeholder="Enter your password"
+              placeholder={t("page.changePassword.enterPassword")}
             />
           </div>
 
           {/* Confirm Password */}
           <div className="mt-2">
-            <label className="text-gray-500 my-2 block"> Confirm Password</label>
+            <label className="text-gray-500 my-2 block">{t("page.changePassword.confirmPassword")}</label>
             <input
               type="password"
               id="confirmPassword"
@@ -307,7 +309,7 @@ function ChangePassword() {
               onBlur={() => setConfirmPasswordFocus(false)}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full bg-[#222424] rounded-lg px-3 py-2 outline-none"
-              placeholder="Enter your password"
+              placeholder={t("page.changePassword.enterPassword")}
             />
           </div>
 
@@ -316,7 +318,7 @@ function ChangePassword() {
             disabled={isLoading}
             className="bg-[#14805e] text-white py-2 rounded hover:bg-green-700 transition duration-200 disabled:opacity-50 mt-4"
           >
-            {isLoading ? "Changing..." : "Change"}
+            {isLoading ? t("page.changePassword.changing") : t("common.change")}
           </button>
         </form>
       </div>

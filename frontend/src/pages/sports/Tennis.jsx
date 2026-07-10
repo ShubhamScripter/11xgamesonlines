@@ -5,7 +5,9 @@ import { useLocation } from 'react-router-dom';
 import SportsListLoading from '../../components/sports/SportsListLoading';
 import SportDateFilter from '../../components/sports/SportDateFilter';
 import SportListBody from '../../components/sports/SportListBody';
-import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
+import { SPORT_ICONS } from '../../components/sports/sportSidebarAssets';
+import { getSportListMeta } from '../../i18n/i18nHelpers';
+import { useTranslation } from '../../i18n/LanguageContext';
 import useProgressiveSportList from '../../hooks/useProgressiveSportList';
 import {
   buildSportListSections,
@@ -20,6 +22,7 @@ const SPORT = 'tennis';
 function Tennis() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const { data: tennisData, loading: tennisLoading } = useSelector(
     (state) => state.tennis || {}
@@ -74,20 +77,20 @@ function Tennis() {
   }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchTennisData({ withOdds: true, oddsScope: 'eligible' }));
+    dispatch(fetchTennisData({ withOdds: true, oddsScope: 'eligible', force: true }));
   }, [dispatch]);
 
-  const sportMeta = SPORT_LIST_META.tennis;
+  const sportMeta = { ...getSportListMeta(t).tennis, icon: SPORT_ICONS.tennis };
   const showLeagueHeaders =
     visibleSections.length > 1 ||
     (visibleSections.length === 1 && !visibleSections[0]?.isLiveSection);
 
   if (tennisLoading && sourceMatches.length === 0) {
-    return <SportsListLoading message="Loading tennis matches..." />;
+    return <SportsListLoading message={t('sports.loadingTennis')} />;
   }
 
   return (
-    <div className="min-h-screen pb-6 w-full">
+    <div className="min-h-screen pb-8 w-full min-w-0 overflow-x-hidden">
       <SportDateFilter
         activeTab={activeTab}
         onChange={setActiveTab}

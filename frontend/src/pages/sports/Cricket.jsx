@@ -5,7 +5,9 @@ import { fetchCricketData } from '../../features/sports/cricketSlice';
 import SportsListLoading from '../../components/sports/SportsListLoading';
 import SportDateFilter from '../../components/sports/SportDateFilter';
 import SportListBody from '../../components/sports/SportListBody';
-import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
+import { SPORT_ICONS } from '../../components/sports/sportSidebarAssets';
+import { getSportListMeta } from '../../i18n/i18nHelpers';
+import { useTranslation } from '../../i18n/LanguageContext';
 import useProgressiveSportList from '../../hooks/useProgressiveSportList';
 import {
   buildSportListSections,
@@ -21,6 +23,7 @@ const SPORT = 'cricket';
 function Cricket() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const { matches, loader } = useSelector((state) => state.cricket);
   const [openIndexes, setOpenIndexes] = useState([0]);
@@ -74,21 +77,21 @@ function Cricket() {
 
   useEffect(() => {
     // Use same oddsScope as MainLayout prefetch so home cache is reused
-    dispatch(fetchCricketData({ withOdds: true, oddsScope: 'eligible' }));
+    dispatch(fetchCricketData({ withOdds: true, oddsScope: 'eligible', force: true }));
     prefetchBetfairTvList();
   }, [dispatch]);
 
-  const sportMeta = SPORT_LIST_META.cricket;
+  const sportMeta = { ...getSportListMeta(t).cricket, icon: SPORT_ICONS.cricket };
   const showLeagueHeaders =
     visibleSections.length > 1 ||
     (visibleSections.length === 1 && !visibleSections[0]?.isLiveSection);
 
   if (loader && sourceMatches.length === 0) {
-    return <SportsListLoading message="Loading cricket matches..." />;
+    return <SportsListLoading message={t('sports.loadingCricket')} />;
   }
 
   return (
-    <div className="min-h-screen pb-6 w-full">
+    <div className="min-h-screen pb-8 w-full min-w-0 overflow-x-hidden">
       <SportDateFilter
         activeTab={activeTab}
         onChange={setActiveTab}

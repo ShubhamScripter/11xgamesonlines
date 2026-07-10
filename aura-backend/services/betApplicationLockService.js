@@ -8,7 +8,7 @@ import {
   resolveBetTypeLockId,
   isBetTypeLocked,
 } from '../constants/betLockConstants.js';
-import { checkMatchSectionLock } from '../utils/matchSectionSettings.js';
+import { checkMatchSectionLock, invalidateMatchSectionCache } from '../utils/matchSectionSettings.js';
 
 const CACHE_MS = 15_000;
 let cache = { ts: 0, data: null };
@@ -225,6 +225,7 @@ export async function updateSingleMatchLock(
 
   await doc.save();
   invalidateBetLockCache();
+  invalidateMatchSectionCache();
   return serializeLockDoc(doc.toObject());
 }
 
@@ -267,5 +268,6 @@ export async function saveBetLockSettings(payload, userId) {
   await doc.save();
 
   invalidateBetLockCache();
+  invalidateMatchSectionCache();
   return serializeLockDoc(doc.toObject());
 }

@@ -62,7 +62,7 @@ function PocketGames() {
           </motion.div>
         )}
       </div>
-      <div className="grid grid-cols-8 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
         {loading && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
             <Spinner />
@@ -79,7 +79,7 @@ function PocketGames() {
             <img 
               src={game.icon}
               alt={game.game_name} 
-              className='rounded-sm w-full h-[200px] object-cover' 
+              className='rounded-sm w-full h-auto aspect-[3/4] object-cover' 
               loading="lazy"
             />
           </div>

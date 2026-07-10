@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { BRAND_AMBASSADORS, slugify } from "../../components/Footer/footerTrustData";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./TrustPages.css";
 
 const AVATAR_COLORS = [
@@ -25,6 +26,7 @@ function getInitials(name) {
 
 function AmbassadorDetail() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const index = BRAND_AMBASSADORS.findIndex((a) => slugify(a.name) === slug);
   const item = index >= 0 ? BRAND_AMBASSADORS[index] : null;
 
@@ -32,9 +34,9 @@ function AmbassadorDetail() {
     return (
       <div className="trust-page">
         <div className="trust-detail-missing">
-          <h1>Ambassador not found</h1>
+          <h1>{t('trust.ambassadorNotFound')}</h1>
           <Link to="/brand-ambassadors" className="trust-back-link">
-            ← Back to Brand Ambassadors
+            {t('trust.backToAmbassadors')}
           </Link>
         </div>
       </div>
@@ -45,7 +47,7 @@ function AmbassadorDetail() {
     <div className="trust-page">
       <div className="trust-detail">
         <Link to="/brand-ambassadors" className="trust-back-link">
-          ← Back to Brand Ambassadors
+          {t('trust.backToAmbassadors')}
         </Link>
 
         <div className="trust-detail-head">
@@ -57,7 +59,7 @@ function AmbassadorDetail() {
           </div>
           <div>
             <span className="trust-detail-tag">
-              {item.role || "Brand Ambassador"}
+              {item.role || t('trust.brandAmbassadorRole')}
             </span>
             <h1 className="trust-detail-name">{item.name}</h1>
             <p className="trust-detail-years">{item.years}</p>
@@ -66,13 +68,13 @@ function AmbassadorDetail() {
 
         <div className="trust-detail-meta">
           <div className="trust-detail-meta-item">
-            <span className="trust-detail-meta-label">Role</span>
+            <span className="trust-detail-meta-label">{t('trust.role')}</span>
             <span className="trust-detail-meta-value">
-              {item.role || "Brand Ambassador"}
+              {item.role || t('trust.brandAmbassadorRole')}
             </span>
           </div>
           <div className="trust-detail-meta-item">
-            <span className="trust-detail-meta-label">Active Years</span>
+            <span className="trust-detail-meta-label">{t('trust.activeYears')}</span>
             <span className="trust-detail-meta-value">{item.years}</span>
           </div>
         </div>

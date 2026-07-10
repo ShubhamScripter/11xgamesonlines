@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import React from 'react'
-import Header from '../../components/Header/Header'
 import HeaderLogin from '../../components/Header/HeaderLogin'
 import Header1 from '../../components/Header/Header1'
 import All from './All'
 import Cricket from './Cricket'
 import Soccer from './Soccer'
 import Tennis from './Tennis'
+import { useTranslation } from '../../i18n/LanguageContext';
+
 function Leagues() {
+    const { t } = useTranslation();
     const [Filter,setFilter] = useState("All")
     const [selected, setSelected] = useState(null);
     let content;
@@ -21,7 +23,7 @@ function Leagues() {
         content = <Tennis selected={selected} setSelected={setSelected} />;
     }
      else {
-        content = <div className="p-4">No component for {Filter}</div>;
+        content = <div className="p-4">{t('leagues.noComponentFor', { name: Filter })}</div>;
     }
 
   return (

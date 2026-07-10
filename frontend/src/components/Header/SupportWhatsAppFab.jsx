@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { RiWhatsappFill } from "react-icons/ri";
 import api from "../../utils/axiosConfig";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function toWhatsAppHref(raw) {
   const digits = String(raw || "").replace(/\D/g, "");
@@ -13,6 +14,7 @@ function toWhatsAppHref(raw) {
  * Number from GET /public/app-settings.
  */
 function SupportWhatsAppFab() {
+  const { t } = useTranslation();
   const [href, setHref] = useState("");
 
   useEffect(() => {
@@ -41,8 +43,8 @@ function SupportWhatsAppFab() {
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          title="Customer support — WhatsApp"
-          aria-label="Open WhatsApp customer support"
+          title={t('common.whatsappSupport')}
+          aria-label={t('common.whatsappSupport')}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg ring-2 ring-white/40 active:scale-95 transition-transform"
         >
           <RiWhatsappFill className="text-[1.75rem]" />

@@ -5,10 +5,12 @@ import { MdArrowBackIos } from 'react-icons/md';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/axiosConfig';
 import { getUser } from '../../features/auth/authSlice';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function GiftCoupon() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [claiming, setClaiming] = useState(false);
 
@@ -16,17 +18,17 @@ function GiftCoupon() {
     e.preventDefault();
     const trimmed = code.trim();
     if (!trimmed) {
-      toast.error('Enter a coupon code');
+      toast.error(t('page.giftCoupon.enterCode'));
       return;
     }
     setClaiming(true);
     try {
       const res = await api.post('/user/coupon/claim', { couponCode: trimmed });
-      toast.success(res?.data?.message || 'Coupon claimed!');
+      toast.success(res?.data?.message || t('page.giftCoupon.claimed'));
       setCode('');
       await dispatch(getUser());
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Claim failed');
+      toast.error(err?.response?.data?.message || t('page.giftCoupon.claimFailed'));
     } finally {
       setClaiming(false);
     }
@@ -38,21 +40,21 @@ function GiftCoupon() {
         <button type="button" onClick={() => navigate(-1)} className="text-gray-300">
           <MdArrowBackIos />
         </button>
-        <h1 className="text-lg font-bold">Gift Coupon</h1>
+        <h1 className="text-lg font-bold">{t('page.giftCoupon.title')}</h1>
       </div>
 
       <div className="p-4 max-w-md mx-auto">
         <div className="rounded-2xl border border-[#252b31] bg-[#141a1f] p-6">
           <p className="text-4xl mb-3 text-center">🎁</p>
           <p className="text-center text-gray-300 mb-4">
-            Enter your promotional coupon code to receive bonus credit.
+            {t('page.giftCoupon.description')}
           </p>
           <form onSubmit={handleClaim} className="space-y-4">
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="COUPON CODE"
+              placeholder={t('page.giftCoupon.codePlaceholder')}
               className="w-full bg-[#0b0e11] border border-[#252b31] rounded-xl py-3 px-4 text-center font-mono tracking-widest outline-none focus:border-[#19A044]"
             />
             <button
@@ -60,7 +62,7 @@ function GiftCoupon() {
               disabled={claiming}
               className="w-full bg-[#19A044] text-white font-bold py-3 rounded-xl disabled:opacity-50"
             >
-              {claiming ? 'Claiming...' : 'Claim Coupon'}
+              {claiming ? t('page.giftCoupon.claiming') : t('page.giftCoupon.claimButton')}
             </button>
           </form>
         </div>

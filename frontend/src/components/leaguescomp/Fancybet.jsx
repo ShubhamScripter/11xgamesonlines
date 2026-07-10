@@ -237,7 +237,11 @@ import {
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
 import { pickFancyOdd } from "../../utils/bettingPayloadUtils";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { translateBlockStatus } from "../../i18n/i18nHelpers";
+
 function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameName = "Cricket Game" }) {
+  const { t } = useTranslation();
   const { pendingBet } = useSelector((state) => state.bet);
   
 
@@ -279,7 +283,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
 
   if (!fancyMarkets.length) {
     return (
-      <p className="text-gray-400 text-sm py-4 px-3">No fancy markets available</p>
+      <p className="text-gray-400 text-sm py-4 px-3">{t("bet.noFancyMarkets")}</p>
     );
   }
 
@@ -287,8 +291,8 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
     <div>
       {/* No / Yes Labels */}
       <div className="flex justify-end items-center gap-10 text-white py-2 pr-6">
-        <span className="text-sm">No</span>
-        <span className="text-sm">Yes</span>
+        <span className="text-sm">{t("bet.no")}</span>
+        <span className="text-sm">{t("bet.yes")}</span>
       </div>
 
       {/* Market List */}
@@ -299,9 +303,11 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
             ballRunning ||
             isSelectionBetBlocked({ gstatus: market.gstatus }, market.marketStatus);
           const overlayText = ballRunning
-            ? "Ball Running"
-            : blockingStatusLabel({ gstatus: market.gstatus }, market.marketStatus) ||
-              "Suspended";
+            ? t("bet.ballRunning")
+            : translateBlockStatus(
+                t,
+                blockingStatusLabel({ gstatus: market.gstatus }, market.marketStatus)
+              );
 
           return (
             <React.Fragment key={idx}>
@@ -397,7 +403,7 @@ function Fancybet({ openBetSlip, fancy1Data, gameid, match, sportSid = 4, gameNa
               <div className="flex gap-1 justify-end mr-3 py-2">
                 <IoInformationCircle className="text-gray-400" />
                 <span className="text-xs text-gray-400">
-                  min/max &nbsp;{market.min}/{formatToK(market.max)}
+                  {t("bet.minMax")} &nbsp;{market.min}/{formatToK(market.max)}
                 </span>
               </div>
             </React.Fragment>

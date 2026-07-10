@@ -21,6 +21,7 @@ import {
   sortBetsByTimeDesc,
 
 } from '../../utils/betCategory';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 
 
@@ -32,6 +33,7 @@ const FETCH_LIMIT = 500;
 
 function CurrentBets() {
 
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
@@ -138,7 +140,7 @@ function CurrentBets() {
 
   return (
 
-    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full pb-24">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full min-w-0 pb-8">
 
       <div className="bg-[#000] h-10 flex items-center gap-2">
 
@@ -148,7 +150,7 @@ function CurrentBets() {
 
         </button>
 
-        <span className="text-[18px] font-bold">Current Bet</span>
+        <span className="text-[18px] font-bold">{t('page.currentBet')}</span>
 
       </div>
 
@@ -164,7 +166,7 @@ function CurrentBets() {
 
           <div className="flex justify-center items-center h-40">
 
-            <div className="text-sm font-semibold text-gray-400">Loading current bets...</div>
+            <div className="text-sm font-semibold text-gray-400">{t('page.loadingCurrentBets')}</div>
 
           </div>
 
@@ -172,7 +174,7 @@ function CurrentBets() {
 
           <div className="flex justify-center items-center h-40">
 
-            <div className="text-sm font-semibold text-red-400">Error: {errorMessage}</div>
+            <div className="text-sm font-semibold text-red-400">{t('common.error', { message: errorMessage })}</div>
 
           </div>
 
@@ -200,13 +202,13 @@ function CurrentBets() {
 
                 >
 
-                  Previous
+                  {t('common.previous')}
 
                 </button>
 
                 <span>
 
-                  Page {currentPage} of {totalPages} · {filteredBets.length} bets
+                  {t('common.pageBets', { current: currentPage, total: totalPages, count: filteredBets.length })}
 
                 </span>
 
@@ -222,7 +224,7 @@ function CurrentBets() {
 
                 >
 
-                  Next
+                  {t('common.next')}
 
                 </button>
 

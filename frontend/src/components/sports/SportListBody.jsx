@@ -1,14 +1,16 @@
 import React from 'react';
 import MatchListSection from './MatchListSection';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function SportListProgressFooter({ hasMore, shownRest, totalRest }) {
+  const { t } = useTranslation();
   if (!hasMore && shownRest >= totalRest) return null;
 
   return (
     <div className="py-3 px-4 text-center border-t border-[#2a313a] bg-[#141515]">
       {hasMore ? (
         <p className="text-[#8b949e] text-xs animate-pulse">
-          Loading more matches… ({shownRest} / {totalRest})
+          {t('common.loadingMoreMatches', { shown: shownRest, total: totalRest })}
         </p>
       ) : null}
     </div>

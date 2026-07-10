@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { BRAND_AMBASSADORS, slugify } from "../../components/Footer/footerTrustData";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./TrustPages.css";
 
 function getInitials(name) {
@@ -24,15 +25,14 @@ const AVATAR_COLORS = [
 ];
 
 function BrandAmbassadors() {
+  const { t } = useTranslation();
+
   return (
     <div className="trust-page">
       <header className="trust-hero">
-        <span className="trust-hero-tag">The Faces Of Our Brand</span>
-        <h1 className="trust-hero-title">Brand Ambassadors</h1>
-        <p className="trust-hero-sub">
-          World-class athletes and celebrities who represent us on the global
-          stage.
-        </p>
+        <span className="trust-hero-tag">{t('trust.facesOfBrand')}</span>
+        <h1 className="trust-hero-title">{t('trust.brandAmbassadors')}</h1>
+        <p className="trust-hero-sub">{t('trust.brandAmbassadorsSub')}</p>
       </header>
 
       <section className="trust-section">
@@ -50,7 +50,7 @@ function BrandAmbassadors() {
                 {getInitials(item.name)}
               </div>
               <h3 className="trust-card-name">{item.name}</h3>
-              <span className="trust-card-role">{item.role || "Brand Ambassador"}</span>
+              <span className="trust-card-role">{item.role || t('trust.brandAmbassadorRole')}</span>
               <span className="trust-card-year">{item.years}</span>
             </Link>
           ))}

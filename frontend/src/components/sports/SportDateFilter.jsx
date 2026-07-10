@@ -1,14 +1,18 @@
-import React from 'react';
-import { SPORT_DATE_TABS } from '../../utils/sportMatchFilters';
+import React, { useMemo } from 'react';
+import { useTranslation } from '../../i18n/LanguageContext';
+import { getSportDateTabs } from '../../i18n/i18nHelpers';
 
 function SportDateFilter({ activeTab, onChange, counts = {} }) {
+  const { t } = useTranslation();
+  const tabs = useMemo(() => getSportDateTabs(t), [t]);
+
   return (
     <div
       className="flex gap-2 px-2 sm:px-3 py-2.5 overflow-x-auto no-scrollbar border-b border-[#2a313a] bg-[#141515]"
       role="tablist"
       aria-label="Match date filter"
     >
-      {SPORT_DATE_TABS.map(({ id, label }) => {
+      {tabs.map(({ id, label }) => {
         const isActive = activeTab === id;
         const count = counts[id];
         return (

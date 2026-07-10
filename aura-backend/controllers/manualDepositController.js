@@ -19,6 +19,8 @@ import {
 import {
   MAX_ACCOUNTS_PER_METHOD,
   VALID_DEPOSIT_METHODS,
+  DUPLICATE_TRANSACTION_ID_MESSAGE,
+  buildDuplicateDepositReferenceFilter,
   depositScreenshotRequired,
   isMobileBankingMethod,
   validateAdminAccountDetails,
@@ -48,10 +50,6 @@ const VALID_METHODS = VALID_DEPOSIT_METHODS;
 
 function round2(n) {
   return Math.round(Number(n) * 100) / 100;
-}
-
-function escapeRegex(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function pipelineCreditBalance(amt) {
@@ -560,16 +558,16 @@ export const createManualDepositRequest = async (req, res) => {
     }
 
     if (requestType === 'deposit' && trimmedDepositRef) {
-      const dup = await ManualDepositRequest.findOne({
-        requestType: 'deposit',
-        status: { $in: ['pending', 'approved'] },
-        referenceId: new RegExp(`^${escapeRegex(trimmedDepositRef)}$`, 'i'),
-      }).lean();
-      if (dup) {
-        return res.status(400).json({
-          message:
-            'Duplicate transaction ID. This reference is already used in a pending or approved deposit request.',
-        });
+      const dupFilter = buildDuplicateDepositReferenceFilter(trimmedDepositRef);
+      if (dupFilter) {
+        const dup = await ManualDepositRequest.findOne(dupFilter)
+          .select('_id status referenceId userName')
+          .lean();
+        if (dup) {
+          return res.status(400).json({
+            message: DUPLICATE_TRANSACTION_ID_MESSAGE,
+          });
+        }
       }
     }
 
@@ -638,6 +636,14 @@ export const createManualDepositRequest = async (req, res) => {
           pipelineCreditBalance(amt),
           { new: true }
         );
+      }
+      if (requestType === 'deposit' && trimmedDepositRef) {
+        const dupFilter = buildDuplicateDepositReferenceFilter(trimmedDepositRef);
+        if (dupFilter && (await ManualDepositRequest.findOne(dupFilter).lean())) {
+          return res.status(400).json({
+            message: DUPLICATE_TRANSACTION_ID_MESSAGE,
+          });
+        }
       }
       throw err;
     }

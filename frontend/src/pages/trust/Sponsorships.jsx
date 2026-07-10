@@ -5,22 +5,22 @@ import {
   OFFICIAL_PARTNER,
   slugify,
 } from "../../components/Footer/footerTrustData";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./TrustPages.css";
 
 function Sponsorships() {
+  const { t } = useTranslation();
+
   return (
     <div className="trust-page">
       <header className="trust-hero">
-        <span className="trust-hero-tag">Our Partners</span>
-        <h1 className="trust-hero-title">Sponsorships</h1>
-        <p className="trust-hero-sub">
-          Proudly partnering with the biggest teams and leagues across the
-          cricketing world.
-        </p>
+        <span className="trust-hero-tag">{t('trust.ourPartners')}</span>
+        <h1 className="trust-hero-title">{t('trust.sponsorships')}</h1>
+        <p className="trust-hero-sub">{t('trust.sponsorshipsSub')}</p>
       </header>
 
       <section className="trust-section">
-        <h2 className="trust-section-title">Official Brand Partner</h2>
+        <h2 className="trust-section-title">{t('trust.officialBrandPartner')}</h2>
         <div className="trust-partner-wrap">
           <div className="trust-partner-badge">{OFFICIAL_PARTNER.name}</div>
           <p className="trust-partner-tagline">{OFFICIAL_PARTNER.tagline}</p>
@@ -28,7 +28,7 @@ function Sponsorships() {
       </section>
 
       <section className="trust-section">
-        <h2 className="trust-section-title">Team Sponsorships</h2>
+        <h2 className="trust-section-title">{t('trust.teamSponsorships')}</h2>
         <div className="trust-grid">
           {SPONSORSHIPS.map((item) => (
             <Link

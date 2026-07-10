@@ -24,13 +24,15 @@ function MainLayout() {
   const [headerActionsOpen, setHeaderActionsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
 
-  // Homepage: hydrate session cache, then refresh list + odds from API.
+  // Homepage: hydrate session cache for instant paint, then force API refresh
+  // so locked/disabled matches are dropped (stale Redux/session cache must not win).
   useLayoutEffect(() => {
     if (isHomePath(location.pathname)) {
       hydrateHomeSportsFromCache(dispatch);
       prefetchSportsListings(dispatch, {
         withOdds: true,
         oddsScope: 'eligible',
+        force: true,
       });
     }
   }, [dispatch, location.pathname]);
@@ -70,12 +72,12 @@ function MainLayout() {
         </div>
         <section
           ref={mainScrollRef}
-          className={`h-[calc(100vh-65px)] overflow-y-auto bg-[#141515] flex-1 no-scrollbar transition-[padding] duration-200 ${
+          className={`h-[calc(100vh-65px)] overflow-y-auto overflow-x-hidden bg-[#141515] flex-1 no-scrollbar transition-[padding] duration-200 max-md:pb-24 ${
             headerActionsOpen ? 'max-md:pt-[5.75rem]' : ''
           }`}
         >
           <ScrollToTop scrollContainerRef={mainScrollRef} />
-          <div className={`mx-auto ${sidebarOpen ? 'flex-1' : 'md:w-[80%]'}`}>
+          <div className={`mx-auto w-full min-w-0 ${sidebarOpen ? 'flex-1' : 'md:w-[80%]'}`}>
             <Outlet/>
             <SiteFooter />
           </div>

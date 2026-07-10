@@ -235,9 +235,12 @@ import { toast } from 'react-hot-toast';
 import { createBet, createfancyBet, getPendingBet, getPendingBetAmo, messageClear } from '../../features/sports/betReducer';
 import { getUser } from '../../features/auth/authSlice';
 import { BsArrowRepeat } from 'react-icons/bs';
+import { useTranslation } from '../../i18n/LanguageContext';
+import { translateBetType } from '../../i18n/i18nHelpers';
 
 function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { loading, successMessage, errorMessage, eventName: pendingBets } = useSelector((state) => state.bet);
 
   const [betOdds, setBetOdds] = useState(1.01);
@@ -338,15 +341,15 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   const handlePlaceBet = async () => {
     const numericStake = parseFloat(stake || '0');
     if (!numericStake || Number.isNaN(numericStake)) {
-      toast.error('Enter a valid stake');
+      toast.error(t('bet.enterValidStake'));
       return;
     }
     if (min > 0 && numericStake < min) {
-      toast.error(`Min bet is ${min}`);
+      toast.error(t('bet.minBet', { min }));
       return;
     }
     if (max > 0 && numericStake > max) {
-      toast.error(`Max bet is ${max}`);
+      toast.error(t('bet.maxBetIs', { max }));
       return;
     }
 
@@ -418,7 +421,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
         {!isSlipEmpty && (
           <>
           <div className="bg-[#222424] text-white py-3 pl-3 flex items-center justify-between shadow-sm">
-            <h3 className="font-bold text-[16px] tracking-wide">Bet Slip</h3>
+            <h3 className="font-bold text-[16px] tracking-wide">{t('bet.betSlip')}</h3>
             <button onClick={onClose} className="hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition-all text-[20px] leading-1 font-bold text-white">
               &times;
             </button>
@@ -440,7 +443,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
             <div className={`flex items-center gap-2 mb-4 bg-gray-800 p-2 rounded-md border border-gray-400`}>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
               ${['back', 'No', 'odd'].includes(odds.type) ? 'bg-[#a5d9fe] text-blue-700' : 'bg-[#f8d0d8] text-red-700'}`}>
-              {odds.type}</span>
+              {translateBetType(t, odds.type)}</span>
               <span className="text-xs font-bold text-white truncate flex-1">{odds.selection}</span>
               <span className='text-white text-[12px] font-semibold uppercase'>{odds.marketName}</span>
             </div>
@@ -450,7 +453,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
               {/* Odds */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Odds</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">{t('bet.odds')}</label>
                 </div>
                 <div className="flex items-center h-10 border border-gray-600 rounded-lg overflow-hidden focus-within:border-[#17934e] transition-colors">
                   <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleOddsChange(-1)}>-</button>
@@ -468,8 +471,8 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
               {/* Stake */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase">Stake</label>
-                  <span className="text-[8px] font-bold text-gray-400 uppercase">Min: {min} Max: {max}</span>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">{t('bet.stake')}</label>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">{t('bet.minStake', { min, max })}</span>
                 </div>
                 <div className="flex items-center h-10 border border-gray-600 rounded-lg overflow-hidden focus-within:border-[#17934e] transition-colors">
                   <button className="bg-[#222424] text-white w-10 h-full hover:bg-gray-900 flex items-center justify-center text-lg font-bold" onClick={() => handleStakeChange(-1)}>-</button>
@@ -500,9 +503,9 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
             </div>
 
             <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase mb-4 px-1">
-              <span>Max Bet: {max}</span>
+              <span>{t('bet.maxBet')}: {max}</span>
               {stake && parseFloat(stake) > 0 && (
-                <span className="text-[#17934e]">Potential Win: {((parseFloat(stake) * (parseFloat(betOdds) - (odds.marketName === 'Bookmaker' ? 0 : 1))) || 0).toFixed(2)}</span>
+                <span className="text-[#17934e]">{t('bet.potentialWin')}: {((parseFloat(stake) * (parseFloat(betOdds) - (odds.marketName === 'Bookmaker' ? 0 : 1))) || 0).toFixed(2)}</span>
               )}
             </div>
 
@@ -529,7 +532,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
               onClick={handlePlaceBet}
               disabled={loading || (stake !== '' && (parseFloat(stake) < min || parseFloat(stake) > max)) || !stake || parseFloat(stake) <= 0}
             >
-              {loading ? 'Placing...' : 'Place Bet'}
+              {loading ? t('bet.placing') : t('bet.placeBet')}
             </button>
           </div>
           </>
@@ -538,7 +541,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
         <div className="hidden md:block">
           <div className="bg-[#222424] text-white py-3 flex items-center justify-between shadow-sm flex w-full">
             <span className="font-bold text-gray-200 text-[16px] flex items-center gap-2 pl-3">
-              Open Bets
+              {t('bet.openBets')}
             </span>
             <button 
               onClick={() => odds?.gameId && dispatch(getPendingBet(odds.gameId))}
@@ -568,17 +571,17 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[12px] font-bold px-3 py-0.5 rounded-[3px] uppercase tracking-tighter
                           ${bet.otype === 'back' ? 'text-blue-50 bg-blue-600' : 'text-red-50 bg-red-600'}`}>
-                          {bet.otype === 'back' ? 'Back' : 'Lay'}
+                          {bet.otype === 'back' ? t('bet.back') : t('bet.lay')}
                         </span>
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-[12px] text-gray-500">Amt:</span>
+                          <span className="text-[12px] text-gray-500">{t('bet.amount')}:</span>
                           <span className="font-bold text-[12px] text-gray-900">{bet.betAmount || bet.price}</span>
                         </div>
                       </div>
                       
                       {bet.fancyScore && (
                         <div className="flex items-center gap-0.5">
-                          <span className="text-[12px] text-gray-600">Scr:</span>
+                          <span className="text-[12px] text-gray-600">{t('bet.score')}:</span>
                           <span className="font-bold text-[12px] text-gray-900">{bet.fancyScore}</span>
                         </div>
                       )}
@@ -588,7 +591,7 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
               ))
             ) : (
               <div className="flex flex-col items-center justify-center py-4 px-2 text-center">
-                <p className="text-gray-400 text-[9px] font-medium italic">No active bets</p>
+                <p className="text-gray-400 text-[9px] font-medium italic">{t('bet.noActiveBets')}</p>
               </div>
             )}
           </div>

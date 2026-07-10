@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import LoadingText from '../../../i18n/LoadingText';
 import { useSelector } from 'react-redux'
 import { toast } from 'react-hot-toast'
 import spribeGames from '../../../components/spribe.json'
@@ -57,7 +58,7 @@ function Latest() {
             />
             {/* {loading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-2xl">
-                <div className="text-white text-sm">Loading...</div>
+                <LoadingText className="text-white text-sm" />
               </div>
             )} */}
           </div>

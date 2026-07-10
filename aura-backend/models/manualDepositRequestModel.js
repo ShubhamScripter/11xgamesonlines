@@ -78,6 +78,12 @@ const manualDepositRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+manualDepositRequestSchema.index({
+  referenceId: 1,
+  requestType: 1,
+  status: 1,
+});
+
 const ManualDepositRequest = mongoose.model(
   'ManualDepositRequest',
   manualDepositRequestSchema

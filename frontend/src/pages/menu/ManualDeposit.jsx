@@ -14,7 +14,6 @@ import {
 } from '../../utils/currency';
 import useUsdtToBdtRate from '../../hooks/useUsdtToBdtRate';
 import {
-  DEPOSIT_MAIN_TABS,
   MIN_DEPOSIT_USDT,
   MIN_WITHDRAW_BDT,
   MOBILE_BANKING_METHODS,
@@ -28,15 +27,16 @@ import {
   validateWithdrawForm,
 } from '../../utils/bankingValidation';
 import ImagePreviewLink from '../../components/common/ImagePreviewLink';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const Req = () => <span className="text-red-400"> *</span>;
 
-function copyText(text) {
-  const t = String(text ?? '').trim();
-  if (!t) return;
-  navigator.clipboard.writeText(t).then(
-    () => toast.success('Copied'),
-    () => toast.error('Copy failed')
+function copyText(text, messages = {}) {
+  const value = String(text ?? '').trim();
+  if (!value) return;
+  navigator.clipboard.writeText(value).then(
+    () => toast.success(messages.copied || 'Copied'),
+    () => toast.error(messages.copyFailed || 'Copy failed')
   );
 }
 
@@ -57,6 +57,7 @@ function ProviderIcon({ method, selected }) {
 
 function ManualDeposit() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const usdtToBdtRate = useUsdtToBdtRate();
   const isUsdtUser = normalizeCurrency(user?.currency) === 'USDT';
@@ -363,7 +364,7 @@ function ManualDeposit() {
           <MdArrowBackIos className="text-xl" />
         </button>
         <h1 className="text-lg font-bold">
-          {requestType === 'withdraw' ? 'Withdraw' : 'Deposit'}
+          {requestType === 'withdraw' ? t('deposit.withdrawTitle') : t('deposit.title')}
         </h1>
         <span className="text-sm font-semibold text-[#19A044]">{headerBalance}</span>
       </header>
@@ -372,7 +373,10 @@ function ManualDeposit() {
         {requestType === 'deposit' ? (
           <>
             <div className="flex gap-2 p-1 bg-[#141a1f] rounded-xl">
-              {DEPOSIT_MAIN_TABS.map((tab) => (
+              {[
+                { id: 'mobile_banking', label: t('deposit.mobileBanking') },
+                { id: 'crypto', label: t('deposit.crypto') },
+              ].map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -391,7 +395,7 @@ function ManualDeposit() {
             {mainTab === 'mobile_banking' && (
               <div>
                 <p className="text-xs text-gray-500 font-semibold tracking-wider mb-3">
-                  CHOOSE METHOD
+                  {t('deposit.chooseMethod')}
                 </p>
                 <div className="flex gap-4 justify-center">
                   {MOBILE_BANKING_METHODS.map((m) => (
@@ -411,7 +415,7 @@ function ManualDeposit() {
 
             <div>
               <p className="text-xs text-gray-500 font-semibold tracking-wider mb-2">
-                AMOUNT ({sym})
+                {t('deposit.amount')} ({sym})
               </p>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -425,7 +429,7 @@ function ManualDeposit() {
                   className="w-full bg-[#141a1f] border border-[#252b31] rounded-xl py-3 pl-10 pr-24 text-lg font-semibold outline-none focus:border-[#19A044]"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                  min {sym}
+                  {t('deposit.min')} {sym}
                   {minAmount}
                 </span>
               </div>
@@ -508,7 +512,7 @@ function ManualDeposit() {
                       Send Money to this {methodLabel(mobileMethod)} number
                     </p>
                     {loading ? (
-                      <p className="text-gray-500 text-sm mt-2">Loading...</p>
+                      <p className="text-gray-500 text-sm mt-2">{t('common.loading')}</p>
                     ) : !destinationNumber ? (
                       <p className="text-red-400 text-sm mt-2">
                         No account configured. Ask admin to add {methodLabel(mobileMethod)}{' '}
@@ -526,7 +530,12 @@ function ManualDeposit() {
                         <div className="flex flex-wrap gap-2 mt-2">
                           <button
                             type="button"
-                            onClick={() => copyText(destinationNumber)}
+                            onClick={() =>
+                              copyText(destinationNumber, {
+                                copied: t('common.copied'),
+                                copyFailed: t('common.copyFailed'),
+                              })
+                            }
                             className="px-4 py-1.5 rounded-lg bg-[#19A044] text-white text-sm font-semibold"
                           >
                             Copy
@@ -538,7 +547,7 @@ function ManualDeposit() {
                               disabled={changingAccount}
                               className="px-4 py-1.5 rounded-lg bg-[#1e2428] border border-[#19A044]/50 text-[#19A044] text-sm font-semibold disabled:opacity-50"
                             >
-                              {changingAccount ? 'Loading...' : 'Change Number'}
+                              {changingAccount ? t('common.loading') : t('deposit.changeNumber')}
                             </button>
                           )}
                         </div>
@@ -602,7 +611,12 @@ function ManualDeposit() {
                       </code>
                       <button
                         type="button"
-                        onClick={() => copyText(walletAddress)}
+                        onClick={() =>
+                          copyText(walletAddress, {
+                            copied: t('common.copied'),
+                            copyFailed: t('common.copyFailed'),
+                          })
+                        }
                         className="shrink-0 px-3 py-2 rounded-lg bg-[#19A044] text-sm font-semibold"
                       >
                         Copy
@@ -628,7 +642,8 @@ function ManualDeposit() {
                 <>
                   <div>
                     <label className="text-xs text-gray-500 font-semibold tracking-wider">
-                      YOUR {methodLabel(mobileMethod).toUpperCase()} NUMBER<Req />
+                      {t('deposit.yourNumber', { method: methodLabel(mobileMethod).toUpperCase() })}
+                      <Req />
                     </label>
                     <div className="flex mt-2 gap-2">
                       <span className="flex items-center px-3 bg-[#141a1f] border border-[#252b31] rounded-xl text-sm">
@@ -647,7 +662,8 @@ function ManualDeposit() {
 
                   <div>
                     <label className="text-xs text-gray-500 font-semibold tracking-wider">
-                      LAST 4 DIGITS OF YOUR {methodLabel(mobileMethod).toUpperCase()} NUMBER<Req />
+                      {t('deposit.last4', { method: methodLabel(mobileMethod).toUpperCase() })}
+                      <Req />
                     </label>
                     <input
                       type="tel"
@@ -667,12 +683,12 @@ function ManualDeposit() {
 
               <div>
                 <label className="text-xs text-gray-500 font-semibold tracking-wider">
-                  {mainTab === 'crypto' ? 'TRANSACTION HASH' : 'TRANSACTION ID (TrxID)'}
+                  {mainTab === 'crypto' ? t('deposit.transactionHash') : t('deposit.transactionId')}
                   <Req />
                 </label>
                 {mainTab === 'mobile_banking' && (
                   <span className="ml-2 text-[10px] text-[#19A044] bg-[#19A044]/15 px-2 py-0.5 rounded">
-                    from SMS
+                    {t('deposit.fromSms')}
                   </span>
                 )}
                 <input
@@ -696,10 +712,10 @@ function ManualDeposit() {
                 className="w-full py-4 rounded-xl bg-[#19A044] font-bold text-lg disabled:opacity-50"
               >
                 {submitting
-                  ? 'Submitting...'
+                  ? t('deposit.submitting')
                   : mainTab === 'crypto'
-                    ? "I've Sent the Payment"
-                    : 'Confirm Deposit'}
+                    ? t('deposit.sentPayment')
+                    : t('deposit.confirmDeposit')}
               </button>
             </form>
           </>
@@ -837,23 +853,23 @@ function ManualDeposit() {
         )}
 
         <div className="border-t border-[#1e2428] pt-4">
-          <h2 className="text-sm font-semibold mb-2">My Requests</h2>
+          <h2 className="text-sm font-semibold mb-2">{t('deposit.myRequests')}</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs min-w-[520px]">
               <thead>
                 <tr className="text-gray-500 text-left">
-                  <th className="py-1">Date</th>
-                  <th>Type</th>
-                  <th>Method</th>
-                  <th>Amount</th>
-                  <th>Status</th>
+                  <th className="py-1">{t('deposit.date')}</th>
+                  <th>{t('deposit.type')}</th>
+                  <th>{t('deposit.method')}</th>
+                  <th>{t('deposit.amount')}</th>
+                  <th>{t('deposit.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {requests.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-4 text-center text-gray-600">
-                      No requests yet
+                      {t('deposit.noRequests')}
                     </td>
                   </tr>
                 ) : (

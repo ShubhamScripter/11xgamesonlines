@@ -20,6 +20,7 @@ import {
   SOCIAL_LINKS,
   slugify,
 } from "./footerTrustData";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 const SOCIAL_ICON_MAP = {
   facebook: FaFacebookF,
@@ -34,13 +35,15 @@ const SOCIAL_ICON_MAP = {
 };
 
 function FooterTrust() {
+  const { t } = useTranslation();
+
   return (
     <div className="site-footer-trust">
       <section className="site-footer-trust-section">
         <div className="site-footer-trust-head-row">
-          <h3 className="site-footer-trust-heading">Sponsorships</h3>
+          <h3 className="site-footer-trust-heading">{t("footer.sponsorships")}</h3>
           <Link to="/sponsorships" className="site-footer-trust-viewall">
-            View all
+            {t("footer.viewAll")}
           </Link>
         </div>
         <div className="site-footer-trust-scroll">
@@ -67,9 +70,9 @@ function FooterTrust() {
 
       <section className="site-footer-trust-section">
         <div className="site-footer-trust-head-row">
-          <h3 className="site-footer-trust-heading">Brand Ambassadors</h3>
+          <h3 className="site-footer-trust-heading">{t("footer.brandAmbassadors")}</h3>
           <Link to="/brand-ambassadors" className="site-footer-trust-viewall">
-            View all
+            {t("footer.viewAll")}
           </Link>
         </div>
         <div className="site-footer-trust-scroll">
@@ -92,12 +95,12 @@ function FooterTrust() {
 
       <div className="site-footer-trust-grid">
         <section className="site-footer-trust-block">
-          <h3 className="site-footer-trust-heading">Official Brand Partner</h3>
+          <h3 className="site-footer-trust-heading">{t("footer.officialPartner")}</h3>
           <div className="site-footer-partner-badge">{OFFICIAL_PARTNER.name}</div>
         </section>
 
         <section className="site-footer-trust-block">
-          <h3 className="site-footer-trust-heading">Gaming License</h3>
+          <h3 className="site-footer-trust-heading">{t("footer.gamingLicense")}</h3>
           <div className="site-footer-badge-row">
             {GAMING_LICENSES.map((lic) => (
               <div key={lic.id} className="site-footer-license-badge" title={lic.label}>
@@ -109,7 +112,7 @@ function FooterTrust() {
         </section>
 
         <section className="site-footer-trust-block">
-          <h3 className="site-footer-trust-heading">Responsible Gaming</h3>
+          <h3 className="site-footer-trust-heading">{t("footer.responsibleGaming")}</h3>
           <div className="site-footer-badge-row">
             {RESPONSIBLE_GAMING.map((item) => (
               <div key={item.id} className="site-footer-rg-badge" title={item.label}>

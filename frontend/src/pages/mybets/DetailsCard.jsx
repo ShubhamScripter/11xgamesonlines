@@ -1,8 +1,10 @@
 import React from "react";
 import { MdKeyboardArrowLeft, MdPlayArrow } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function DetailsCard({ showdetails, setshowdetails, data }) {
+  const { t } = useTranslation();
   if (!showdetails || !data) return null;
 
   return (
@@ -12,12 +14,12 @@ function DetailsCard({ showdetails, setshowdetails, data }) {
           className="text-white text-2xl"
           onClick={() => setshowdetails(false)}
         />
-        <div className="flex gap-1 items-center">
-          <span className="text-sm md:text-lg font-semibold text-white">
+        <div className="flex gap-1 items-center min-w-0 flex-wrap justify-center px-2">
+          <span className="text-sm md:text-lg font-semibold text-white break-words text-center">
             {data.match}
           </span>
-          <MdPlayArrow className="text-sm md:text-2xl text-gray-500" />
-          <span className="text-sm font-semibold md:text-base text-white">
+          <MdPlayArrow className="text-sm md:text-2xl text-gray-500 shrink-0" />
+          <span className="text-sm font-semibold md:text-base text-white break-words text-center">
             {data.market}
           </span>
         </div>
@@ -27,7 +29,8 @@ function DetailsCard({ showdetails, setshowdetails, data }) {
         />
       </div>
 
-      <table className="w-full">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[280px]">
         <colgroup>
           <col style={{ width: "33.33%" }} />
           <col style={{ width: "33.33%" }} />
@@ -48,22 +51,22 @@ function DetailsCard({ showdetails, setshowdetails, data }) {
           </tr>
           <tr className="border-b">
             <td className="p-2">
-              <span className="text-gray-600 md:text-lg">Odds.</span>
+              <span className="text-gray-600 md:text-lg">{t('bets.odds')}</span>
               <div className="font-semibold md:text-base">{data.odds}</div>
             </td>
             <td className="p-2">
-              <span className="text-gray-600 md:text-lg">Stake (INR)</span>
+              <span className="text-gray-600 md:text-lg">{t('bets.stakeInr')}</span>
               <div className="font-semibold md:text-base">{data.stake}</div>
             </td>
             <td className="p-2">
-              <span className="text-gray-600 md:text-lg">Profit (INR)</span>
+              <span className="text-gray-600 md:text-lg">{t('bets.profitInr')}</span>
               <div className="font-semibold md:text-base">{data.profit}</div>
             </td>
           </tr>
           <tr className="p-2">
             <td className="p-2">
               <div className="text-[14px] md:text-base font-semibold">
-                Ref: {data.id}
+                {t('bets.ref')}: {data.id}
               </div>
             </td>
             <td colSpan={2}>
@@ -74,6 +77,7 @@ function DetailsCard({ showdetails, setshowdetails, data }) {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -2,54 +2,57 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { HiOutlineExternalLink } from "react-icons/hi";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./SiteFooter.css";
 import FooterTrust from "./FooterTrust";
 
-const FOOTER_COLUMNS = [
-  {
-    title: "Gaming",
-    links: [
-      { label: "Popular", path: "/" },
-      { label: "Cricket", path: "/cricket" },
-      { label: "Football", path: "/football" },
-      { label: "Tennis", path: "/tennis" },
-      { label: "Casino", path: "/casino/casino/all" },
-      { label: "Crash", path: "/casino/crash/all" },
-      { label: "Slots", path: "/casino/slot/all" },
-      { label: "Table", path: "/casino/table/all" },
-      { label: "Fishing", path: "/casino/fishing/all" },
-      { label: "Arcade", path: "/casino/arcade/all" },
-      { label: "Lottery", path: "/casino/lottery/all" },
-    ],
-  },
-  {
-    title: "Account",
-    auth: true,
-    links: [
-      { label: "My Profile", path: "/user/profile" },
-      { label: "Balance Overview", path: "/user/balance-overview" },
-      { label: "Account Statement", path: "/user/account-statement" },
-      { label: "Change Password", path: "/user/change-password" },
-      { label: "Active Log", path: "/user/active-log" },
-    ],
-  },
-  {
-    title: "Features",
-    auth: true,
-    links: [
-      { label: "My Bets", path: "/mybets" },
-      { label: "Current Bets", path: "/user/current-bets" },
-      { label: "Bet History", path: "/user/bet-history" },
-    ],
-  },
-  {
-    title: "Help",
-    links: [
-      { label: "Login", path: "/login", guestOnly: true },
-      { label: "Register", path: "/register", guestOnly: true },
-    ],
-  },
-];
+function getFooterColumns(t) {
+  return [
+    {
+      title: t("footer.gaming"),
+      links: [
+        { label: t("footer.popular"), path: "/" },
+        { label: t("menu.cricket"), path: "/cricket" },
+        { label: t("menu.football"), path: "/football" },
+        { label: t("menu.tennis"), path: "/tennis" },
+        { label: t("menu.casino"), path: "/casino/casino/all" },
+        { label: t("menu.crash"), path: "/casino/crash/all" },
+        { label: t("menu.slot"), path: "/casino/slot/all" },
+        { label: t("menu.table"), path: "/casino/table/all" },
+        { label: t("menu.fishing"), path: "/casino/fishing/all" },
+        { label: t("menu.arcade"), path: "/casino/arcade/all" },
+        { label: t("footer.lottery"), path: "/casino/lottery/all" },
+      ],
+    },
+    {
+      title: t("footer.account"),
+      auth: true,
+      links: [
+        { label: t("menu.myProfile"), path: "/user/profile" },
+        { label: t("menu.balanceOverview"), path: "/user/balance-overview" },
+        { label: t("menu.accountStatement"), path: "/user/account-statement" },
+        { label: t("footer.changePassword"), path: "/user/change-password" },
+        { label: t("menu.activeLog"), path: "/user/active-log" },
+      ],
+    },
+    {
+      title: t("footer.features"),
+      auth: true,
+      links: [
+        { label: t("nav.myBets"), path: "/mybets" },
+        { label: t("menu.currentBets"), path: "/user/current-bets" },
+        { label: t("footer.betHistory"), path: "/user/bet-history" },
+      ],
+    },
+    {
+      title: t("footer.help"),
+      links: [
+        { label: t("footer.login"), path: "/login", guestOnly: true },
+        { label: t("footer.register"), path: "/register", guestOnly: true },
+      ],
+    },
+  ];
+}
 
 function FooterLink({ item, onNavigate }) {
   const content = (
@@ -82,20 +85,23 @@ function FooterLink({ item, onNavigate }) {
 function SiteFooter() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const isLoggedIn = Boolean(user);
 
-  const visibleColumns = FOOTER_COLUMNS.map((col) => {
-    if (col.auth && !isLoggedIn) return null;
+  const visibleColumns = getFooterColumns(t)
+    .map((col) => {
+      if (col.auth && !isLoggedIn) return null;
 
-    const links = col.links.filter((link) => {
-      if (link.guestOnly && isLoggedIn) return false;
-      if (link.auth && !isLoggedIn) return false;
-      return true;
-    });
+      const links = col.links.filter((link) => {
+        if (link.guestOnly && isLoggedIn) return false;
+        if (link.auth && !isLoggedIn) return false;
+        return true;
+      });
 
-    if (links.length === 0) return null;
-    return { ...col, links };
-  }).filter(Boolean);
+      if (links.length === 0) return null;
+      return { ...col, links };
+    })
+    .filter(Boolean);
 
   return (
     <footer className="site-footer">
@@ -119,7 +125,7 @@ function SiteFooter() {
       <div className="site-footer-bottom">
         <p className="site-footer-brand">Bajilive</p>
         <p className="site-footer-copy">
-          © {new Date().getFullYear()} Bajilive. Play responsibly.
+          © {new Date().getFullYear()} Bajilive. {t("footer.playResponsibly")}
         </p>
         {!isLoggedIn && (
           <button
@@ -127,7 +133,7 @@ function SiteFooter() {
             className="site-footer-cta"
             onClick={() => navigate("/login")}
           >
-            Sign in to access account &amp; wallet features
+            {t("footer.signInCta")}
           </button>
         )}
       </div>

@@ -99,18 +99,19 @@ export async function getBetLockedMatchIds(sport) {
 }
 
 export async function getFullyDisabledMatchIds(sport) {
-  await refreshCache();
-  const betLockedIds = await getBetLockedMatchIds(sport);
-  if (!sport) {
-    const ids = new Set(cache.fullyDisabledIds);
-    betLockedIds.forEach((id) => ids.add(id));
-    return ids;
-  }
+  // Always read DeactivatedMatch from DB so multi-instance (PM2) workers
+  // see locks immediately — in-memory cache invalidation is per-process only.
+  const [rows, betLockedIds] = await Promise.all([
+    DeactivatedMatch.find().select('matchId sport matchDisabled disabledSections').lean(),
+    getBetLockedMatchIds(sport),
+  ]);
+
   const ids = new Set(betLockedIds);
-  for (const [matchId, row] of cache.byMatchId.entries()) {
-    if (row.matchDisabled && (!row.sport || row.sport === sport)) {
-      ids.add(matchId);
-    }
+  for (const doc of rows) {
+    const serialized = serializeMatchSectionDoc(doc);
+    if (!serialized.matchDisabled) continue;
+    if (sport && serialized.sport && serialized.sport !== sport) continue;
+    ids.add(String(doc.matchId));
   }
   return ids;
 }

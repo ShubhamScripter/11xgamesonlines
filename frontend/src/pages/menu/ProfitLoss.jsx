@@ -185,7 +185,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { MdArrowBackIos } from "react-icons/md";
-import HeaderLogin from '../../components/Header/HeaderLogin';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
@@ -193,8 +192,10 @@ import { AiFillCalendar } from "react-icons/ai";
 import ProfitLossCard from '../../components/menucomp/ProfitLossCard';
 import { getProLoss } from '../../features/sports/betReducer';
 import { formatAppDate, formatAppDateISO, formatAppDateTime } from '../../utils/time';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function ProfitLoss() {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { proLossHistory, loading, errorMessage } = useSelector((state) => state.bet);
 
@@ -214,11 +215,16 @@ function ProfitLoss() {
   // ----------------------- HELPER FUNCTIONS -------------------------
   const formatDateLocal = (date) => formatAppDateISO(date);
 
-  // Get status based on profit
   const getStatusFromProfit = (profit) => {
-    if (profit > 0) return 'Completed';
-    if (profit < 0) return 'Loss';
-    return 'Cancelled';
+    if (profit > 0) return t('page.profitLoss.completed');
+    if (profit < 0) return t('page.profitLoss.loss');
+    return t('page.profitLoss.cancelled');
+  };
+
+  const mapOtype = (otype) => {
+    if (otype === 'back') return t('page.profitLoss.back');
+    if (otype === 'lay') return t('page.profitLoss.lay');
+    return otype || t('page.profitLoss.unknown');
   };
 
   // Map API data to card format
@@ -230,11 +236,11 @@ function ProfitLoss() {
         bet.profitLossChange ?? bet.profit ?? bet.myProfit ?? 0
       ),
       id: bet.betId || bet._id || bet.id || `profit-loss-${idx}`,
-      gameName: bet.gameName || 'Unknown Game',
-      match: bet.eventName || 'Unknown Match',
-      market: bet.marketName || 'Unknown Market',
-      type: bet.otype === 'back' ? 'Back' : bet.otype === 'lay' ? 'Lay' : bet.otype || 'Unknown',
-      selection: bet.teamName || 'Unknown Selection',
+      gameName: bet.gameName || t('page.profitLoss.unknownGame'),
+      match: bet.eventName || t('page.profitLoss.unknownMatch'),
+      market: bet.marketName || t('page.profitLoss.unknownMarket'),
+      type: mapOtype(bet.otype),
+      selection: bet.teamName || t('page.profitLoss.unknownSelection'),
       oddsReq: bet.odds || 0, // Not available in new API response
       stake: bet.stake || 0,
       backsubtotal: bet.otype === 'back'|| bet.otype === 'Yes' ? bet.stake : 0,
@@ -288,7 +294,7 @@ function ProfitLoss() {
     } else {
       setFilteredBets([]);
     }
-  }, [proLossHistory]);
+  }, [proLossHistory, t]);
 
   // Initial fetch
   useEffect(() => {
@@ -313,30 +319,29 @@ function ProfitLoss() {
   // ----------------------- RENDER -------------------------
   return (
     <div>
-      <HeaderLogin />
       <div className="bg-[#000] h-10 flex items-center px-5 relative">
         <div onClick={() => window.history.back()}>
           <MdArrowBackIos className='text-white text-2xl font-semibold' />
         </div>
         <span className="text-white text-sm md:text-lg font-semibold absolute -translate-x-1/2 left-1/2">
-          Profit & Loss
+          {t('page.profitLoss.title')}
         </span>
       </div>
 
-      <div className='bg-[#eef6fb] p-2 flex items-center justify-around'>
-        <span className='text-sm font-semibold'>Exchange</span>
-        <span className='text-sm font-semibold'>Bookmaker</span>
-        <span className='text-sm font-semibold'>FancyBet</span>
-        <span className='text-sm font-semibold'>SportsBook</span>
+      <div className='bg-[#eef6fb] p-2 flex items-center gap-3 overflow-x-auto no-scrollbar'>
+        <span className='text-sm font-semibold whitespace-nowrap shrink-0'>{t('page.profitLoss.exchange')}</span>
+        <span className='text-sm font-semibold whitespace-nowrap shrink-0'>{t('page.profitLoss.bookmaker')}</span>
+        <span className='text-sm font-semibold whitespace-nowrap shrink-0'>{t('page.profitLoss.fancyBet')}</span>
+        <span className='text-sm font-semibold whitespace-nowrap shrink-0'>{t('page.profitLoss.sportsBook')}</span>
       </div>
 
       <div className='bg-[#262c32] p-2'>
         {/* Search Section */}
-        <div className='flex items-center gap-5'>
+        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3'>
           {/* Date Range Picker */}
-          <div className="relative w-max">
+          <div className="relative w-full sm:w-auto">
             <button
-              className="flex items-center gap-2 px-4 py-2 border border-green-600 rounded text-green-500 bg-transparent"
+              className="flex w-full sm:w-auto items-center justify-center gap-2 px-3 py-2 border border-green-600 rounded text-green-500 bg-transparent text-sm"
               onClick={() => setShowCalendar(!showCalendar)}
             >
               <AiFillCalendar className="text-green-500" />
@@ -361,7 +366,7 @@ function ProfitLoss() {
               className='bg-[#17934e] p-1 rounded-lg text-lg font-semibold'
               onClick={handleFilter}
             >
-              Submit
+              {t('common.submit')}
             </button>
           </div>
         </div>
@@ -372,13 +377,13 @@ function ProfitLoss() {
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-lg font-semibold text-gray-600">
-              Loading profit/loss data...
+              {t('page.profitLoss.loading')}
             </div>
           </div>
         ) : errorMessage ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-lg font-semibold text-red-600">
-              Error: {errorMessage}
+              {t('common.error', { message: errorMessage })}
             </div>
           </div>
         ) : (

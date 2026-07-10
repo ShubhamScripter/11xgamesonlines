@@ -3,10 +3,12 @@ import { MdArrowCircleUp, MdArrowForwardIos } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSoccerData } from "../../features/sports/soccerSlice";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function Soccer({ selected, setSelected }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const matches = useSelector((s) => s.soccer?.soccerData || []);
 
   useEffect(() => {
@@ -16,14 +18,14 @@ function Soccer({ selected, setSelected }) {
   const leagues = useMemo(() => {
     const map = new Map();
     for (const m of Array.isArray(matches) ? matches : []) {
-      const key = (m?.title || m?.cname || "Unknown League").toString().trim() || "Unknown League";
+      const key = (m?.title || m?.cname || t('leagues.unknownLeague')).toString().trim() || t('leagues.unknownLeague');
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(m);
     }
     return [...map.entries()]
       .map(([title, items]) => ({ title, matches: items }))
       .sort((a, b) => b.matches.length - a.matches.length);
-  }, [matches]);
+  }, [matches, t]);
 
   if (selected) {
     const selectedLeague = leagues.find((l) => l.title === selected);
@@ -35,13 +37,13 @@ function Soccer({ selected, setSelected }) {
             className="mb-4 px-4 py-2 bg-[#19A044] text-white rounded"
             onClick={() => setSelected(null)}
           >
-            Back
+            {t('leagues.back')}
           </button>
           <h3 className="text-xl font-semibold">{selected}</h3>
         </div>
         <div className="p-2 flex flex-col gap-1">
           {list.length === 0 ? (
-            <div className="bg-white p-4 rounded-lg text-center">No matches</div>
+            <div className="bg-white p-4 rounded-lg text-center">{t('leagues.noMatches')}</div>
           ) : (
             list.map((m, idx) => (
               <div
@@ -54,7 +56,7 @@ function Soccer({ selected, setSelected }) {
                 }
               >
                 <span className="text-xs bg-[#e2eaef] w-fit pl-2 pr-2">
-                  {m.date || "-"} &nbsp; Matched{m.matched ?? 0}
+                  {m.date || "-"} &nbsp; {t('leagues.matched')}{m.matched ?? 0}
                 </span>
                 <div className="flex justify-between items-center">
                   <span className="md:text-xl">{m.match}</span>
@@ -71,10 +73,10 @@ function Soccer({ selected, setSelected }) {
   return (
     <div className="bg-[#f0f8ff] min-h-[80vh]">
       <div className="p-4 flex flex-col gap-1">
-        <h3 className="text-xl font-semibold mb-2">Popular</h3>
+        <h3 className="text-xl font-semibold mb-2">{t('leagues.popular')}</h3>
         {leagues.length === 0 ? (
           <div className="bg-white p-4 rounded-lg shadow-lg text-center">
-            No Event
+            {t('leagues.noEvent')}
           </div>
         ) : (
           leagues.map((l) => (

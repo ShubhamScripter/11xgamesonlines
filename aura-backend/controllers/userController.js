@@ -13,6 +13,10 @@ import { formatLoginDateTime } from '../utils/appTime.js';
 import { getWageringStatus } from '../utils/wagering.js';
 import { getUserReferralSettings } from '../utils/userReferralCommission.js';
 import { buildUserRegisterReferralLink } from '../utils/frontendUrl.js';
+import {
+  normalizeUserLanguage,
+  USER_LANGUAGES,
+} from '../constants/userLanguageConstants.js';
 
 export const registerUser = async (req, res) => {
   try {
@@ -690,6 +694,39 @@ export const updateTheme = async (req, res) => {
     });
   } catch (error) {
     console.error('Update Theme Error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const updateUserLanguage = async (req, res) => {
+  try {
+    const { id } = req;
+    const { language } = req.body;
+
+    const normalized = normalizeUserLanguage(language);
+    if (!language || !USER_LANGUAGES.includes(normalized)) {
+      return res.status(400).json({
+        message: `Invalid language. Allowed: ${USER_LANGUAGES.join(', ')}`,
+      });
+    }
+
+    const user = await SubAdmin.findByIdAndUpdate(
+      id,
+      { preferredLanguage: normalized },
+      { new: true }
+    ).select('-password -masterPassword');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Language updated successfully',
+      data: user,
+    });
+  } catch (error) {
+    console.error('Update Language Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

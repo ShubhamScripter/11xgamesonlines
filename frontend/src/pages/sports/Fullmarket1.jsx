@@ -350,10 +350,12 @@ import {
   normalizeFancySectionOdds,
 } from '../../utils/bettingPayloadUtils';
 import useMatchSectionSettings from '../../hooks/useMatchSectionSettings';
+import { useTranslation } from '../../i18n/LanguageContext';
 function Fullmarket1() {
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
   const {
@@ -1045,9 +1047,9 @@ const oddevenData =
   if (!sectionSettingsLoading && matchDisabled) {
     return (
       <div className="p-6 text-center text-white bg-[#1e1e1e] min-h-[40vh] flex flex-col items-center justify-center">
-        <p className="text-lg font-semibold">This match is currently unavailable.</p>
+        <p className="text-lg font-semibold">{t('sports.matchUnavailable')}</p>
         <button type="button" className="mt-4 px-4 py-2 bg-[#17934e] rounded" onClick={() => navigate('/football')}>
-          Back to Football
+          {t('sports.backToFootball')}
         </button>
       </div>
     );
@@ -1067,23 +1069,23 @@ const oddevenData =
             <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
               <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
               onClick={() => setIsLive(true)}
-              >Live</div>
+              >{t('sports.live')}</div>
               <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
               onClick={() => setIsLive(false)}
-              >ScoreBoard</div>
+              >{t('sports.scoreBoard')}</div>
             </div>
 
         <div className='w-full'>
           {isLive ? (
             isLoadingStream ? (
               <div className='flex w-full items-center justify-center'>
-                <span>Loading stream...</span>
+                <span>{t('sports.loadingStream')}</span>
               </div>
             ) : liveStreamUrl ? (
               <div className='aspect-video w-full'>
               <iframe
                 src={liveStreamUrl}
-                title='Watch Live'
+                title={t('sports.watchLive')}
                 className='h-full w-full'
                 scrolling="no"
                 loading='eager'
@@ -1093,18 +1095,18 @@ const oddevenData =
               </div>
             ) : (
               <div className='flex aspect-video w-full items-center justify-center bg-[#1e1e1e] text-white'>
-                <span>Live stream not available</span>
+                <span>{t('sports.streamUnavailable')}</span>
               </div>
             )
           ) : scorecardLoading ? (
             <div className='flex w-full items-center justify-center bg-gray-200'>
-              <span>Loading score...</span>
+              <span>{t('sports.loadingScore')}</span>
             </div>
           ) : (
             <div className="aspect-video w-full">
             <iframe
               src={scorecardUrl || undefined}
-              title="Live Score"
+              title={t('sports.liveScore')}
               className="w-full h-full"
               scrolling="no"
               loading="lazy"
@@ -1118,7 +1120,7 @@ const oddevenData =
           {/* Match Odds Section */}
           {!loader && dataSource.length === 0 && (
             <div className="p-4 text-center text-gray-500 bg-[#1e1e1e] text-white">
-              No markets available for this match. Try again later.
+              {t('sports.noMarketsAvailable')}
             </div>
           )}
           {showMatchOddsSection && matchOddsList.length > 0 && (
@@ -1154,7 +1156,7 @@ const oddevenData =
                         setSelected("Fancybet");
                         setIsFancyActive(true);
                       }}
-                    >Fancybet</div>
+                    >{t('sports.fancybet')}</div>
                   )}
                   {oddevenData.length > 0 && (
                     <div className={`rounded-t-xl p-2 mt-4 text-white ${!isFacncyActive ? 'bg-[#17934e]' : 'bg-transparent'}`}
@@ -1162,7 +1164,7 @@ const oddevenData =
                         setSelected("Sportbook");
                         setIsFancyActive(false);
                       }}
-                    >Sportbook</div>
+                    >{t('sports.sportbook')}</div>
                   )}
                 </div>
                 {content}

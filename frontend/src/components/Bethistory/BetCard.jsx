@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function formatOdd(value) {
   const n = Number(value);
@@ -13,6 +14,8 @@ function formatMoney(value) {
 }
 
 const BetCard = ({ data, compact = false }) => {
+  const { t } = useTranslation();
+
   const getSignedColorClass = (value) => {
     const amount = Number(value);
     if (!Number.isFinite(amount) || amount === 0) return "text-gray-700";
@@ -39,9 +42,9 @@ const BetCard = ({ data, compact = false }) => {
         <div className={`bg-[#262c32] ${compact ? "p-3 rounded-lg" : "p-4"}`}>
           <div className="rounded-lg shadow-md mx-auto w-full">
             <h2 className={compact ? "text-sm font-semibold" : "text-lg font-semibold"}>
-              Bet Details
+              {t("bet.details")}
             </h2>
-            <p className="text-gray-400 text-xs">No current bets.</p>
+            <p className="text-gray-400 text-xs">{t("bet.noCurrentBets")}</p>
           </div>
         </div>
       )}
@@ -55,12 +58,13 @@ const BetCard = ({ data, compact = false }) => {
               compact ? "rounded-lg" : "rounded-2xl"
             }`}
           >
-            <table className={`table-auto w-full ${compact ? "text-xs" : "text-sm"}`}>
+            <div className="overflow-x-auto">
+            <table className={`table-auto w-full min-w-[280px] ${compact ? "text-xs" : "text-sm"}`}>
               <thead className="bg-[#262c32] text-gray-200">
                 <tr>
                   <th colSpan={2} className={compact ? "p-2 text-left" : "p-3 text-left"}>
                     <span className={compact ? "text-sm font-semibold" : "md:text-lg font-semibold"}>
-                      {bet.categoryLabel || (isCasino ? "Casino" : "Sports")}
+                      {bet.categoryLabel || (isCasino ? t("bet.filter.casino") : t("bet.filter.sports"))}
                     </span>
                   </th>
                 </tr>
@@ -68,30 +72,30 @@ const BetCard = ({ data, compact = false }) => {
               <tbody>
                 {isCasino ? (
                   <>
-                    <Row label="Game name">{bet.gameName}</Row>
-                    <Row label="Bet amount">{formatMoney(bet.betAmount)}</Row>
+                    <Row label={t("bet.gameName")}>{bet.gameName}</Row>
+                    <Row label={t("bet.betAmount")}>{formatMoney(bet.betAmount)}</Row>
                     <Row
-                      label="Profit / Loss"
+                      label={t("bet.profitLoss")}
                       valueClassName={getSignedColorClass(bet.profitLoss)}
                     >
                       {formatMoney(bet.profitLoss)}
                     </Row>
-                    <Row label="Time">{bet.time}</Row>
+                    <Row label={t("common.time")}>{bet.time}</Row>
                   </>
                 ) : (
                   <>
-                    <Row label="Market name">{bet.marketName}</Row>
-                    <Row label="Game name">
+                    <Row label={t("bet.marketName")}>{bet.marketName}</Row>
+                    <Row label={t("bet.gameName")}>
                       {[bet.gameName, bet.eventName].filter(Boolean).join(" · ")}
                     </Row>
-                    <Row label="Odd">
+                    <Row label={t("bet.odd")}>
                       <div className="flex flex-col">
                         <span>{formatOdd(bet.odd)}</span>
                         {(() => {
                           const fancy = bet.fancyScore;
                           const fancyStr = fancy === undefined || fancy === null ? "" : String(fancy).trim();
                           if (!fancyStr || fancyStr === "0") return null;
-                          const fancyLabel = bet.betCategory === "premium" ? "Premium" : "Fancy";
+                          const fancyLabel = bet.betCategory === "premium" ? t("bet.premium") : t("bet.fancy");
                           return (
                             <span className="text-xs text-blue-600 font-semibold">
                               {fancyLabel} {fancyStr}
@@ -100,14 +104,14 @@ const BetCard = ({ data, compact = false }) => {
                         })()}
                       </div>
                     </Row>
-                    <Row label="Odd type">{bet.otype || "—"}</Row>
-                    <Row label="Team name">{bet.selection || "—"}</Row>
-                    <Row label="Stake">{formatMoney(bet.stake)}</Row>
+                    <Row label={t("bet.oddType")}>{bet.otype || "—"}</Row>
+                    <Row label={t("bet.teamName")}>{bet.selection || "—"}</Row>
+                    <Row label={t("bet.stake")}>{formatMoney(bet.stake)}</Row>
                     {(bet.possibleProfit !== undefined ||
                       bet.possibleLoss !== undefined) ? (
                       <tr className="border-b border-gray-600 last:border-0">
                         <td className={`${rowLabelCls} text-gray-500`}>
-                          Expected Profit / Loss
+                          {t("bet.expectedProfitLoss")}
                         </td>
                         <td className={rowValueCls}>
                           <span className="text-green-600 font-semibold">
@@ -121,18 +125,19 @@ const BetCard = ({ data, compact = false }) => {
                       </tr>
                     ) : (
                       <Row
-                        label="Profit / Loss"
+                        label={t("bet.profitLoss")}
                         valueClassName={getSignedColorClass(bet.profitLoss)}
                       >
                         {formatMoney(bet.profitLoss)}
                       </Row>
                     )}
-                    <Row label="Bet result">{bet.betResult || "—"}</Row>
-                    <Row label="Time">{bet.time}</Row>
+                    <Row label={t("bet.betResult")}>{bet.betResult || "—"}</Row>
+                    <Row label={t("common.time")}>{bet.time}</Row>
                   </>
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         );
       })}

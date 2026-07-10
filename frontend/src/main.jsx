@@ -22,6 +22,7 @@ import App from './App.jsx'
 import { store } from './app/store.js'
 import { Provider } from 'react-redux'
 import { getStoredCurrency } from './utils/currency'
+import { LanguageProvider } from './i18n/LanguageContext.jsx'
 
 import setupLocatorUI from "@locator/runtime";
 
@@ -62,9 +63,11 @@ if (!mustRedirect) {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <Provider store={store}>
-        <BrowserRouter basename={ROUTER_BASENAME}>
-          <App />
-        </BrowserRouter>
+        <LanguageProvider>
+          <BrowserRouter basename={ROUTER_BASENAME}>
+            <App />
+          </BrowserRouter>
+        </LanguageProvider>
       </Provider>
     </StrictMode>,
   )

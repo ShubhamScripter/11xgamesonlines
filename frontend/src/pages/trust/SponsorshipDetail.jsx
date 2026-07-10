@@ -1,19 +1,21 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { SPONSORSHIPS, slugify } from "../../components/Footer/footerTrustData";
+import { useTranslation } from "../../i18n/LanguageContext";
 import "./TrustPages.css";
 
 function SponsorshipDetail() {
   const { slug } = useParams();
+  const { t } = useTranslation();
   const item = SPONSORSHIPS.find((s) => slugify(s.name) === slug);
 
   if (!item) {
     return (
       <div className="trust-page">
         <div className="trust-detail-missing">
-          <h1>Sponsorship not found</h1>
+          <h1>{t('trust.sponsorshipNotFound')}</h1>
           <Link to="/sponsorships" className="trust-back-link">
-            ← Back to Sponsorships
+            {t('trust.backToSponsorships')}
           </Link>
         </div>
       </div>
@@ -24,7 +26,7 @@ function SponsorshipDetail() {
     <div className="trust-page">
       <div className="trust-detail">
         <Link to="/sponsorships" className="trust-back-link">
-          ← Back to Sponsorships
+          {t('trust.backToSponsorships')}
         </Link>
 
         <div className="trust-detail-head">
@@ -44,18 +46,18 @@ function SponsorshipDetail() {
         <div className="trust-detail-meta">
           {item.league && (
             <div className="trust-detail-meta-item">
-              <span className="trust-detail-meta-label">League</span>
+              <span className="trust-detail-meta-label">{t('trust.league')}</span>
               <span className="trust-detail-meta-value">{item.league}</span>
             </div>
           )}
           {item.location && (
             <div className="trust-detail-meta-item">
-              <span className="trust-detail-meta-label">Location</span>
+              <span className="trust-detail-meta-label">{t('trust.location')}</span>
               <span className="trust-detail-meta-value">{item.location}</span>
             </div>
           )}
           <div className="trust-detail-meta-item">
-            <span className="trust-detail-meta-label">Partnership</span>
+            <span className="trust-detail-meta-label">{t('trust.partnership')}</span>
             <span className="trust-detail-meta-value">{item.year}</span>
           </div>
         </div>

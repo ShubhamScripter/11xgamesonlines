@@ -5,7 +5,9 @@ import { useLocation } from 'react-router-dom';
 import SportsListLoading from '../../components/sports/SportsListLoading';
 import SportDateFilter from '../../components/sports/SportDateFilter';
 import SportListBody from '../../components/sports/SportListBody';
-import { SPORT_LIST_META } from '../../components/sports/sportSidebarAssets';
+import { SPORT_ICONS } from '../../components/sports/sportSidebarAssets';
+import { getSportListMeta } from '../../i18n/i18nHelpers';
+import { useTranslation } from '../../i18n/LanguageContext';
 import useProgressiveSportList from '../../hooks/useProgressiveSportList';
 import {
   buildSportListSections,
@@ -21,6 +23,7 @@ const SPORT = 'soccer';
 function Soccer() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const { soccerData, soccerLoading } = useSelector((state) => state.soccer || {});
   const [openIndexes, setOpenIndexes] = useState([0]);
@@ -73,21 +76,21 @@ function Soccer() {
   }, [visibleSections.length, activeTab, sectionSignatureFrom(visibleSections)]);
 
   useEffect(() => {
-    dispatch(fetchSoccerData({ withOdds: true, oddsScope: 'eligible' }));
+    dispatch(fetchSoccerData({ withOdds: true, oddsScope: 'eligible', force: true }));
     prefetchBetfairTvList();
   }, [dispatch]);
 
-  const sportMeta = SPORT_LIST_META.soccer;
+  const sportMeta = { ...getSportListMeta(t).soccer, icon: SPORT_ICONS.soccer };
   const showLeagueHeaders =
     visibleSections.length > 1 ||
     (visibleSections.length === 1 && !visibleSections[0]?.isLiveSection);
 
   if (soccerLoading && sourceMatches.length === 0) {
-    return <SportsListLoading message="Loading soccer matches..." />;
+    return <SportsListLoading message={t('sports.loadingSoccer')} />;
   }
 
   return (
-    <div className="min-h-screen pb-6 w-full">
+    <div className="min-h-screen pb-8 w-full min-w-0 overflow-x-hidden">
       <SportDateFilter
         activeTab={activeTab}
         onChange={setActiveTab}

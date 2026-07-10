@@ -10,10 +10,13 @@ import logo from '../../assets/bajiLogo.png';
 import logoMp4 from '../../assets/bajiVideo.mp4';
 import moblogoMp4 from '../../assets/welcome-bn.mp4';
 import { HiOutlineHome } from 'react-icons/hi';
+import LanguageSwitcher from '../../i18n/LanguageSwitcher';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -48,7 +51,7 @@ function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (verificationCode !== generatedCode) {
-      toast.error('Verification code does not match!');
+      toast.error(t('login.verifyCodeMismatch'));
       return;
     }
     // ✅ match the API’s required body keys
@@ -70,7 +73,10 @@ function Login() {
 
       <div className="fixed z-50 top-0 left-0 h-[65px] bg-[#191a1a] w-full flex justify-between items-center px-5 border-b border-gray-700">
         <img src={logo} alt="logo" className="h-full" />
-        <Link to="/"><HiOutlineHome className="text-white" size={25} /></Link>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <Link to="/"><HiOutlineHome className="text-white" size={25} /></Link>
+        </div>
       </div>
 
       <div className="h-screen pt-[65px] overflow-y-auto">
@@ -91,9 +97,9 @@ function Login() {
             <div className="w-full max-w-md text-white">
               {/* TABS */}
               <div className="flex my-6">
-                <button className="w-1/2 border-b-4 border-[#14805e] pb-2">Log in</button>
+                <button className="w-1/2 border-b-4 border-[#14805e] pb-2">{t('login.title')}</button>
                 <Link to="/register" className="w-1/2 text-gray-400 pb-2 text-center">
-                  <button>Sign up</button>
+                  <button>{t('login.signUp')}</button>
                 </Link>
               </div>
               {/* FORM */}
@@ -101,12 +107,12 @@ function Login() {
 
                 {/* USERNAME */}
                 <div className="mb-4">
-                  <label className="block mb-2 text-[#8d9aa5]">Username</label>
+                  <label className="block mb-2 text-[#8d9aa5]">{t('login.username')}</label>
                   <div className="relative">
                     <input
                       type="text"
                       value={username}
-                      placeholder="Enter your username"
+                      placeholder={t('login.usernamePlaceholder')}
                       onChange={(e) => {
                         setUsername(e.target.value);
                         if (e.target.value) setHasTypedUser(true);
@@ -128,19 +134,19 @@ function Login() {
                   </div>
                   {hasTypedUser && !username && (
                     <div className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <IoIosCloseCircleOutline /> This field is required.
+                      <IoIosCloseCircleOutline /> {t('common.fieldRequired')}
                     </div>
                   )}
                 </div>
 
                 {/* PASSWORD */}
                 <div className="mb-4">
-                  <label className="block mb-2 text-[#8d9aa5]">Password</label>
+                  <label className="block mb-2 text-[#8d9aa5]">{t('login.password')}</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      placeholder="Enter your password"
+                      placeholder={t('login.passwordPlaceholder')}
                       onChange={(e) => {
                         setPassword(e.target.value);
                         if (e.target.value) setHasTypedPass(true);
@@ -170,14 +176,14 @@ function Login() {
                   </div>
                   {hasTypedPass && !password && (
                     <div className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                      <IoIosCloseCircleOutline /> This field is required.
+                      <IoIosCloseCircleOutline /> {t('common.fieldRequired')}
                     </div>
                   )}
                 </div>
 
                 {/* VERIFICATION CODE */}
                 <div className="mb-4">
-                  <label className="block mb-2 text-[#8d9aa5]">Verification Code</label>
+                  <label className="block mb-2 text-[#8d9aa5]">{t('login.verificationCode')}</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -195,7 +201,7 @@ function Login() {
                 <button
                   className="w-full bg-[#14805e] py-3 rounded font-semibold"
                 >
-                  {isLoading ? 'Logging in...' : 'Log in'}
+                  {isLoading ? t('login.loggingIn') : t('login.title')}
                 </button>
 
               </form>

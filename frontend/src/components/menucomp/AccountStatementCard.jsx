@@ -1,6 +1,9 @@
 import React from 'react'
+import { useTranslation } from '../../i18n/LanguageContext'
 
 function AccountStatementCard({ accountdata }) {
+  const { t } = useTranslation()
+
   return (
     <div className="mt-3">
       {accountdata.map((item, idx) => (
@@ -15,7 +18,7 @@ function AccountStatementCard({ accountdata }) {
           <div className="grid grid-cols-2 gap-3 px-3 py-3 border-b border-[#2e363d]">
             <div className="flex flex-col">
               <span className="text-xs md:text-sm text-gray-400">
-                {item.change < 0 ? 'Debits' : item.change > 0 ? 'Credits' : 'No change'}
+                {item.change < 0 ? t('wallet.debits') : item.change > 0 ? t('wallet.credits') : t('wallet.noChange')}
               </span>
               <strong
                 className={`text-sm md:text-base ${
@@ -26,7 +29,7 @@ function AccountStatementCard({ accountdata }) {
               </strong>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-xs md:text-sm text-gray-400">Balance</span>
+              <span className="text-xs md:text-sm text-gray-400">{t('wallet.balance')}</span>
               <strong className="text-sm md:text-base text-white">
                 {Number(item.balance || 0).toFixed(2)}
               </strong>
@@ -34,7 +37,7 @@ function AccountStatementCard({ accountdata }) {
           </div>
 
           <div className="px-3 py-3">
-            <p className="text-xs text-gray-400 mb-1">Remark</p>
+            <p className="text-xs text-gray-400 mb-1">{t('wallet.remark')}</p>
             <p className="text-sm md:text-base font-medium break-words">{item.remark}</p>
           </div>
         </div>

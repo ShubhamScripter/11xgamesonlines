@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { MdPlayArrow } from "react-icons/md";
 import { IoChevronDown, IoChevronUp } from "react-icons/io5";
+import { useTranslation } from "../../i18n/LanguageContext";
+
 function ProfitLossCard({data}) {
+  const { t } = useTranslation();
   console.log("data is:",data);
       const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -19,8 +22,8 @@ function ProfitLossCard({data}) {
             {data.length ===0 &&(
               <div className="bg-[#f1f7ff] min-h-[300px] flex flex-col gap-4 pt-4">
               <div className="bg-white p-4 rounded-lg shadow-md">
-                <h2 className="text-lg font-semibold">Bet Details</h2>
-                <p className="text-gray-700">No current bets available.</p>
+                <h2 className="text-lg font-semibold">{t("bet.details")}</h2>
+                <p className="text-gray-700">{t("bet.noCurrentBetsAvailable")}</p>
               </div>
               {/* Add more bet cards as needed */}
               </div>
@@ -30,16 +33,17 @@ function ProfitLossCard({data}) {
               key={bet.id}
               className="shadow-md overflow-hidden w-full max-w-md rounded-2xl bg-white mx-auto"
             >
-              <table className="table-auto w-full text-sm bg-white">
+              <div className="overflow-x-auto">
+              <table className="table-auto w-full text-sm bg-white min-w-[300px]">
                 <thead className="bg-[#d4e0e5] text-gray-800">
                   <tr>
                     <th colSpan={4} className="p-2">
-                      <div className="flex gap-1 items-center">
-                        <span className="md:text-sm font-semibold">{bet.gameName}</span>
-                        <MdPlayArrow className="text-2xl" />
-                        <span className="font-semibold md:text-sm">{bet.match}</span>
-                        <MdPlayArrow className="text-2xl" />
-                        <span className="font-semibold md:text-sm">{bet.market}</span>
+                      <div className="flex flex-wrap gap-1 items-center min-w-0">
+                        <span className="text-xs sm:text-sm font-semibold break-words">{bet.gameName}</span>
+                        <MdPlayArrow className="text-xl shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold break-words">{bet.match}</span>
+                        <MdPlayArrow className="text-xl shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold break-words">{bet.market}</span>
                       </div>
                     </th>
                   </tr>
@@ -47,11 +51,11 @@ function ProfitLossCard({data}) {
                 <tbody>
                     <tr className="border-b">
                     <td colSpan={2} className="p-2">
-                      <span className="text-gray-600 md:text-lg">Start Time</span>
+                      <span className="text-gray-600 md:text-lg">{t("bet.startTime")}</span>
                       <div className="font-semibold md:text-base">{bet.placed}</div>
                     </td>
                     <td colSpan={2} className="p-2">
-                      <span className="text-gray-600 md:text-lg">Profit/Loss (INR)</span>
+                      <span className="text-gray-600 md:text-lg">{t("bet.profitLossInr")}</span>
                       <div className={`font-semibold md:text-base ${getProfitLossColorClass(bet.matched)}`}>
                         {bet.matched}
                       </div>
@@ -62,7 +66,7 @@ function ProfitLossCard({data}) {
                       <tr className="bg-[#9cb1bd] font-semibold">
                         <td colSpan={2} className="p-2 text-black text-sm">{bet.id}</td>
                         <td colSpan={2} className="p-2 text-xs md:text-sm text-black">
-                          <span className="font-light text-xs md:text-base">Bet Placed</span>
+                          <span className="font-light text-xs md:text-base">{t("bet.betPlaced")}</span>
                           <span className="text-xs md:text-sm ml-1">{bet.taken}</span>
                         </td>
                       </tr>
@@ -78,15 +82,15 @@ function ProfitLossCard({data}) {
                       </tr>
                       <tr className="border-b  bg-[#e2eaef]">
                         <td className="p-2">
-                          <span className="text-gray-600 md:text-lg">Odds</span>
+                          <span className="text-gray-600 md:text-lg">{t("bet.odds")}</span>
                           <div className="font-semibold md:text-base">{bet.oddsReq}</div>
                         </td>
                         <td className="p-2">
-                          <span className="text-gray-600 md:text-lg">Stake</span>
+                          <span className="text-gray-600 md:text-lg">{t("bet.stake")}</span>
                           <div className="font-semibold md:text-base">{bet.stake}</div>
                         </td>
                         <td className="p-2">
-                          <span className="text-gray-600 md:text-lg">Profit/Loss (INR)</span>
+                          <span className="text-gray-600 md:text-lg">{t("bet.profitLossInr")}</span>
                           <div className={`font-semibold md:text-base ${getProfitLossColorClass(bet.matched)}`}>
                             {bet.matched}
                           </div>
@@ -94,7 +98,7 @@ function ProfitLossCard({data}) {
                       </tr>
                       <tr className="">
                         <td colSpan={2} className="p-2">
-                               <span>Back subtotal</span>
+                               <span>{t("bet.backSubtotal")}</span>
                         </td>
                         <td colSpan={2}>
                             <span className="font-semibold text-lg text-[#198754]">{bet.backsubtotal}</span>
@@ -102,7 +106,7 @@ function ProfitLossCard({data}) {
                       </tr>
                       <tr className="">
                         <td colSpan={2} className="p-2">
-                            <span>Lay subtotal</span>
+                            <span>{t("bet.laySubtotal")}</span>
                         </td>
                         <td colSpan={2}>
                             <span className="font-semibold text-lg text-red-500">{bet.laysubtotal}</span>
@@ -110,7 +114,7 @@ function ProfitLossCard({data}) {
                       </tr>
                       <tr className="">
                         <td colSpan={2} className="p-2">
-                            <span>Market subtotal</span>
+                            <span>{t("bet.marketSubtotal")}</span>
                         </td>
                         <td colSpan={2}>
                             <span className="font-semibold text-lg text-[#198754]">{bet.oddsReq}</span>
@@ -118,14 +122,14 @@ function ProfitLossCard({data}) {
                       </tr>
                       <tr className=" border-b">
                         <td colSpan={2} className="p-2">
-                            <span>Commission</span>
+                            <span>{t("bet.commission")}</span>
                         </td>
                         <td colSpan={2}>
                             <span className="font-semibold text-lg ">{bet.commission}</span>
                         </td>
                       </tr>
                       <tr>
-                        <td colSpan={2} className="p-2 md:text-base text-gray-700">Net Market Total</td>
+                        <td colSpan={2} className="p-2 md:text-base text-gray-700">{t("bet.netMarketTotal")}</td>
                         <td colSpan={2} className=" text-lg">
                           <span className="text-green-600 font-semibold">{bet.oddsReq}</span>
                         </td>
@@ -134,6 +138,7 @@ function ProfitLossCard({data}) {
                   )}
                 </tbody>
               </table>
+              </div>
               <div
                 className="bg-[#9cb1bd] py-1 flex justify-center items-center cursor-pointer rounded-b-xl"
                 onClick={() => toggleDetails(index)}

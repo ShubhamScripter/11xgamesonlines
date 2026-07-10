@@ -10,6 +10,8 @@ import logo from '../../assets/bajiLogo.png';
 import logoMp4 from '../../assets/bajiVideo.mp4'
 import moblogoMp4 from '../../assets/welcome-bn.mp4';
 import { HiOutlineHome } from 'react-icons/hi';
+import LanguageSwitcher from '../../i18n/LanguageSwitcher';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const MAX_USERNAME_LENGTH = 10;
 
@@ -39,6 +41,7 @@ function Register() {
   const [searchParams] = useSearchParams();
   const referralCode = (searchParams.get('ref') || '').trim().toUpperCase();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,30 +77,28 @@ function Register() {
 
     const trimmedUsername = username.trim();
     if (!trimmedUsername) {
-      toast.error('Username is required');
+      toast.error(t('auth.usernameRequired'));
       return;
     }
     if (trimmedUsername.length > MAX_USERNAME_LENGTH) {
-      toast.error(`Username must be at most ${MAX_USERNAME_LENGTH} characters`);
+      toast.error(t('auth.usernameMaxLength', { max: MAX_USERNAME_LENGTH }));
       return;
     }
     if (!email.trim()) {
-      toast.error('Email is required');
+      toast.error(t('auth.emailRequired'));
       return;
     }
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9]{8,}$/;
     if (!passwordRegex.test(password)) {
-      toast.error(
-        'Password must contain both letters and numbers (no special characters)'
-      );
+      toast.error(t('auth.passwordFormat'));
       return;
     }
     if (password !== confirmPassword) {
-      toast.error('Password and Confirm Password do not match');
+      toast.error(t('auth.passwordMismatch'));
       return;
     }
 
@@ -127,7 +128,10 @@ function Register() {
 
         <div className="fixed z-50 top-0 left-0 h-[65px] bg-[#191a1a] w-full flex justify-between items-center px-5 border-b border-gray-700">
           <img src={logo} alt="logo" className="h-full" />
-          <Link to="/"><HiOutlineHome className="text-white" size={25} /></Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <Link to="/"><HiOutlineHome className="text-white" size={25} /></Link>
+          </div>
         </div>
 
         <div className="h-screen pt-[65px] overflow-y-auto">
@@ -146,21 +150,24 @@ function Register() {
             <div className="w-full md:w-1/2 flex items-center justify-center px-6">
               <div className="w-full max-w-md text-white">
                 <div className="flex my-6">
-                  <Link to="/login" className="w-1/2 text-gray-400 pb-2 text-center"><button>Log in</button></Link>
-                  <button className="w-1/2 border-b-4 border-[#14805e] pb-2">Sign up</button>
+                  <Link to="/login" className="w-1/2 text-gray-400 pb-2 text-center"><button>{t('nav.login')}</button></Link>
+                  <button className="w-1/2 border-b-4 border-[#14805e] pb-2">{t('nav.signup')}</button>
                 </div>
                 {referralCode && (
                   <div className="mb-4 rounded-lg border border-[#14805e]/50 bg-[#14805e]/10 px-4 py-3">
-                    <p className="text-sm text-[#14805e] font-semibold">You were invited</p>
+                    <p className="text-sm text-[#14805e] font-semibold">{t('auth.invited')}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Referral code: <span className="font-mono text-white">{referralCode}</span>
+                      {t('auth.referralCode')} <span className="font-mono text-white">{referralCode}</span>
                     </p>
                   </div>
                 )}
                 <form className='flex flex-col' onSubmit={handleSubmit}>
                   <div className="mb-4">
                     <label className="block text-[16px] mb-2 text-[#8d9aa5]">
-                      Username <span className="text-[#8d9aa5]/70 text-sm">(max {MAX_USERNAME_LENGTH} characters)</span>
+                      {t('auth.username')}{' '}
+                      <span className="text-[#8d9aa5]/70 text-sm">
+                        {t('auth.usernameMax', { max: MAX_USERNAME_LENGTH })}
+                      </span>
                     </label>
                     <div className='relative'>
                       <input
@@ -168,7 +175,7 @@ function Register() {
                         id="username"
                         value={username}
                         maxLength={MAX_USERNAME_LENGTH}
-                        placeholder="Enter your username"
+                        placeholder={t('auth.usernamePlaceholder')}
                         onChange={(e) => {
                           setUsername(e.target.value);
                           if (e.target.value.length > 0) {
@@ -183,13 +190,13 @@ function Register() {
                         <span onClick={() => setUsername("")} className='absolute right-3 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
                       )}
                       {hasTypedUser && username === "" && (
-                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> {t('auth.fieldRequired')}</div>
                       )}
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Choose currency</label>
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">{t('auth.chooseCurrency')}</label>
                     <div className="relative">
                       <button
                         type="button"
@@ -227,13 +234,13 @@ function Register() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Email</label>
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">{t('auth.email')}</label>
                     <div className='relative'>
                       <input
                         type="text"
                         id="email"
                         value={email}
-                        placeholder="Enter your email"
+                        placeholder={t('auth.emailPlaceholder')}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           if (e.target.value.length > 0) {
@@ -246,19 +253,19 @@ function Register() {
                         <span onClick={() => setEmail("")} className='absolute right-3 top-1/2 transform -translate-y-1/2'><IoMdCloseCircle className='text-gray-500' /></span>
                       )}
                       {hasTypedEmail && email === "" && (
-                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> {t('auth.fieldRequired')}</div>
                       )}
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Password</label>
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">{t('auth.password')}</label>
                     <div className='relative'>
                     <input
                       type={showPassword ? "text" : "password"}
                       id="password"
                       value={password}
-                      placeholder="Enter your password"
+                      placeholder={t('auth.passwordPlaceholder')}
                       onChange={(e) => {
                         setPassword(e.target.value);
                         if (e.target.value.length > 0) {
@@ -276,19 +283,19 @@ function Register() {
                       </>
                     )}
                     {hasTypedPass && password === "" && (
-                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> {t('auth.fieldRequired')}</div>
                     )}
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">Confirm Password</label>
+                    <label className="block text-[16px] mb-2 text-[#8d9aa5]">{t('auth.confirmPassword')}</label>
                     <div className='relative'>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       value={confirmPassword}
-                      placeholder="Enter your password"
+                      placeholder={t('auth.passwordPlaceholder')}
                       onChange={(e) => {
                         setConfirmPassword(e.target.value);
                         if (e.target.value.length > 0) {
@@ -307,13 +314,13 @@ function Register() {
                       </>
                     )}
                     {hasTypedPassConfirm && confirmPassword === "" && (
-                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> This field is required.</div>
+                      <div className='text-red-400 pt-1 flex items-center text-[14px] gap-1'><IoIosCloseCircleOutline size={18} /> {t('auth.fieldRequired')}</div>
                     )}
                     </div>
                   </div>
                   
                   <button className="w-full bg-[#14805e] py-3 rounded font-semibold" disabled={isLoading}>
-                  {isLoading ? 'Creating account...' : 'Sign Up'}
+                  {isLoading ? t('auth.creatingAccount') : t('auth.signUp')}
                   </button>
                 </form>
               </div>

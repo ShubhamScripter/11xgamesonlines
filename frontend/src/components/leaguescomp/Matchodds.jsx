@@ -104,8 +104,10 @@ import {
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
 import { getMarketMaxLimit, getMarketMinLimit } from "../../utils/marketLimits";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, gameName }) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { loading, } = useSelector(
     (state) => state.bet
@@ -346,13 +348,13 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
       <div className="bg-[#222424] h-10 p-2 pl-4 flex items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
           <GrStarOutline className="text-white" />
-          <span className="text-white font-bold">Match Odd</span>
+          <span className="text-white font-bold">{t("bet.matchOdd")}</span>
         </div>
 
         <div className="flex gap-1 justify-end mr-3">
           <IoInformationCircle className="text-gray-400" />
           <span className="text-xs text-gray-400">
-            min/max &nbsp;
+            {t("bet.minMax")} &nbsp;
           
             {oddsData[0]?.min ?? 0}/{formatToK(oddsData[0]?.max) ?? 0}
           </span>
@@ -365,8 +367,8 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
         <div className="col-span-6 md:col-span-8 grid grid-cols-2 md:grid-cols-6 gap-1">
           <div className="hidden md:flex justify-center text-[10px] font-bold text-gray-400 uppercase"></div>
           <div className="hidden md:flex justify-center text-[10px] font-bold text-gray-400 uppercase"></div>
-          <div className="flex justify-center text-[13px] font-bold text-blue-600 uppercase">Back</div>
-          <div className="flex justify-center text-[13px] font-bold text-pink-600 uppercase">Lay</div>
+          <div className="flex justify-center text-[13px] font-bold text-blue-600 uppercase">{t("bet.back")}</div>
+          <div className="flex justify-center text-[13px] font-bold text-pink-600 uppercase">{t("bet.lay")}</div>
           <div className="hidden md:flex justify-center text-[10px] font-bold text-gray-400 uppercase"></div>
           <div className="hidden md:flex justify-center text-[10px] font-bold text-gray-400 uppercase"></div>
         </div>
@@ -380,7 +382,7 @@ function MatchOdd({ openBetSlip, matchOddsList, gameid, match, selectedBetData, 
           );
 
           const rowBlocked = isDataZero;
-          let blockLabel = isDataZero ? "SUSPENDED" : "";
+          let blockLabel = isDataZero ? t("bet.suspended") : "";
           return (
           <div
             key={idx}

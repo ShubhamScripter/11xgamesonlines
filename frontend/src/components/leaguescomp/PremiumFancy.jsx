@@ -6,6 +6,8 @@ import {
   blockingStatusLabel,
   isSelectionBetBlocked,
 } from "../../utils/bettingGstatus";
+import { useTranslation } from "../../i18n/LanguageContext";
+import { translateBlockStatus } from "../../i18n/i18nHelpers";
 
 function PremiumFancy({
   openBetSlip,
@@ -16,6 +18,7 @@ function PremiumFancy({
   gameName = "Cricket Game",
   providerCGameId,
 }) {
+  const { t } = useTranslation();
   const { pendingBet } = useSelector((state) => state.bet);
 
   const fancyMarkets = Array.isArray(premiumFancyData)
@@ -59,9 +62,9 @@ function PremiumFancy({
       <div>
         <div className="bg-gradient-to-r from-[#b8860b] to-[#d4a017] h-10 p-2 pl-4 flex items-center gap-2">
           <FaCrown className="text-white text-sm" />
-          <span className="text-white font-semibold text-sm">Premium Fancy</span>
+          <span className="text-white font-semibold text-sm">{t("bet.premiumFancy")}</span>
         </div>
-        <p className="text-gray-400 text-sm py-4 px-3">No premium markets available</p>
+        <p className="text-gray-400 text-sm py-4 px-3">{t("bet.noPremiumMarkets")}</p>
       </div>
     );
   }
@@ -70,12 +73,12 @@ function PremiumFancy({
     <div>
       <div className="bg-gradient-to-r from-[#b8860b] to-[#d4a017] h-10 p-2 pl-4 flex items-center gap-2">
         <FaCrown className="text-white text-sm" />
-        <span className="text-white font-semibold text-sm">Premium Fancy</span>
+        <span className="text-white font-semibold text-sm">{t("bet.premiumFancy")}</span>
       </div>
 
       <div className="flex justify-end items-center gap-10 text-white py-2 pr-6">
-        <span className="text-sm">No</span>
-        <span className="text-sm">Yes</span>
+        <span className="text-sm">{t("bet.no")}</span>
+        <span className="text-sm">{t("bet.yes")}</span>
       </div>
 
       <div>
@@ -88,11 +91,14 @@ function PremiumFancy({
               market.marketStatus
             );
           const overlayText = ballRunning
-            ? "Ball Running"
-            : blockingStatusLabel(
-                { gstatus: market.gstatus },
-                market.marketStatus
-              ) || "Suspended";
+            ? t("bet.ballRunning")
+            : translateBlockStatus(
+                t,
+                blockingStatusLabel(
+                  { gstatus: market.gstatus },
+                  market.marketStatus
+                )
+              );
 
           return (
             <React.Fragment key={`premium-${idx}`}>
@@ -176,7 +182,7 @@ function PremiumFancy({
               <div className="flex gap-1 justify-end mr-3 py-2">
                 <IoInformationCircle className="text-gray-400" />
                 <span className="text-xs text-gray-400">
-                  min/max &nbsp;{market.min}/{formatToK(market.max)}
+                  {t("bet.minMax")} &nbsp;{market.min}/{formatToK(market.max)}
                 </span>
               </div>
             </React.Fragment>

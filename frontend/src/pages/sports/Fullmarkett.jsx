@@ -753,6 +753,7 @@ import {
   normalizeFancySectionOdds,
   parseBettingPayload,
 } from '../../utils/bettingPayloadUtils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 // Prevent duplicate toasts (e.g., React strict-mode double effects / rapid re-renders)
 let lastBetToastKey = null;
@@ -761,6 +762,7 @@ let lastBetToastAt = 0;
 function Fullmarkett() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { gameid } = useParams() || {};
   const { match } = useParams() || {};
   const {
@@ -1599,13 +1601,13 @@ const sportsbookData = Array.isArray(dataSource)
   if (!sectionSettingsLoading && matchDisabled) {
     return (
       <div className="p-6 text-center text-white bg-[#1e1e1e] min-h-[40vh] flex flex-col items-center justify-center">
-        <p className="text-lg font-semibold">This match is currently unavailable.</p>
+        <p className="text-lg font-semibold">{t('sports.matchUnavailable')}</p>
         <button
           type="button"
           className="mt-4 px-4 py-2 bg-[#17934e] rounded"
           onClick={() => navigate('/cricket')}
         >
-          Back to Cricket
+          {t('sports.backToCricket')}
         </button>
       </div>
     );
@@ -1618,22 +1620,22 @@ const sportsbookData = Array.isArray(dataSource)
             <div className='bg-[#1e1e1e] h-10 flex justify-around items-center '>
               <div className={`text-white cursor-pointer ${isLive ?'border-b-2':'' } ${isLive ?'font-bold':'' }`}
               onClick={() => setIsLive(true)}
-              >Live</div>
+              >{t('sports.live')}</div>
               <div  className={`text-white cursor-pointer ${!isLive ?'border-b-2':'' } ${!isLive ?'font-bold':'' }`}
               onClick={() => setIsLive(false)}
-              >ScoreBoard</div>
+              >{t('sports.scoreBoard')}</div>
             </div>
             <div className='w-full'>
               {isLive ? (
                 isLoadingStream ? (
                   <div className='flex w-full items-center justify-center'>
-                    <span>Loading stream...</span>
+                    <span>{t('sports.loadingStream')}</span>
                   </div>
                 ) : liveStreamUrl ? (
                   <div className='aspect-video w-full'>
                   <iframe
                     src={liveStreamUrl}
-                    title='Watch Live'
+                    title={t('sports.watchLive')}
                     className='h-full w-full'
                     scrolling="no"
                     loading='eager'
@@ -1643,12 +1645,12 @@ const sportsbookData = Array.isArray(dataSource)
                   </div>
                 ) : (
                   <div className='flex aspect-video w-full items-center justify-center bg-[#1e1e1e] text-white'>
-                    <span>Live stream not available</span>
+                    <span>{t('sports.streamUnavailable')}</span>
                   </div>
                 )
               ) : scorecardLoading ? (
                 <div className='flex w-full items-center justify-center bg-gray-200'>
-                  <span>Loading score...</span>
+                  <span>{t('sports.loadingScore')}</span>
                 </div>
               ) : (
                <div className="w-full h-fit">
@@ -1671,7 +1673,7 @@ const sportsbookData = Array.isArray(dataSource)
               <Matchodds openBetSlip={openBetSlip} matchOddsList={matchOddsList} gameid={gameid} match={match} selectedBetData={selectedBetData} gameName="Cricket Game"/>
             ) : oddsLoading && showMatchOddsSection ? (
               <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
-                Loading match odds...
+                {t('sports.loadingMatchOdds')}
               </div>
             ) : null}
             <div className='pb-5'>
@@ -1681,7 +1683,7 @@ const sportsbookData = Array.isArray(dataSource)
               )}
               {oddsLoading && !hasFancyDataVisible && !hasPremiumDataVisible && !hasSportsbookData && (showMatchOddsSection || showBookmakerSection) && (
                 <div className="bg-[#222424] text-gray-300 text-sm py-4 px-3 mb-2">
-                  Loading fancy markets...
+                  {t('sports.loadingFancyMarkets')}
                 </div>
               )}
               {showFancyPremiumSection && (
@@ -1697,7 +1699,7 @@ const sportsbookData = Array.isArray(dataSource)
                       setIsFancyActive(true);
                     }}
                   >
-                    Fancybet
+                    {t('sports.fancybet')}
                   </div>
                   )}
                   {hasPremiumDataVisible && (
@@ -1710,7 +1712,7 @@ const sportsbookData = Array.isArray(dataSource)
                       setIsFancyActive(false);
                     }}
                   >
-                    Premium
+                    {t('sports.premium')}
                   </div>
                   )}
                   {hasSportsbookData && (
@@ -1725,7 +1727,7 @@ const sportsbookData = Array.isArray(dataSource)
                         setIsFancyActive(false);
                       }}
                     >
-                      Sportbook
+                      {t('sports.sportbook')}
                     </div>
                   )}
                 </div>

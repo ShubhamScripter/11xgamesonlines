@@ -5,21 +5,21 @@ import MainBalanceCard from '../../components/menucomp/MainBalanceCard';
 import AccountStatementCard from '../../components/menucomp/AccountStatementCard';
 import api from '../../utils/axiosConfig';
 import { formatAppDateTime } from '../../utils/time';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function AccountStatement() {
+  const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const [accountDataList, setAccountDataList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch account transactions (deposit/withdrawal)
   useEffect(() => {
     const fetchAccountTransactions = async () => {
       try {
         setLoading(true);
         
-        // Get user ID from Redux or localStorage
         let userId = user?._id || user?.id;
         if (!userId) {
           const userStr = localStorage.getItem('user');
@@ -45,7 +45,6 @@ function AccountStatement() {
         );
         
         if (response.data.success && response.data.data) {
-          // Deposit/withdrawal entries, plus rejected deposit audit rows (no balance movement)
           const filteredTransactions = response.data.data.filter(
             (item) =>
               Number(item?.deposite || 0) > 0 ||
@@ -63,10 +62,10 @@ function AccountStatement() {
                 ? depositeAmount
                 : -withdrawalAmount;
             const txnType = isDepositReject
-              ? 'Deposit (rejected)'
+              ? t('page.accountStatement.depositRejected')
               : depositeAmount > 0
-                ? 'Deposit'
-                : 'Withdrawal';
+                ? t('page.accountStatement.deposit')
+                : t('page.accountStatement.withdrawal');
 
             return {
               date: formatAppDateTime(item.createdAt),
@@ -90,7 +89,7 @@ function AccountStatement() {
     };
 
     fetchAccountTransactions();
-  }, [user]);
+  }, [user, t]);
 
   const totalPages = Math.max(1, Math.ceil(accountDataList.length / itemsPerPage));
   const paginatedData = accountDataList.slice(
@@ -105,13 +104,13 @@ function AccountStatement() {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full z-20 min-h-full pb-24 md:pb-8">
+    <div className="bg-[#141515] text-white space-y-3 px-4 md:w-[50%] mx-auto md:mt-12 w-full min-w-0 min-h-full pb-8">
           <div className="bg-[#000] h-10 flex items-center">
             <div onClick={() => window.history.back()}>
               <MdArrowBackIos className="text-white text-md font-semibold" />
             </div>
             <span className="text-[18px] font-bold">
-              Account Statement
+              {t('page.accountStatement.title')}
             </span>
           </div>
 
@@ -120,11 +119,11 @@ function AccountStatement() {
         <div>
           {loading ? (
             <div className="text-center py-8 text-gray-600">
-              Loading...
+              {t('common.loading')}
             </div>
           ) : accountDataList.length === 0 ? (
             <div className="text-center py-8 text-gray-600">
-              No deposit/withdrawal history found.
+              {t('page.accountStatement.noData')}
             </div>
           ) : (
             <>
@@ -136,10 +135,10 @@ function AccountStatement() {
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage <= 1}
                 >
-                  Prev
+                  {t('common.prev')}
                 </button>
                 <span className="text-xs md:text-sm text-gray-400">
-                  Page {currentPage} of {totalPages}
+                  {t('common.page', { current: currentPage, total: totalPages })}
                 </span>
                 <button
                   type="button"
@@ -147,7 +146,7 @@ function AccountStatement() {
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage >= totalPages}
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               </div>
             </>

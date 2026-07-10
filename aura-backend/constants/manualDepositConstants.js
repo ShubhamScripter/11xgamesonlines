@@ -12,6 +12,12 @@ export const MIN_DEPOSIT_BDT = 100;
 export const MIN_DEPOSIT_USDT = 10;
 export const MIN_WITHDRAW_BDT = 100;
 
+/** Deposit requests in these statuses block reuse of the same transaction ID. */
+export const BLOCKED_DUPLICATE_DEPOSIT_STATUSES = ['pending', 'approved'];
+
+export const DUPLICATE_TRANSACTION_ID_MESSAGE =
+  'This transaction ID is duplicated. It is already used in a pending or successful deposit request.';
+
 export const ADMIN_SECTION_REQUIREMENTS = {
   bkash: ['title', 'phoneNumber'],
   nagad: ['title', 'phoneNumber'],
@@ -91,6 +97,24 @@ export function validateAdminAccountDetails(
   }
 
   return { ok: false, message: 'Invalid deposit method.' };
+}
+
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Mongo filter: existing deposit with same transaction ID (pending or approved). */
+export function buildDuplicateDepositReferenceFilter(normalizedReferenceId) {
+  const key = String(normalizedReferenceId || '').trim();
+  if (!key) return null;
+  return {
+    requestType: 'deposit',
+    status: { $in: BLOCKED_DUPLICATE_DEPOSIT_STATUSES },
+    $or: [
+      { referenceId: key },
+      { referenceId: new RegExp(`^${escapeRegex(key)}$`, 'i') },
+    ],
+  };
 }
 
 export function validateDepositReferenceId(method, referenceId) {

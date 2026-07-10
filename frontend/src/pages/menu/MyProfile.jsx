@@ -3,9 +3,13 @@ import { MdArrowBackIos } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import LanguageSwitcher from "../../i18n/LanguageSwitcher";
+import { useTranslation } from "../../i18n/LanguageContext";
+
 function MyProfile({ setProfileOpen }) {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const isMobileSheet = typeof setProfileOpen === "function";
   const closeProfile = () => setProfileOpen?.(false);
 
@@ -20,9 +24,9 @@ function MyProfile({ setProfileOpen }) {
             aria-label="Close profile"
           >
             <MdArrowBackIos className="text-lg" />
-            <span className="text-sm font-medium">Back</span>
+            <span className="text-sm font-medium">{t('profile.back')}</span>
           </button>
-          <span className="text-[17px] font-bold text-white">Profile</span>
+          <span className="text-[17px] font-bold text-white">{t('profile.title')}</span>
           <button
             type="button"
             onClick={closeProfile}
@@ -33,16 +37,22 @@ function MyProfile({ setProfileOpen }) {
           </button>
         </div>
       ) : (
-        <div className="hidden md:flex items-center text-[18px] font-bold gap-2 h-[66px] px-4 bg-[#1a1a1a]">
-          <span className="text-white">Profile</span>
+        <div className="hidden md:flex items-center justify-between text-[18px] font-bold gap-2 h-[66px] px-4 bg-[#1a1a1a]">
+          <span className="text-white">{t('profile.title')}</span>
+          <LanguageSwitcher />
         </div>
       )}
       <div className="flex flex-col items-center flex-1 px-2 pb-4">
+        {isMobileSheet ? (
+          <div className="w-full flex justify-end px-2 pt-3">
+            <LanguageSwitcher />
+          </div>
+        ) : null}
         <table className="shadow-md rounded-lg md:mt-4 w-full">
           <tbody>
             <tr className="border-b border-gray-700">
               <td colSpan={1} className="p-2">
-                <span className="text-gray-300 text-md">Username</span>
+                <span className="text-gray-300 text-md">{t('profile.username')}</span>
               </td>
               <td colSpan={2} className="p-2">
                 <span className="text-gray-300 text-md">{user?.userName || '—'}</span>
@@ -50,15 +60,23 @@ function MyProfile({ setProfileOpen }) {
             </tr>
             <tr className="border-b border-gray-700">
               <td colSpan={1} className="p-2">
-                <span className="text-gray-300 text-md">Email</span>
+                <span className="text-gray-300 text-md">{t('profile.email')}</span>
               </td>
               <td colSpan={2} className="p-2">
                 <span className="text-gray-300 text-md">{user?.email}</span>
               </td>
             </tr>
+            <tr className="border-b border-gray-700">
+              <td colSpan={1} className="p-2">
+                <span className="text-gray-300 text-md">{t('profile.language')}</span>
+              </td>
+              <td colSpan={2} className="p-2">
+                <LanguageSwitcher />
+              </td>
+            </tr>
             <tr>
               <td colSpan={1} className="p-2">
-                <span className="text-gray-300 text-md">Password</span>
+                <span className="text-gray-300 text-md">{t('profile.password')}</span>
               </td>
               <td colSpan={1} className="p-2">
                 <span className="text-gray-300 text-md">********</span>
@@ -69,7 +87,7 @@ function MyProfile({ setProfileOpen }) {
                   type="button"
                   className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200"
                 >
-                  Edit
+                  {t('profile.edit')}
                 </button>
               </td>
             </tr>

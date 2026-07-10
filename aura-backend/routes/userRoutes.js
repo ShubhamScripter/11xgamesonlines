@@ -11,6 +11,7 @@ import {
   registerSelf,
   updateQuickStakes,
   updateTheme,
+  updateUserLanguage,
   user_logout,
   getMyReferralStats,
 } from '../controllers/userController.js';
@@ -54,6 +55,7 @@ router.get('/password/history', authMiddleware, getPasswordHistoryByUserId);
 router.get('/get/user-login-history/:userId', authMiddleware, getLoginHistory);
 router.put('/update/quick-stakes', authMiddleware, updateQuickStakes);
 router.put('/update/theme', authMiddleware, updateTheme);
+router.put('/update/language', authMiddleware, updateUserLanguage);
 router.post('/user/p2p-transfer', authMiddleware, transferP2P);
 router.get('/user/p2p-transfer-log', authMiddleware, getP2PTransferHistory);
 router.get('/user/attendance', authMiddleware, getAttendanceStatus);

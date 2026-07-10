@@ -310,6 +310,18 @@ const authSlice = createSlice({
       };
       localStorage.setItem("user", JSON.stringify(state.user));
     },
+    setUserLanguage: (state, action) => {
+      const { language, userData } = action.payload || {};
+      if (!language) return;
+      if (userData) {
+        state.user = userData;
+      } else if (state.user) {
+        state.user = { ...state.user, preferredLanguage: language };
+      }
+      if (state.user) {
+        localStorage.setItem("user", JSON.stringify(state.user));
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -387,5 +399,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { reset, setLiveBalance } = authSlice.actions;
+export const { reset, setLiveBalance, setUserLanguage } = authSlice.actions;
 export default authSlice.reducer;

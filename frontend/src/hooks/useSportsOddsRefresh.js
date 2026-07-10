@@ -32,8 +32,8 @@ export function useSportsOddsRefresh(
 
     const poll = setInterval(() => {
       tickRef.current += 1;
-      // Force every 3rd tick (~3 min) so stale cache eventually clears
-      refresh(tickRef.current % 3 === 0);
+      // Force every tick so locked/disabled matches leave the listing promptly
+      refresh(true);
     }, POLL_MS);
 
     const onVisibility = () => {

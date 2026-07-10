@@ -9,6 +9,8 @@ import { GoPlus } from "react-icons/go";
 import { TfiReload } from "react-icons/tfi";
 import { currencySymbol } from "../../utils/currency";
 import { motion } from "framer-motion";
+import LanguageSwitcher from "../../i18n/LanguageSwitcher";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 function HeaderLogin({
   setSidebarOpen = () => {},
@@ -21,6 +23,7 @@ function HeaderLogin({
   const dispatch = useDispatch();
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useSelector((state) => state.auth);
+  const { t } = useTranslation();
   const socketRef = useRef(null);
   const balanceSyncTimer = useRef(null);
   const refreshNeededTimer = useRef(null);
@@ -115,18 +118,26 @@ function HeaderLogin({
 
             {user ? (
               <div className="flex items-center gap-2 h-full py-1">
-                <span className="text-white text-xs md:text-sm font-medium max-w-[100px] md:max-w-[140px] truncate hidden sm:block">
-                  {user?.userName || '—'}
-                </span>
-                <div className="flex bg-[#303232] pl-3 items-center h-full rounded-sm gap-2">
-                  <span className="text-white text-[14px] md:text-[12px] md:text-base font-semibold">
+                <div className="hidden sm:flex items-center gap-2 min-w-0">
+                  <span className="text-white text-xs md:text-sm font-medium max-w-[100px] md:max-w-[120px] truncate">
+                    {user?.userName || '—'}
+                  </span>
+                  <LanguageSwitcher compact />
+                </div>
+                <div className="flex sm:hidden items-center gap-1">
+                  <LanguageSwitcher compact />
+                </div>
+                <div className="flex bg-[#303232] pl-2 sm:pl-3 items-center h-full rounded-sm gap-1 sm:gap-2 min-w-0 flex-1 max-w-[58vw] sm:max-w-none">
+                  <span className="text-white text-[11px] sm:text-sm font-semibold min-w-0 truncate">
                     {currencySymbol(user?.currency)}{" "}
                       <span className="font-normal border-r border-gray-500 pr-1">{Number(user?.avbalance || 0).toFixed(2)}</span>
-                    &nbsp; Exp (
+                    <span className="hidden sm:inline">
+                    &nbsp; {t('nav.exposure')} (
                       <span className="text-[#e52219]">
                       {Number(user?.exposure || 0).toFixed(2)}
                     </span>
                     )
+                    </span>
                   </span>
                     <TfiReload
                       className={`text-white text-md cursor-pointer md:mr-3 ${refreshing ? 'animate-spin' : ''}`}
@@ -134,7 +145,7 @@ function HeaderLogin({
                     />
                   <button
                     type="button"
-                    className="bg-[#14805e] text-white h-full w-[40px] flex md:hidden items-center justify-center rounded-r-sm"
+                    className="bg-[#14805e] text-white h-full min-w-[44px] w-[44px] flex md:hidden items-center justify-center rounded-r-sm shrink-0"
                     onClick={toggleActions}
                     aria-expanded={showActions}
                     aria-label="Deposit and withdrawal"
@@ -148,21 +159,21 @@ function HeaderLogin({
                     onClick={() => navigate("/user/manual-deposit?type=withdraw")}
                     className="px-3 py-1 text-white bg-[#303232] flex items-center rounded-[3px] h-full font-bold"
                   >
-                    Withdraw
+                    {t('nav.withdraw')}
                   </button>
                   <button 
                     type="button"
                     onClick={() => navigate("/user/manual-deposit?type=deposit")}
                     className="px-3 py-1 text-white bg-[#14805e] flex items-center rounded-[3px] h-full font-bold"
                   >
-                    Deposit
+                    {t('nav.deposit')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="flex gap-1 text-white text-[14px] font-semibold h-full py-1">
-                <div className="border border-gray-600 rounded-sm flex justify-center items-center px-5 text-gray-400" onClick={()=>navigate('/login')}>Log in</div>
-                <div className="bg-[#14805e] rounded-sm flex justify-center items-center px-5 text-gray-200" onClick={()=>navigate('/register')}>Sign up</div>
+                <div className="border border-gray-600 rounded-sm flex justify-center items-center px-5 text-gray-400" onClick={()=>navigate('/login')}>{t('nav.login')}</div>
+                <div className="bg-[#14805e] rounded-sm flex justify-center items-center px-5 text-gray-200" onClick={()=>navigate('/register')}>{t('nav.signup')}</div>
               </div>
             )}
         </div>
@@ -189,7 +200,7 @@ function HeaderLogin({
                 }}
                 className="h-14 justify-center text-white text-[18px] bg-[#303232] flex items-center rounded-[3px] font-bold"
               >
-                Withdrawal
+                {t('nav.withdrawal')}
               </button>
               <button
                 type="button"
@@ -199,7 +210,7 @@ function HeaderLogin({
                 }}
                 className="h-14 justify-center text-white text-[18px] bg-[#14805e] flex items-center rounded-[3px] font-bold"
               >
-                Deposit
+                {t('nav.deposit')}
               </button>
             </motion.div>
           </>

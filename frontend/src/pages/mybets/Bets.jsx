@@ -4,6 +4,7 @@ import BetCard from "../../components/Bethistory/BetCard";
 import BetTypeFilters from "../../components/Bethistory/BetTypeFilters";
 import { getBetHistory } from "../../features/sports/betReducer";
 import api from "../../utils/axiosConfig";
+import { useTranslation } from "../../i18n/LanguageContext";
 import {
   buildBetFilterCounts,
   filterBetsByCategory,
@@ -17,6 +18,7 @@ const FETCH_LIMIT = 500;
 
 function Bets() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { betHistory, loading, errorMessage } = useSelector((state) => state.bet);
   const { user } = useSelector((state) => state.auth);
 
@@ -83,19 +85,19 @@ function Bets() {
   const allBets = useMemo(() => {
     if (settlementFilter === "unsettle") {
       const sports = (betHistory || [])
-        .map((b) => mapSportsBetForCard(b, { unsettledOnly: true }))
+        .map((b) => mapSportsBetForCard(b, { unsettledOnly: true, t }))
         .filter(Boolean);
       return sortBetsByTimeDesc(sports);
     }
 
     const sports = (betHistory || [])
-      .map((b) => mapSportsBetForCard(b))
+      .map((b) => mapSportsBetForCard(b, { t }))
       .filter(Boolean);
     const casino = (casinoBets || [])
-      .map((b, idx) => mapCasinoBetForCard(b, idx))
+      .map((b, idx) => mapCasinoBetForCard(b, idx, { t }))
       .filter(Boolean);
     return sortBetsByTimeDesc([...sports, ...casino]);
-  }, [betHistory, casinoBets, settlementFilter]);
+  }, [betHistory, casinoBets, settlementFilter, t]);
 
   const filterCounts = useMemo(() => buildBetFilterCounts(allBets), [allBets]);
 
@@ -134,8 +136,8 @@ function Bets() {
       <div className="flex justify-center items-center h-40">
         <div className="text-sm font-semibold text-gray-400">
           {settlementFilter === "unsettle"
-            ? "Loading current bets..."
-            : "Loading bet history..."}
+            ? t("page.loadingCurrentBets")
+            : t("page.loadingBetHistory")}
         </div>
       </div>
     );
@@ -143,7 +145,7 @@ function Bets() {
     betsContent = (
       <div className="flex justify-center items-center h-40">
         <div className="text-sm font-semibold text-red-400">
-          Error: {errorMessage}
+          {t("common.error", { message: errorMessage })}
         </div>
       </div>
     );
@@ -159,10 +161,14 @@ function Bets() {
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               className="px-3 py-1.5 border border-gray-600 rounded bg-[#262c32] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Previous
+              {t("common.previous")}
             </button>
             <span>
-              Page {currentPage} of {totalPages} · {filteredBets.length} bets
+              {t("common.pageBets", {
+                current: currentPage,
+                total: totalPages,
+                count: filteredBets.length,
+              })}
             </span>
             <button
               type="button"
@@ -172,7 +178,7 @@ function Bets() {
               }
               className="px-3 py-1.5 border border-gray-600 rounded bg-[#262c32] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next
+              {t("common.next")}
             </button>
           </div>
         )}
@@ -192,7 +198,7 @@ function Bets() {
                 : "bg-gray-200 text-gray-700"
             }`}
           >
-            Unsettled
+            {t("bet.unsettled")}
           </button>
           <button
             onClick={() => setSettlementFilter("settel")}
@@ -202,12 +208,12 @@ function Bets() {
                 : "bg-gray-200 text-gray-700"
             }`}
           >
-            Settled
+            {t("bet.settled")}
           </button>
         </div>
       </div>
 
-      <div className="px-2 text-white pb-30 pt-3 space-y-3">
+      <div className="px-2 text-white pb-8 pt-3 space-y-3">
         <BetTypeFilters
           value={typeFilter}
           onChange={setTypeFilter}
