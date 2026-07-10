@@ -3,6 +3,8 @@ import {
   BET_LOCK_SPORTS,
 } from '../../constants/betLockConstants.js';
 import { buildSportPayload } from '../../services/sportsListCache/payloadBuilders.js';
+import { getCachedSportsPayload } from '../../services/sportsListCache/sportsListCacheService.js';
+import { getEventsFromDb } from '../../services/betfairCatalog/eventStore.js';
 import {
   getBetLockSettings,
   saveBetLockSettings,
@@ -12,6 +14,19 @@ import DeactivatedMatch from '../../models/matchSettingsModel.js';
 
 const MANAGE_ROLES = new Set(['superadmin', 'admin', 'subadmin', 'seniorSuper']);
 const APP_TIMEZONE = 'Asia/Dhaka';
+
+const SPORT_IDS = {
+  cricket: 4,
+  soccer: 1,
+  tennis: 2,
+};
+
+/** Same blocked cricket leagues as user listing. */
+const BLOCKED_CRICKET_CNAMES = new Set([
+  'dim cricket league (1 over)',
+  't5 xi',
+  't10 xi',
+]);
 
 function canManageLocks(req) {
   return MANAGE_ROLES.has(req.role);
@@ -57,17 +72,103 @@ function mapListMatch(sport, m) {
   };
 }
 
+function mapDbEventToListMatch(row) {
+  const matchName = row?.name || row?.raw?.event?.name || '';
+  const leagueName = row?.competitionName || '';
+  const date = row?.openDate || row?.raw?.event?.openDate || '';
+  return {
+    matchId: String(row?.eventId || ''),
+    matchName,
+    leagueName,
+    date,
+    inplay: false,
+  };
+}
+
+function isUsableCricketRow(row) {
+  const league = (row.leagueName || '').toString().trim().toLowerCase();
+  if (BLOCKED_CRICKET_CNAMES.has(league)) return false;
+  const matchName = (row.matchName || '').toString().trim().toLowerCase();
+  if (!matchName) return false;
+  if (league && matchName === league) return false;
+  return true;
+}
+
+/** Prefer sports-list cache (already warmed for user site) — no third-party call. */
+async function loadMatchesFromSportsCache(sport) {
+  const scopes = [
+    { withOdds: true, oddsScope: 'eligible' },
+    { withOdds: true, oddsScope: 'all' },
+    { withOdds: false, oddsScope: 'eligible' },
+  ];
+
+  for (const scope of scopes) {
+    const cached = await getCachedSportsPayload(
+      sport,
+      scope.withOdds,
+      scope.oddsScope
+    );
+    const list =
+      sport === 'cricket'
+        ? cached?.matches || []
+        : cached?.data || cached?.matches || [];
+    if (Array.isArray(list) && list.length > 0) {
+      return list.map((m) => mapListMatch(sport, m)).filter((m) => m.matchId);
+    }
+  }
+  return [];
+}
+
+/** Betfair event catalog already synced to MongoDB. */
+async function loadMatchesFromEventDb(sport) {
+  const sportId = SPORT_IDS[sport];
+  if (!sportId) return [];
+
+  const rows = await getEventsFromDb(sportId);
+  return rows
+    .map(mapDbEventToListMatch)
+    .filter((m) => m.matchId && m.matchName);
+}
+
+/**
+ * Admin lock UI listing — never block on third-party API.
+ * Order: sports cache → BetfairEvent DB → live provider (last resort).
+ */
 async function fetchSportMatches(sport) {
-  const payload = await buildSportPayload(sport, false, 'all');
-  const list =
-    sport === 'cricket'
-      ? payload?.matches || []
-      : payload?.data || payload?.matches || [];
+  let list = await loadMatchesFromSportsCache(sport);
+  let source = 'cache';
+
+  if (!list.length) {
+    list = await loadMatchesFromEventDb(sport);
+    source = 'db';
+  }
+
+  if (!list.length) {
+    try {
+      const payload = await buildSportPayload(sport, false, 'all');
+      const raw =
+        sport === 'cricket'
+          ? payload?.matches || []
+          : payload?.data || payload?.matches || [];
+      list = raw.map((m) => mapListMatch(sport, m)).filter((m) => m.matchId);
+      source = 'provider';
+    } catch (err) {
+      console.warn(
+        `[BetApplicationLock] provider fallback failed for ${sport}:`,
+        err.message
+      );
+      list = [];
+      source = 'empty';
+    }
+  }
+
+  if (sport === 'cricket') {
+    list = list.filter(isUsableCricketRow);
+  }
 
   const byId = new Map();
-  for (const m of list) {
-    const row = mapListMatch(sport, m);
-    if (row.matchId) byId.set(row.matchId, row);
+  for (const row of list) {
+    if (row.matchId) byId.set(String(row.matchId), row);
   }
 
   const [lockSettings, deactivated] = await Promise.all([
@@ -101,9 +202,11 @@ async function fetchSportMatches(sport) {
     });
   }
 
-  return [...byId.values()].sort(
+  const matches = [...byId.values()].sort(
     (a, b) => new Date(a.date || 0) - new Date(b.date || 0)
   );
+
+  return { matches, source };
 }
 
 export const getBetApplicationLock = async (req, res) => {
@@ -200,7 +303,7 @@ export const getBetLockEvents = async (req, res) => {
     const dateParam = String(req.query.date || 'all').trim().toLowerCase();
     const dateKey = dateParam === 'all' ? 'all' : dateParam || toTodayDateKey();
 
-    const all = await fetchSportMatches(sport);
+    const { matches: all, source } = await fetchSportMatches(sport);
     const filtered = filterMatchesByDate(all, dateKey);
 
     const leagues = [...new Set(filtered.map((m) => m.leagueName).filter(Boolean))].sort(
@@ -215,6 +318,7 @@ export const getBetLockEvents = async (req, res) => {
       matches: filtered,
       total: filtered.length,
       totalAll: all.length,
+      source,
     });
   } catch (error) {
     console.error('[BetApplicationLock] events failed:', error.message);
