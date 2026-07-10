@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 
 import {
-  fetchMatchData,
   fetchProviderCPremiumFancy,
   fetchScore,
   isPremiumFancyEnabled,
@@ -12,10 +11,7 @@ import {
   serveSportsListRequest,
 } from '../services/sportsListCache/sportsListCacheService.js';
 import { filterFullyDisabledFromPayload } from '../utils/matchSectionSettings.js';
-import {
-  sendBettingApiError,
-  sendBettingProviderFailure,
-} from '../utils/bettingApiErrors.js';
+import { serveSportsBettingRequest } from '../utils/sportsBettingServe.js';
 
 dotenv.config();
 
@@ -69,54 +65,11 @@ export const getCricketScorecard = async (req, res) => {
   }
 };
 
-const cricketBettingCache = new Map();
 const cricketPremiumCache = new Map();
-const CRICKET_BETTING_CACHE_MS = Number(process.env.CRICKET_BETTING_CACHE_MS) || 10000;
 const CRICKET_PREMIUM_CACHE_MS = 4000;
 
-export const fetchCrirketBettingData = async (req, res) => {
-  const { gameid } = req.query;
-
-  if (!gameid) {
-    return res.status(400).json({ success: false, message: 'Missing gameid' });
-  }
-
-  try {
-    const cacheKey = String(gameid);
-    const cached = cricketBettingCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < CRICKET_BETTING_CACHE_MS) {
-      return res.status(200).json({ success: true, data: cached.payload });
-    }
-
-    const json = await fetchMatchData(gameid, 4);
-
-    if (json.success) {
-      cricketBettingCache.set(cacheKey, { ts: Date.now(), payload: json });
-      return res.status(200).json({ success: true, data: json });
-    }
-
-    if (cached?.payload) {
-      return res.status(200).json({
-        success: true,
-        stale: true,
-        data: cached.payload,
-      });
-    }
-
-    return sendBettingProviderFailure(res, json, gameid);
-  } catch (error) {
-    console.error('Error in fetchBettingData:', error.message);
-    const stale = cricketBettingCache.get(String(gameid));
-    if (stale?.payload) {
-      return res.status(200).json({
-        success: true,
-        stale: true,
-        data: stale.payload,
-      });
-    }
-    return sendBettingApiError(res, error, gameid);
-  }
-};
+export const fetchCrirketBettingData = (req, res) =>
+  serveSportsBettingRequest(req, res, 4);
 
 /** Premium fancy only — loaded separately so main markets render fast. */
 export const fetchCricketPremiumFancy = async (req, res) => {

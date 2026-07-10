@@ -236,34 +236,24 @@ const betSlice = createSlice({
       .addCase(getPendingBet.pending, (state) => {
         state.loading = true;
         state.errorMessage = "";
-        state.successMessage = "";
       })
       .addCase(getPendingBet.fulfilled, (state, { payload }) => {
         state.loading = false;
         state.eventName = payload?.data;
-        // Do not trigger bet toasts on refresh calls (prevents duplicate toasters)
-        state.successMessage = "";
       })
-      .addCase(getPendingBet.rejected, (state, { payload }) => {
+      .addCase(getPendingBet.rejected, (state) => {
         state.loading = false;
-        // Do not trigger bet toasts on refresh calls (prevents duplicate toasters)
-        state.errorMessage = "";
       })
       .addCase(getPendingBetAmo.pending, (state) => {
         state.loading = true;
         state.errorMessage = "";
-        state.successMessage = "";
       })
       .addCase(getPendingBetAmo.fulfilled, (state, { payload }) => {
         state.loading = false;
         state.pendingBet = payload?.data;
-        // Do not trigger bet toasts on refresh calls (prevents duplicate toasters)
-        state.successMessage = "";
       })
-      .addCase(getPendingBetAmo.rejected, (state, { payload }) => {
+      .addCase(getPendingBetAmo.rejected, (state) => {
         state.loading = false;
-        // Do not trigger bet toasts on refresh calls (prevents duplicate toasters)
-        state.errorMessage = "";
       })
       .addCase(getBetHistory.pending, (state) => {
         state.loading = true;

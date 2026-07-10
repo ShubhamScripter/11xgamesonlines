@@ -305,13 +305,10 @@ export function createProviderD() {
       if (probe.length > 0) return id;
     } catch (err) {
       if (err instanceof WinkaroApiError) throw err;
-      // not a direct event id — search competitions
     }
 
-    const events = await fetchAllEventsForSport(sportId);
-    const direct = events.find((e) => String(e.event?.id) === id);
-    if (direct?.event?.id) return String(direct.event.id);
-
+    // Do NOT scan the entire sport catalog here — that made fullmarket open
+    // take 30–60s+ when market-all-list was empty / wrong sport.
     return id;
   };
 
@@ -393,7 +390,8 @@ export function createProviderD() {
   };
 
   /**
-   * Full-market page: Match Odds + Bookmaker + Fancy (no tied match / duplicate exchange).
+   * Full-market page: Match Odds first, then fancy/bookmaker with a short timeout
+   * so the page is not blocked 30–60s waiting on fancy-all-bookmaker-odds-v3.
    */
   const buildMarketsForEvent = async (eventId) => {
     const metaList = await resolveMarketListForEvent(eventId);
@@ -417,10 +415,39 @@ export function createProviderD() {
     }
 
     const matchOddsMeta = findMatchOddsMarket(metaList);
+    const fancyTimeoutMs = Number(process.env.FANCY_FETCH_TIMEOUT_MS || 3000);
+
+    const matchOddsBookPromise = resolveMatchOddsBookForEvent(
+      eventId,
+      matchOddsMeta
+    );
+
+    const fancyPromise = (async () => {
+      let timer;
+      try {
+        return await Promise.race([
+          fetchFancyMarketsForEventId(eventId),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('fancy-timeout')),
+              fancyTimeoutMs
+            );
+          }),
+        ]);
+      } catch (err) {
+        console.warn(
+          `[ProviderD] fancy fetch for ${eventId}:`,
+          err.message
+        );
+        return [];
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
 
     const [fancyMarkets, matchOddsBook] = await Promise.all([
-      fetchFancyMarketsForEventId(eventId),
-      resolveMatchOddsBookForEvent(eventId, matchOddsMeta),
+      fancyPromise,
+      matchOddsBookPromise,
     ]);
 
     const exchangeMarkets = [];

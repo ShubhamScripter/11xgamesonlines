@@ -1048,30 +1048,29 @@ const placeBet = async (req, res) => {
         runners: meta.runners || [],
       })
 
-      //Here we are using the external Api
-      try {
-        await apiSendBetIncoming({
-          event_id: meta.gmid || gameId,
-          event_name: eventName,
-          market_id: meta.mid || null,
-          market_name: toApiMarketName(marketName),
-          market_type: gameType,
-          client_ref: null,
-          sport_id: sid,
-          sport_name: (gameName || '').replace(/\s*game\s*$/i, ''),
-          fancyId: null,
-          fancymid: meta.mid || null,
-          bevent_id: gameId || null,
-          runners: meta.runners || [],
+      // market_id already local — do not block Match Odds place on provider register
+      const incomingPayload = {
+        event_id: meta.gmid || gameId,
+        event_name: eventName,
+        market_id: meta.mid || null,
+        market_name: toApiMarketName(marketName),
+        market_type: gameType,
+        client_ref: null,
+        sport_id: sid,
+        sport_name: (gameName || '').replace(/\s*game\s*$/i, ''),
+        fancyId: null,
+        fancymid: meta.mid || null,
+        bevent_id: gameId || null,
+        runners: meta.runners || [],
+      };
+      setImmediate(() => {
+        apiSendBetIncoming(incomingPayload).catch((apiErr) => {
+          console.error(
+            `[SPORTS BET] bet-incoming API failed for gameId=${gameId}:`,
+            apiErr.message
+          );
         });
-
-      
-      } catch (apiErr) {
-        console.error(
-          `[SPORTS BET] bet-incoming API failed for gameId=${gameId}:`,
-          apiErr.message
-        );
-      }
+      });
     }
 
     let p = parseFloat(price);
@@ -1375,17 +1374,15 @@ const placeBet = async (req, res) => {
     sendOpenBetsUpdates(user._id, null);
     console.timeEnd('SPORTS_BET_WEBSOCKET_UPDATES');
 
-    // Update all upline balances after bet placement
-    try {
-      console.time('SPORTS_BET_UPLINE_UPDATE');
-      await updateAllUplines(user._id);
-      console.timeEnd('SPORTS_BET_UPLINE_UPDATE');
-    } catch (err) {
-      console.error(
-        ` [SPORTS BET] Error updating upline balances:`,
-        err.message
-      );
-    }
+    // Update all upline balances after bet placement (non-blocking)
+    setImmediate(() => {
+      updateAllUplines(user._id).catch((err) => {
+        console.error(
+          ` [SPORTS BET] Error updating upline balances:`,
+          err.message
+        );
+      });
+    });
 
     // Record bet history regardless of new/existing
     const betHistory = new betHistoryModel({

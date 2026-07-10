@@ -1,14 +1,10 @@
 import dotenv from 'dotenv';
-import { fetchMatchData } from '../services/matchApi/index.js';
 import {
   getAnyCachedSportPayload,
   serveSportsListRequest,
 } from '../services/sportsListCache/sportsListCacheService.js';
 import { filterFullyDisabledFromPayload } from '../utils/matchSectionSettings.js';
-import {
-  sendBettingApiError,
-  sendBettingProviderFailure,
-} from '../utils/bettingApiErrors.js';
+import { serveSportsBettingRequest } from '../utils/sportsBettingServe.js';
 
 dotenv.config();
 
@@ -40,26 +36,5 @@ export const fetchSoccerData = async (req, res) => {
   }
 };
 
-export const fetchsoccerBettingData = async (req, res) => {
-  const { gameid } = req.query;
-
-  if (!gameid) {
-    return res.status(400).json({ success: false, message: 'Missing gameid' });
-  }
-
-  try {
-    const json = await fetchMatchData(gameid, 1);
-
-    if (json.success) {
-      return res.status(200).json({
-        success: true,
-        data: json,
-      });
-    }
-
-    return sendBettingProviderFailure(res, json, gameid);
-  } catch (error) {
-    console.error('Error in fetchBettingData:', error.message);
-    return sendBettingApiError(res, error, gameid);
-  }
-};
+export const fetchsoccerBettingData = (req, res) =>
+  serveSportsBettingRequest(req, res, 1);

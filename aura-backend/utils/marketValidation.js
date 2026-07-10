@@ -3,14 +3,10 @@ import dotenv from 'dotenv';
 import {
   fetchCasinoData as fetchCasinoDataApi,
   fetchMatchData,
-  fetchMatchDataWithPremium,
   fetchProviderCMatchMarkets,
   isProviderCPremiumFancyMarket,
 } from '../services/matchApi/index.js';
-import {
-  unwrapMatchMarkets,
-  unwrapPremiumFancy,
-} from '../services/matchApi/hybridMatchData.js';
+import { unwrapMatchMarkets } from '../services/matchApi/hybridMatchData.js';
 
 dotenv.config();
 
@@ -85,59 +81,93 @@ function findMarketByName(markets, marketName) {
   });
 }
 
-const MAX_CACHE_AGE_MS = 1000;
+const BET_VALIDATE_TIMEOUT_MS = Number(
+  process.env.BET_VALIDATE_TIMEOUT_MS || 4000
+);
+const BET_VALIDATE_CACHE_OK_MS = Number(
+  process.env.BET_VALIDATE_CACHE_OK_MS || 2500
+);
+const BET_VALIDATE_CACHE_FALLBACK_MS = Number(
+  process.env.BET_VALIDATE_CACHE_FALLBACK_MS || 10000
+);
+/** @deprecated use BET_VALIDATE_CACHE_OK_MS */
+const MAX_CACHE_AGE_MS = BET_VALIDATE_CACHE_OK_MS;
+
+function withBetValidateTimeout(promise, ms = BET_VALIDATE_TIMEOUT_MS) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('bet-validate-timeout')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 /**
- * Fetch fresh live data from API. ALWAYS fetches — never trusts the polling cache.
- * The polling cache (cachedData) and the frontend WebSocket share the same data,
- * so validating against the cache = comparing stale-vs-stale.
- *
- * Falls back to cache ONLY if the fresh fetch fails AND cache is very recent (< 500ms).
+ * Match Odds / Bookmaker validation: use poll cache when fresh; otherwise
+ * fetchMatchData only (never premium fancy — that hung place-bet).
  */
 async function fetchFreshSportsData(cachedData, gameId, apitype, sid) {
   const cacheKey = `${gameId}_${apitype}`;
+  const cacheEntry = cachedData[cacheKey];
+  const now = Date.now();
+
+  if (
+    cacheEntry?.lastUpdated &&
+    now - cacheEntry.lastUpdated <= BET_VALIDATE_CACHE_OK_MS &&
+    Array.isArray(cacheEntry.data) &&
+    cacheEntry.data.length > 0
+  ) {
+    return { ok: true, markets: cacheEntry.data };
+  }
 
   try {
-    const isCricket = Number(sid) === 4;
-    const newData = isCricket
-      ? await fetchMatchDataWithPremium(gameId, sid)
-      : await fetchMatchData(gameId, sid);
+    const newData = await withBetValidateTimeout(fetchMatchData(gameId, sid));
     const markets = unwrapMatchMarkets(newData);
 
-    if (!newData?.success || !Array.isArray(markets)) {
+    if (!newData?.success || !Array.isArray(markets) || markets.length === 0) {
+      if (
+        cacheEntry?.lastUpdated &&
+        now - cacheEntry.lastUpdated <= BET_VALIDATE_CACHE_FALLBACK_MS &&
+        Array.isArray(cacheEntry.data) &&
+        cacheEntry.data.length > 0
+      ) {
+        return { ok: true, markets: cacheEntry.data };
+      }
       return {
         ok: false,
         reason: 'Unable to verify live odds. Please try again.',
       };
     }
 
-    // Update the shared cache so polling benefits too
     cachedData[cacheKey] = {
       data: markets,
-      premiumFancy: isCricket ? unwrapPremiumFancy(newData) : [],
-      providerCGameId: isCricket
-        ? (newData.providerCGameId ?? newData.data?.providerCGameId ?? null)
-        : null,
+      premiumFancy: cacheEntry?.premiumFancy || [],
+      providerCGameId: cacheEntry?.providerCGameId ?? null,
       raw: newData,
       lastUpdated: Date.now(),
     };
 
     return { ok: true, markets };
   } catch (err) {
-    // Fallback: use cache ONLY if very fresh (< 500ms) — half the poll interval
-    const cacheEntry = cachedData[cacheKey];
-    const now = Date.now();
+    const age = cacheEntry?.lastUpdated
+      ? Date.now() - cacheEntry.lastUpdated
+      : Infinity;
     if (
-      cacheEntry?.lastUpdated &&
-      now - cacheEntry.lastUpdated <= 500 &&
-      Array.isArray(cacheEntry.data)
+      age <= BET_VALIDATE_CACHE_FALLBACK_MS &&
+      Array.isArray(cacheEntry?.data) &&
+      cacheEntry.data.length > 0
     ) {
+      console.warn(
+        `[BET VALIDATE] Using cache for gameId=${gameId} after: ${err.message}`
+      );
       return { ok: true, markets: cacheEntry.data };
     }
 
     return {
       ok: false,
-      reason: 'Unable to verify live odds. Please try again.',
+      reason:
+        err.message === 'bet-validate-timeout'
+          ? 'Odds check timed out. Please try again.'
+          : 'Unable to verify live odds. Please try again.',
     };
   }
 }
@@ -257,9 +287,29 @@ export async function validateSportsMarket(
   }
 
   const userOdds = parseFloat(xValue);
-  const liveOddsObj = oname
+  let liveOddsObj = oname
     ? teamSection.odds.find((o) => o.oname === oname)
-    : teamSection.odds.find((o) => o.otype === otype && o.tno === 0);
+    : null;
+  if (!liveOddsObj) {
+    liveOddsObj = teamSection.odds.find(
+      (o) => o.otype === otype && o.tno === 0
+    );
+  }
+  if (!liveOddsObj) {
+    const primaryName =
+      String(otype || '').toLowerCase() === 'lay' ? 'lay1' : 'back1';
+    liveOddsObj = teamSection.odds.find((o) => o.oname === primaryName);
+  }
+  if (!liveOddsObj && Array.isArray(teamSection.odds)) {
+    const sameSide = teamSection.odds.filter(
+      (o) =>
+        String(o.otype || '').toLowerCase() ===
+        String(otype || '').toLowerCase()
+    );
+    liveOddsObj =
+      sameSide.find((o) => Math.abs(parseFloat(o.odds) - userOdds) <= 0.01) ||
+      sameSide[0];
+  }
   const liveOdds = liveOddsObj ? parseFloat(liveOddsObj.odds) : null;
 
   if (liveOdds === null || isNaN(liveOdds) || liveOdds <= 0) {

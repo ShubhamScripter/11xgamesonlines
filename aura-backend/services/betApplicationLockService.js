@@ -1,4 +1,3 @@
-import BetfairEvent from '../models/betfairEventModel.js';
 import BetApplicationLock, {
   getBetApplicationLockDoc,
 } from '../models/betApplicationLockModel.js';
@@ -8,7 +7,7 @@ import {
   resolveBetTypeLockId,
   isBetTypeLocked,
 } from '../constants/betLockConstants.js';
-import { checkMatchSectionLock, invalidateMatchSectionCache } from '../utils/matchSectionSettings.js';
+import { invalidateMatchSectionCache } from '../utils/matchSectionSettings.js';
 
 const CACHE_MS = 15_000;
 let cache = { ts: 0, data: null };
@@ -60,26 +59,13 @@ function isLocked(mapObj, key) {
   return mapObj[key] === true;
 }
 
-async function resolveLeagueName(gameId, sportKey) {
-  const row = await BetfairEvent.findOne({ eventId: String(gameId) })
-    .select('competitionName sportId')
-    .lean();
-  if (row?.competitionName) return row.competitionName.trim();
-
-  const settings = await getBetLockSettings();
-  const matchEntry = settings.matches.find(
-    (m) => String(m.matchId) === String(gameId) && m.sport === sportKey
-  );
-  return matchEntry?.leagueName?.trim() || '';
-}
-
 /**
- * Returns { blocked: boolean, reason?: string }
- * locked=true in settings means betting is DISABLED for users.
+ * Fast lock check for place-bet.
+ * Per-match / league / section locks are skipped — locked matches are already
+ * hidden from the user list. Only sport-wide + bet-type locks remain.
  */
 export async function checkBetApplicationLock({
   gameName,
-  gameId,
   gameType,
   marketName,
   isFancy = false,
@@ -87,18 +73,6 @@ export async function checkBetApplicationLock({
 }) {
   const sportKey = normalizeSportKey(gameName);
   if (!sportKey) return { blocked: false };
-
-  const sectionLock = await checkMatchSectionLock({
-    gameId,
-    sport: sportKey,
-    gameType,
-    marketName,
-    isFancy,
-    isPremium,
-  });
-  if (sectionLock.blocked) {
-    return { blocked: true, reason: sectionLock.reason };
-  }
 
   const settings = await getBetLockSettings();
 
@@ -120,37 +94,6 @@ export async function checkBetApplicationLock({
       blocked: true,
       reason: 'This bet type is currently locked',
     };
-  }
-
-  if (gameId) {
-    const matchEntry = settings.matches.find(
-      (m) =>
-        m.locked === true &&
-        m.sport === sportKey &&
-        String(m.matchId) === String(gameId)
-    );
-    if (matchEntry) {
-      return {
-        blocked: true,
-        reason: `Match "${matchEntry.matchName || gameId}" is locked for betting`,
-      };
-    }
-
-    const leagueName = await resolveLeagueName(gameId, sportKey);
-    if (leagueName) {
-      const leagueEntry = settings.leagues.find(
-        (l) =>
-          l.locked === true &&
-          l.sport === sportKey &&
-          l.leagueName.toLowerCase() === leagueName.toLowerCase()
-      );
-      if (leagueEntry) {
-        return {
-          blocked: true,
-          reason: `League "${leagueName}" is locked for betting`,
-        };
-      }
-    }
   }
 
   return { blocked: false };

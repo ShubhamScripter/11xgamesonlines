@@ -241,7 +241,7 @@ import { translateBetType } from '../../i18n/i18nHelpers';
 function BetCard({ odds, onClose, onBetDataChange, matchId }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
-  const { loading, successMessage, errorMessage, eventName: pendingBets } = useSelector((state) => state.bet);
+  const { loading, errorMessage, eventName: pendingBets } = useSelector((state) => state.bet);
 
   const [betOdds, setBetOdds] = useState(1.01);
   const [stake, setStake] = useState('');
@@ -386,32 +386,28 @@ function BetCard({ odds, onClose, onBetDataChange, matchId }) {
         fancyGameTypes.has(formData.gameType)
           ? createfancyBet(formData)
           : createBet(formData);
-      await dispatch(action).unwrap();
-      await dispatch(getUser());
+      const result = await dispatch(action).unwrap();
+      const okMsg = result?.message || 'Bet placed successfully';
+      toast.success(okMsg, { id: 'bet-placed-success' });
+      dispatch(messageClear());
+      setStake('');
+      setTimeout(() => onClose?.(), 400);
+      dispatch(getUser());
       if (odds?.gameId) {
         dispatch(getPendingBetAmo(odds.gameId));
         dispatch(getPendingBet(odds.gameId));
       }
-      setStake('');
     } catch {
       // Error toast shown from betReducer thunk
     }
   };
 
   useEffect(() => {
-    if (successMessage && odds) {
-      // Stable id so desktop + mobile BetCard mounts only show one toast
-      toast.success(successMessage, { id: 'bet-placed-success' });
-      dispatch(messageClear());
-      setTimeout(() => {
-        onClose?.();
-      }, 500);
-    }
     if (errorMessage && odds) {
       toast.error(errorMessage, { id: 'bet-placed-error' });
       dispatch(messageClear());
     }
-  }, [successMessage, errorMessage, dispatch, onClose, odds]);
+  }, [errorMessage, dispatch, odds]);
 
   return (
     <div className="w-full shadow-2xl rounded-xl border border-gray-700 overflow-hidden flex flex-col">
