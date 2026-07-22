@@ -1,0 +1,608 @@
+.rouletteMain_head {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3.4722222222%;
+    padding: 6px 0;
+    position: relative;
+    z-index: 1;
+}
+.roulette-period {
+    color: #ffefbd;
+    font-size: 21px;
+    margin-top: -30px;
+    position: absolute;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, .8);
+}
+
+
+.rouletteMain, .rouletteMain_awards_item, .rouletteMain_box, .rouletteMain_winner, .rouletteMain_winner_wrap:after, .rouletteMain_winner_wrap:before {
+    height: 0;
+}
+
+.rouletteMain_wrap:after {
+    left: 100%;
+}
+.rouletteMain_wrap:before {
+    left: -100%;
+}
+.rouletteMain_wrap:after, .rouletteMain_wrap:before {
+    content: "";
+    height: 100%;
+    position: absolute;
+    top: 0;
+    transform: rotateY(180deg);
+    width: 100%;
+}
+.rouletteMain_body {
+    display: flex;
+    justify-content: space-evenly;
+}
+.rouletteMain {
+    margin: 0 auto;
+    max-width: 1440px;
+    /* padding-bottom: 57.6388888889%; */
+    position: relative;
+    width: 100%;
+}
+.rouletteMain:after, .rouletteMain:before, .rouletteMain_awards_item>div, .rouletteMain_box_coinWrap, .rouletteMain_box_numberTimes>div, .rouletteMain_box_wrap, .rouletteMain_box_wrap:after, .rouletteMain_box_wrap:before, .rouletteMain_winner_wrap, .rouletteMain_wrap {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+
+
+
+.rouletteMain_box_wrap {
+    padding: 10.5%;
+}
+.rouletteMain_awards, .rouletteMain_winner {
+    flex: 0 0 20.4861111111%;
+    position: relative;
+    z-index: 1;
+}
+.rouletteMain_winner{
+    margin-top: 60px;
+}
+.rouletteMain_box_part {
+    border-radius: 50%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    transform: rotate3d(0, 0, 0, 0deg);
+    transition: -webkit-filter .4s;
+    transition: filter .4s;
+    transition: filter .4s, -webkit-filter .4s;
+    width: 100%;
+    top: 15px;
+    left: 3px;
+    max-width: 540px;
+    max-height: 540px;
+}
+.rouletteMain_box_part_award {
+    line-height: 1.2;
+    padding-bottom: 1.25vw;
+    position: relative;
+    text-align: center;
+    width: 70%;
+}
+
+.rouletteMain_box_part_list {
+    font-size: 16px;
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list {
+    left: 30.9%;
+    top: 1%;
+    width: 37.2%;
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:before {
+    transform: rotate(-22.5deg);
+}
+
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(2) {
+    transform: rotate(45deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(3) {
+    transform: rotate(90deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(4) {
+    transform: rotate(135deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(5) {
+    transform: rotate(180deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(6) {
+    transform: rotate(225deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(7) {
+    transform: rotate(270deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(8) {
+    transform: rotate(315deg);
+}
+
+
+
+
+
+
+.rouletteMain_box_part_list {
+    align-items: center;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    height: 50%;
+    justify-content: center;
+    padding-bottom: 2%;
+    position: absolute;
+    top: 13px;
+    transform-origin: 50% 100%;
+}
+
+
+.rouletteMain_box_part_list:before {
+    animation-direction: alternate;
+    animation-duration: .5s;
+    animation-fill-mode: both;
+    animation-iteration-count: infinite;
+    background-image: linear-gradient(0deg, #ffcf00, #ff0 14%, #ff0 35%, #fff 42%, #ffc600 72%);
+    content: "";
+    height: 100%;
+    left: 50%;
+    margin-left: -1px;
+    position: absolute;
+    top: 0;
+    transform-origin: 50% 100%;
+    transition: width .3s, margin-left .3s;
+    width: 2px;
+    z-index: 1;
+}
+.rouletteMain_box_part_color {
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+.rouletteMain_box_part_color:after, .rouletteMain_box_part_color:before {
+    content: "";
+    height: 100%;
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+.rouletteMain_box_part_color:before {
+    left: -50%;
+    transform-origin: 100% 100%;
+}
+.rouletteMain_box_part_color:after {
+    left: 50%;
+    transform-origin: 0% 100%;
+}
+.rouletteMain_box_part-8 .rouletteMain_box_part_color:before {
+    transform: rotate(67.5deg) skew(45deg);
+}
+.rouletteMain_box_part-8 .rouletteMain_box_part_color:after {
+    transform: rotate(-67.5deg) skew(-45deg);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(2n)>.rouletteMain_box_part_color:before {
+    background-image: linear-gradient(-35.3deg, #fff607 12%, #f1a221 52%, hsla(0, 0%, 100%, 0) 0);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(2n)>.rouletteMain_box_part_color:after {
+    background-image: linear-gradient(35.3deg, #fff607 12%, #f1a221 52%, hsla(0, 0%, 100%, 0) 0);
+}
+
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(odd)>.rouletteMain_box_part_color:before {
+    background-image: linear-gradient(-35.3deg, #4d4c49 12%, #152083 52%, hsla(0, 0%, 100%, 0) 0);
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(odd)>.rouletteMain_box_part_color:after {
+    background-image: linear-gradient(35.3deg, #4d4c49 12%, #152083 52%, hsla(0, 0%, 100%, 0) 0);
+}
+
+.luckyfortune.rouletteMain_box_wrap:before {
+    background-size: 90%;
+    background-position: 50% 50%;
+    background-position-y: center;
+    background-image: url("../../assets/luckywheel/goldenfortune.png");
+    background-repeat: no-repeat;
+}
+.rouletteMain_box_wrap:after, .rouletteMain_box_wrap:before {
+    content: "";
+    z-index: 2;
+}
+
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(odd)>.rouletteMain_box_part_award {
+    color: #fff;
+    font-weight: 700;
+}
+.rouletteMain_box_part-8>.rouletteMain_box_part_list:nth-of-type(2n)>.rouletteMain_box_part_award {
+    color: #000;
+    font-weight: 700;
+}
+.rouletteMain_box_part_list:first-of-type:after {
+    content: "1";
+}.rouletteMain_box_part_list:nth-of-type(2):after {
+    content: "2";
+}.rouletteMain_box_part_list:nth-of-type(3):after {
+    content: "3";
+}.rouletteMain_box_part_list:nth-of-type(4):after {
+    content: "4";
+}.rouletteMain_box_part_list:nth-of-type(5):after {
+    content: "5";
+}.rouletteMain_box_part_list:nth-of-type(6):after {
+    content: "6";
+}.rouletteMain_box_part_list:nth-of-type(7):after {
+    content: "7";
+}.rouletteMain_box_part_list:last-of-type:after {
+    content: "8";
+}
+.rouletteMain_box_part_list:after {
+    font-family: Verdana, sans-serif;
+    font-size: 50px;
+    font-weight: 700;
+    position: relative;
+    text-shadow: -.2083333333vw -.2777777778vw 0 #e81fa1, -.1388888889vw -.2777777778vw 0 #e81fa1, -.0694444444vw -.2777777778vw 0 #e81fa1, 0 -.2777777778vw 0 #e81fa1, .0694444444vw -.2777777778vw 0 #e81fa1, .1388888889vw -.2777777778vw 0 #e81fa1, .2083333333vw -.2777777778vw 0 #e81fa1, .2777777778vw -.2777777778vw 0 #e81fa1, .2777777778vw -.2083333333vw 0 #e81fa1, .2777777778vw -.1388888889vw 0 #e81fa1, .2777777778vw -.0694444444vw 0 #e81fa1, .2777777778vw 0 0 #e81fa1, .2777777778vw .0694444444vw 0 #e81fa1, .2777777778vw .1388888889vw 0 #e81fa1, .2777777778vw .2083333333vw 0 #e81fa1, .2777777778vw .2777777778vw 0 #e81fa1, .2083333333vw .2777777778vw 0 #e81fa1, .1388888889vw .2777777778vw 0 #e81fa1, .0694444444vw .2777777778vw 0 #e81fa1, 0 .2777777778vw 0 #e81fa1, -.0694444444vw .2777777778vw 0 #e81fa1, -.1388888889vw .2777777778vw 0 #e81fa1, -.2083333333vw .2777777778vw 0 #e81fa1, -.2777777778vw .2777777778vw 0 #e81fa1, -.2777777778vw .2083333333vw 0 #e81fa1, -.2777777778vw .1388888889vw 0 #e81fa1, -.2777777778vw .0694444444vw 0 #e81fa1, -.2777777778vw 0 0 #e81fa1, -.2777777778vw -.0694444444vw 0 #e81fa1, -.2777777778vw -.1388888889vw 0 #e81fa1, -.2777777778vw -.2083333333vw 0 #e81fa1, -.2777777778vw -.2777777778vw 0 #e81fa1;
+}
+@keyframes rouletteMainBoxBtnShadow {
+    0% {
+        box-shadow: 0 0 16px rgba(0,0,0,.3),0 2px 3px 1px rgba(0,0,0,.35),inset -1px 0 1px rgba(0,0,0,.5),inset 1px 1px 1px #fff
+    }
+
+    to {
+        box-shadow: 0 0 48px rgba(0,0,0,.9),0 2px 3px 1px rgba(0,0,0,.35),inset -1px 0 1px rgba(0,0,0,.5),inset 1px 1px 1px #fff
+    }
+}
+.rouletteMain_box_btn {
+    animation: rouletteMainBoxBtnShadow .5s infinite alternate both;
+    background-position: 0 0;
+    background-image: url('../../assets/luckywheel/spinbutton.png');
+    border-radius: 50%;
+    bottom: 0;
+    box-shadow: 0 0 46px rgba(0, 0, 0, .75), 0 2px 3px 1px rgba(0, 0, 0, .35), inset -1px 0 1px rgba(0, 0, 0, .5), inset 1px 1px 1px #fff;
+    cursor: pointer;
+    display: flex;
+    height: 18.3333333333%;
+    left: 0;
+    margin: auto;
+    overflow: hidden;
+    padding-bottom: 1.5%;
+    right: 0;
+    top: 30px;
+    width: 18.3333333333%;
+}
+@keyframes rouletteMainBoxBtnLight {
+    0% {
+        transform: translate3d(-60%,0,0) rotate(-45deg)
+    }
+
+    to {
+        transform: translate3d(60%,0,0) rotate(-45deg)
+    }
+}
+.rouletteMain_box_btn:after {
+    animation: rouletteMainBoxBtnLight 2s infinite both;
+    background-image: linear-gradient(180deg, hsla(0, 0%, 100%, 0), hsla(0, 0%, 100%, .7) 60%, hsla(0, 0%, 100%, .4) 0, hsla(0, 0%, 100%, 0));
+    content: "";
+    height: 40%;
+    left: -40%;
+    position: absolute;
+    top: 30%;
+    transform: translate3d(80%, 0, 0) rotate(-45deg);
+    width: 180%;
+}
+
+.rouletteMain_box_btn, .rouletteMain_box_numberTimes {
+    background-size: 100% 100%;
+    position: absolute;
+    z-index: 3;
+}
+.rouletteMain_box_coin {
+    height: 125%;
+    left: -25%;
+    pointer-events: none;
+    position: absolute;
+    top: -12.5%;
+    width: 150%;
+    z-index: 3;
+}
+.rouletteMain_box_coinWrap:first-of-type {
+    animation-delay: -1s;
+    animation-duration: 5s;
+}
+.rouletteMain_box_coinWrap:nth-of-type(2) {
+    animation-delay: -2s;
+    animation-duration: 7s;
+}
+.rouletteMain_box_coinWrap:nth-of-type(3) {
+    animation-delay: -1.5s;
+    animation-duration: 6s;
+}
+.rouletteMain_box_coinWrap:nth-of-type(4) {
+    animation-delay: -.5s;
+    animation-duration: 4s;
+}
+.rouletteMain_box_coinWrap:nth-of-type(5) {
+    animation-delay: -2.5s;
+    animation-duration: 8s;
+}
+.rouletteMain_box_coinWrap:nth-of-type(6) {
+    animation-delay: -3s;
+    animation-duration: 9s;
+}
+@keyframes rouletteBoxCoin {
+    0% {
+        opacity: .5;
+        transform: scale3d(.6,.6,1)
+    }
+
+    25% {
+        opacity: .8;
+        transform: scale3d(.8,.8,1)
+    }
+
+    50% {
+        opacity: 1;
+        transform: scaleX(1)
+    }
+
+    75% {
+        opacity: .6;
+        transform: scale3d(1.15,1.15,1)
+    }
+
+    to {
+        opacity: .1;
+        transform: scale3d(1.3,1.3,1)
+    }
+}
+.rouletteMain_box_coinWrap {
+    animation-fill-mode: both;
+    animation-iteration-count: infinite;
+    animation-name: rouletteBoxCoin;
+    animation-timing-function: linear;
+}
+.rouletteMain_box_coin_1 {
+    left: 76%;
+    top: 47%;
+    width: 12.7777777778%;
+}
+.rouletteMain_box_coin_2 {
+    left: 15%;
+    top: 26%;
+    width: 9.2222222222%;
+}
+.rouletteMain_box_coin_3 {
+    left: 68%;
+    top: 71%;
+    width: 15.4444444444%;
+}
+.rouletteMain_box_coin_4 {
+    left: 11%;
+    top: 71%;
+    width: 30.4444444444%;
+}
+.rouletteMain_box_coin_5 {
+    left: 73%;
+    top: 17%;
+    width: 17.1111111111%;
+}
+.rouletteMain_box_coin_6 {
+    left: 24%;
+    top: 4%;
+    width: 7.3333333333%;
+}
+.rouletteMain_box_coin_1, .rouletteMain_box_coin_2, .rouletteMain_box_coin_3, .rouletteMain_box_coin_4, .rouletteMain_box_coin_5, .rouletteMain_box_coin_6 {
+    position: absolute;
+}
+
+@keyframes rouletteNumberTimes {
+    0% {
+        box-shadow: 0 0 0 0 rgba(252,255,0,.55),inset 0 0 1px rgba(252,255,0,.55)
+    }
+
+    to {
+        box-shadow: 0 0 16px 2px rgba(252,255,0,.55),inset 0 0 1px rgba(252,255,0,.55)
+    }
+}
+.rouletteMain_box_numberTimes {
+    animation: rouletteNumberTimes .6s .6s infinite alternate both;
+    background-image: url(https://jiliwin.9terawolf.com/images/wof/Coin_Frame.png);
+    border-radius: 9% / 18.75%;
+    box-shadow: 0 0 16px 2px rgba(252, 255, 0, .5), inset 0 0 1px rgba(252, 255, 0, .5);
+    height: 0;
+    padding-bottom: 12%;
+    right: 2%;
+    top: 0;
+    width: 25%;
+}
+.rouletteMain_box_numberTimes>div {
+    align-content: center;
+    align-items: center;
+    color: #ff4100;
+    display: flex;
+    flex-wrap: wrap;
+    font-weight: 700;
+    justify-content: center;
+    padding-bottom: 1%;
+    text-align: center;
+    text-shadow: 2px 2px 0 #f3cb00;
+    transform: skew(-6deg);
+}
+.rouletteMain_box_numberTimes>div>div {
+    width: 100%;
+}
+.rouletteMain_box_numberTimes span:first-of-type {
+    font-size: 28px;
+}
+.rouletteMain_box_numberTimes span:nth-of-type(2) {
+    font-size: 13px;
+    letter-spacing: -1px;
+    margin: 6% 0 0 1%;
+}
+
+
+.rouletteMain_winner{
+    background-image: url(https://s3.ap-southeast-1.amazonaws.com/cdn.v3c33.com/v3/wheel/rouletteMain_winnerList.png);
+    background-size: 100% 100%;
+    padding-bottom: 41.6666666667%;
+}
+.rouletteMain_winner_wrap {
+    display: flex;
+    flex-direction: column;
+    padding: 5.0847457627%;
+}
+.rouletteMain_winner_wrap:before {
+    background-image: url(https://s3.ap-southeast-1.amazonaws.com/cdn.v3c33.com/v3/wheel/rouletteMain_winnerList_t.png);
+    padding-bottom: 46.7796610169%;
+    top: 0;
+    transform: translate(-50%, -96%);
+    width: 111.186440678%;
+}
+.rouletteMain_winner_wrap:after, .rouletteMain_winner_wrap:before {
+    left: 50%;
+    z-index: 1;
+}
+.rouletteMain_winner_wrap:after, .rouletteMain_winner_wrap:before {
+    content: "";
+    position: absolute;
+}
+
+.rouletteMain, .rouletteMain:after, .rouletteMain:before, .rouletteMain_awards_item.special .rouletteMain_awards_medals, .rouletteMain_awards_item>div, .rouletteMain_box_wrap:before, .rouletteMain_winner_wrap:after, .rouletteMain_winner_wrap:before, .rouletteMain_wrap:after, .rouletteMain_wrap:before {
+    background-size: 100% 100%;
+}
+
+.rouletteMain_winner_head {
+    background-color: hsla(0, 0%, 100%, .15);
+    border-radius: 20px;
+    display: flex;
+    margin-bottom: 5.6603773585%;
+    position: relative;
+}
+.rouletteMain_winner_head.winnerList>div:first-of-type {
+    color: #fff;
+    text-shadow: 0 1px 1px #5a29a7;
+}
+.rouletteMain_winner_head_item {
+    color: #fff607;
+    cursor: pointer;
+    flex: 1 1 0;
+    font-size: 12px;
+    line-height: 30px;
+    position: relative;
+    text-align: center;
+    transition: color .4s, text-shadow .4s;
+    z-index: 1;
+}
+.rouletteMain_winner_head_cursor {
+    background-image: url(https://s3.ap-southeast-1.amazonaws.com/cdn.v3c33.com/v3/wheel/rouletteMain_winner_btn.png);
+    background-size: 100% 100%;
+    height: 0;
+    margin: 0 0 0 -12px;
+    padding-bottom: 14.3396226415%;
+    position: absolute;
+    top: 0;
+    transition: left .4s;
+    width: 60.830189%;
+}
+.rouletteMain_winner_slider {
+    display: flex;
+    flex: 1 1 0;
+    overflow: hidden;
+}
+.rouletteMain_winner_list {
+    flex: 0 0 100%;
+    overflow-y: auto;
+    position: relative;
+    transition: left .4s;
+}
+.rouletteMain_winner_item {
+    font-size: 12px;
+    line-height: 30px;
+}
+.rouletteMain_winner_item {
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    line-height: 38px;
+    padding: 0 3.5%;
+}
+.rouletteMain_winner_date {
+    font-size: 11px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+.rouletteMain_winner_prize {
+    color: #ffdb00;
+    text-align: center;
+    width: 46%;
+}
+
+
+
+.rouletteMain_winner_list::-webkit-scrollbar {
+    width: 5px;
+  }
+.rouletteMain_winner_list::-webkit-scrollbar-track {
+    background: #11235c;
+    border-radius: 10px;
+  }
+.rouletteMain_winner_list::-webkit-scrollbar-thumb {
+    background: #c9a24a;
+    border-radius: 10px;
+  }
+
+  .rouletteMain_awards_item {
+    padding-bottom: 21.6949152542%;
+    position: relative;
+    width: 100%;
+}
+.rouletteMain_awards_item>div {
+    align-items: center;
+    background-image: url(https://s3.ap-southeast-1.amazonaws.com/cdn.v3c33.com/v3/wheel/Win_List_btn.png);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 3.39%;
+}
+
+.rouletteMain_awards_medals {
+    align-items: center;
+    font-size: 20px;
+    display: flex;
+    font-weight: 700;
+    justify-content: center;
+    width: 16%;
+    color: #be5a18;
+}
+
+.rouletteMain_awards_prize{
+    align-items: center;
+    display: flex;
+    height: 100%;
+    justify-content: center;
+    position: relative;
+    width: 30%;
+}
+.rouletteMain_awards_text {
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+    width: 60%;
+}
+.rouletteMain_awards_item+.rouletteMain_awards_item {
+    margin-top: 8.6%;
+}
+.roulette_main_numberTimes_left {
+    height: 0;
+    padding-bottom: 17.549296%;
+    left: 2%;
+    top: 2%;
+    text-align: center;
+    width: 24.2253521127%;
+    position: absolute;
+    color: #fff;
+}
