@@ -47,6 +47,34 @@ export const authMiddleware = (req, res, next) => {
   }
 };
 
+export const optionalAuthMiddleware = (req, res, next) => {
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.auth) {
+    token = req.cookies.auth;
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    if (decodedToken && decodedToken.role === 'user') {
+      req.role = decodedToken.role;
+      req.user = decodedToken.user;
+      req.id = decodedToken.id;
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
 export const adminAuthMiddleware = async (req, res, next) => {
   try {
     let token;

@@ -1,65 +1,123 @@
 import './LuckySpin.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from '../../utils/axiosConfig';
+import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { setLiveBalance } from '../../features/auth/authSlice';
 
-// Wheel medal numbers 1–8 (matches segment labels on the wheel)
-const PRIZES = [
-    { prizeIndex: 1, amount: 3888, label: '₹3,888', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c95f2f60.png' },
-    { prizeIndex: 2, amount: 888, label: '₹888', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c960d172.png' },
-    { prizeIndex: 3, amount: 688, label: '₹688', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c961c896.png' },
-    { prizeIndex: 4, amount: 188, label: '₹188', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c962fd78.png' },
-    { prizeIndex: 5, amount: 88, label: '₹88', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c9647657.png' },
-    { prizeIndex: 6, amount: 68, label: '₹68', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c9654f3c.png' },
-    { prizeIndex: 7, amount: 28, label: '₹28', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c966252e.png' },
-    { prizeIndex: 8, amount: 10, label: '₹10', img: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c96770b9.png' },
-];
-
-const WINNERS = [
-    { date: '2026-07-21', name: 'sha***', prize: '10.00' },
-    { date: '2026-07-21', name: 'sof***', prize: '10.00' },
-    { date: '2026-07-21', name: 'seret*****', prize: '28.00' },
-    { date: '2026-07-21', name: 'tmg12k******', prize: '10.00' },
-    { date: '2026-07-21', name: 'bac***', prize: '10.00' },
-    { date: '2026-07-21', name: 'mdas****', prize: '10.00' },
-    { date: '2026-07-21', name: 'kmra****', prize: '68.00' },
-    { date: '2026-07-21', name: 'mdakas******', prize: '10.00' },
-    { date: '2026-07-21', name: 'sori****', prize: '10.00' },
-    { date: '2026-07-21', name: 'kmra****', prize: '10.00' },
-];
-
-const SECTION_COUNT = PRIZES.length;
+const SECTION_COUNT = 8;
 const SECTION_ANGLE = 360 / SECTION_COUNT;
 const SPIN_DURATION_MS = 5000;
 
+const PRIZE_IMAGES = {
+    1: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c95f2f60.png',
+    2: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c960d172.png',
+    3: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c961c896.png',
+    4: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c962fd78.png',
+    5: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c9647657.png',
+    6: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c9654f3c.png',
+    7: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c966252e.png',
+    8: 'https://jiliwin.9terawolf.com/cms/babu/image/66556c96770b9.png',
+};
+
+const generateFakeWinners = () => {
+    const names = ['sha', 'sof', 'ser', 'tmg', 'bac', 'mda', 'kmr', 'sor', 'ali', 'rob', 'joh', 'mic'];
+    const prizes = ['10.00', '28.00', '68.00', '88.00', '98.00', '188.00', '588.00', '888.00', '3888.00'];
+    
+    const fakeWinners = [];
+    for (let i = 0; i < 15; i++) {
+        const randomName = names[Math.floor(Math.random() * names.length)] + '***';
+        const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
+        
+        // Random date within the last 3 days
+        const d = new Date();
+        d.setDate(d.getDate() - Math.floor(Math.random() * 3));
+        const dateStr = d.toISOString().split('T')[0];
+        
+        fakeWinners.push({ date: dateStr, name: randomName, prize: randomPrize });
+    }
+    return fakeWinners;
+};
+
 const LuckySpin = () => {
+    const dispatch = useDispatch();
     const [rotation, setRotation] = useState(0);
     const [spinning, setSpinning] = useState(false);
     const [wonPrize, setWonPrize] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
+    
+    const [rewards, setRewards] = useState([]);
+    const [userStats, setUserStats] = useState({ coins: 0, spinsToday: 0, remainingSpins: 10 });
+    const [fakeWinners, setFakeWinners] = useState([]);
+    
+    useEffect(() => {
+        fetchInfo();
+        setFakeWinners(generateFakeWinners());
+        
+        // Auto-refresh the rewards and coins every 10 seconds
+        const interval = setInterval(() => {
+            if (!spinning) {
+                fetchInfo();
+            }
+        }, 10000);
 
-    const handleSpin = () => {
+        return () => clearInterval(interval);
+    }, [spinning]);
+
+    const fetchInfo = async () => {
+        try {
+            const res = await axios.get('/lucky-spin/info');
+            if (res.data.success) {
+                setRewards(res.data.data.rewards);
+                setUserStats(res.data.data.userStats);
+            }
+        } catch (error) {
+            console.error('Failed to fetch lucky spin info', error);
+        }
+    };
+
+    const handleSpin = async () => {
         if (spinning) return;
 
-        setSpinning(true);
-        setShowPopup(false);
+        try {
+            setSpinning(true);
+            setShowPopup(false);
 
-        // 0–7 array index; prizeIndex on wheel is index + 1 (3 → ₹688)
-        const index = Math.floor(Math.random() * SECTION_COUNT);
-        const prize = PRIZES[index];
+            const res = await axios.post('/lucky-spin/spin');
+            
+            if (res.data.success) {
+                const spinResult = res.data.data;
+                // update local stats
+                setUserStats(prev => ({ ...prev, coins: spinResult.remainingCoins, spinsToday: spinResult.spinsToday, remainingSpins: 10 - spinResult.spinsToday }));
+                
+                // Find matching reward to animate to
+                const winningNumber = spinResult.winningNumber;
+                // Array index is number - 1
+                const index = winningNumber - 1;
+                
+                const targetMod = (360 - index * SECTION_ANGLE) % 360;
+                const currentMod = ((rotation % 360) + 360) % 360;
+                const delta = (targetMod - currentMod + 360) % 360;
+                const finalRotation = rotation + 360 * 8 + delta;
 
-        // Land exactly on this segment relative to current rotation (fixes mismatch on 2nd+ spins)
-        const targetMod = (360 - index * SECTION_ANGLE) % 360;
-        const currentMod = ((rotation % 360) + 360) % 360;
-        const delta = (targetMod - currentMod + 360) % 360;
-        const finalRotation = rotation + 360 * 8 + delta;
+                setRotation(finalRotation);
 
-        setRotation(finalRotation);
-
-        setTimeout(() => {
+                setTimeout(() => {
+                    setSpinning(false);
+                    setWonPrize(spinResult);
+                    setShowPopup(true);
+                    if (spinResult.type === 'cash') {
+                        dispatch(setLiveBalance(spinResult.newBalance));
+                    }
+                }, SPIN_DURATION_MS);
+            } else {
+                setSpinning(false);
+                toast.error(res.data.message || 'Spin failed');
+            }
+        } catch (error) {
             setSpinning(false);
-            setWonPrize(prize);
-            setShowPopup(true);
-            console.log('Prize Index :', prize.prizeIndex, 'Amount :', prize.label);
-        }, SPIN_DURATION_MS);
+            toast.error(error.response?.data?.message || 'Error spinning');
+        }
     };
 
     const closePopup = () => {
@@ -90,12 +148,12 @@ const LuckySpin = () => {
                             ×
                         </button>
                         <div className="luckySpin_popup_badge">
-                            <span className="luckySpin_popup_badge_num">{wonPrize.prizeIndex}</span>
+                            <span className="luckySpin_popup_badge_num">{wonPrize.winningNumber}</span>
                         </div>
                         <p className="luckySpin_popup_eyebrow">Lucky Spin</p>
                         <p className="luckySpin_popup_title">You Won!</p>
                         <div className="luckySpin_popup_prize_wrap">
-                            <p className="luckySpin_popup_prize">{wonPrize.label}</p>
+                            <p className="luckySpin_popup_prize">₹{wonPrize.winGift}</p>
                         </div>
                         <p className="luckySpin_popup_meta">Added to your balance</p>
                         <button type="button" className="luckySpin_popup_btn" onClick={closePopup}>
@@ -109,14 +167,14 @@ const LuckySpin = () => {
                 <div className="rouletteMain_body lg:mt-10 xl:mt-15">
                     {/* Awards — left on desktop, below wheel on mobile/tablet */}
                     <ul className="rouletteMain_awards">
-                        {PRIZES.map((prize) => (
-                            <li key={prize.prizeIndex} className="rouletteMain_awards_item">
+                        {rewards.map((prize) => (
+                            <li key={prize.number} className="rouletteMain_awards_item">
                                 <div>
-                                    <div className="rouletteMain_awards_medals">{prize.prizeIndex}</div>
+                                    <div className="rouletteMain_awards_medals">{prize.number}</div>
                                     <div className="rouletteMain_awards_prize">
-                                        <img src={prize.img} alt="" />
+                                        <img src={PRIZE_IMAGES[prize.number]} alt="" />
                                     </div>
-                                    <div className="rouletteMain_awards_text">{prize.label}</div>
+                                    <div className="rouletteMain_awards_text">₹{prize.winGift}</div>
                                 </div>
                             </li>
                         ))}
@@ -143,10 +201,10 @@ const LuckySpin = () => {
                                         : 'none',
                                 }}
                             >
-                                {PRIZES.map((prize) => (
-                                    <li key={prize.prizeIndex} className="rouletteMain_box_part_list">
+                                {rewards.map((prize) => (
+                                    <li key={prize.number} className="rouletteMain_box_part_list">
                                         <div className="rouletteMain_box_part_color" />
-                                        <span className="rouletteMain_box_part_award">{prize.label}</span>
+                                        <span className="rouletteMain_box_part_award">₹{prize.winGift}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -177,7 +235,7 @@ const LuckySpin = () => {
                         <div className="rouletteMain_box_numberTimes">
                             <div>
                                 <div>
-                                    <span>190</span>
+                                    <span>{userStats.coins}</span>
                                     <span>coins</span>
                                 </div>
                             </div>
@@ -194,7 +252,7 @@ const LuckySpin = () => {
                             </div>
                             <div className="rouletteMain_winner_slider">
                                 <ul className="rouletteMain_winner_list">
-                                    {WINNERS.map((winner, i) => (
+                                    {fakeWinners.map((winner, i) => (
                                         <li key={`${winner.name}-${i}`} className="rouletteMain_winner_item">
                                             <span className="rouletteMain_winner_date">{winner.date}</span>
                                             <span>{winner.name}</span>

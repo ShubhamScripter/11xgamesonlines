@@ -108,7 +108,9 @@ export const spin = async (req, res) => {
 
     // Update balance and apply wagering requirement if cash reward
     if (winningReward.type === 'cash' && winningReward.value > 0) {
-      user.balance += winningReward.value;
+      user.balance = (user.balance || 0) + winningReward.value;
+      user.avbalance = (user.avbalance || 0) + winningReward.value;
+      user.baseBalance = (user.baseBalance || 0) + winningReward.value;
       
       // Rule 4: Turnover requirement 1x slots, 3x non-slots.
       // We add prize * 3 to the required wagering. In bet processing, slots bets will count 3x.
@@ -135,7 +137,7 @@ export const spin = async (req, res) => {
         winGift: winningReward.winGift,
         type: winningReward.type,
         value: winningReward.value,
-        newBalance: user.balance,
+        newBalance: user.avbalance,
         remainingCoins: user.luckySpinCoins,
         spinsToday: user.luckySpinsToday
       },

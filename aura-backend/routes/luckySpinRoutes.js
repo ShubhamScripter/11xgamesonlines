@@ -1,10 +1,10 @@
 import express from 'express';
 import { getSpinInfo, spin } from '../controllers/luckySpinController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/lucky-spin/info', getSpinInfo);
+router.get('/lucky-spin/info', optionalAuthMiddleware, getSpinInfo);
 router.post('/lucky-spin/spin', authMiddleware, spin);
 
 export default router;
