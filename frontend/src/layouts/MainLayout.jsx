@@ -94,7 +94,7 @@ function MainLayout() {
           closeHeaderActions={() => setHeaderActionsOpen(false)}
         />
       </div>
-      <Link className='fixed bottom-5 right-2' to='/luckyWheel'><img src={wheelSpin} alt="" height={70} width={72} /></Link>
+      <Link className='fixed bottom-19 md:bottom-2 right-1 z-10' to='/luckyWheel'><img src={wheelSpin} alt="" height={70} width={72} /></Link>
     </>
   );
 }
