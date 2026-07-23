@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import HeaderLogin from '../components/Header/HeaderLogin';
 import Navbar from '../components/Header/Navbar';
@@ -13,7 +13,7 @@ import {
 import { hydrateHomeSportsFromCache } from '../utils/homeSportsHydrate';
 import { useSportsOddsRefresh } from '../hooks/useSportsOddsRefresh';
 import { useListOddsSocket } from '../hooks/useListOddsSocket';
-
+import wheelSpin from '../assets/wofSpin.gif'
 function MainLayout() {
   const dispatch = useDispatch();
   const location = useLocation();
@@ -94,6 +94,7 @@ function MainLayout() {
           closeHeaderActions={() => setHeaderActionsOpen(false)}
         />
       </div>
+      <Link className='fixed bottom-19 md:bottom-2 right-1 z-10' to='/luckyWheel'><img src={wheelSpin} alt="" height={70} width={72} /></Link>
     </>
   );
 }

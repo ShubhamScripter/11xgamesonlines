@@ -41,7 +41,7 @@ import Sponsorships from './pages/trust/Sponsorships'
 import BrandAmbassadors from './pages/trust/BrandAmbassadors'
 import SponsorshipDetail from './pages/trust/SponsorshipDetail'
 import AmbassadorDetail from './pages/trust/AmbassadorDetail'
-
+import LuckySpin from './pages/luckySpin/LuckySpin'
 // Protected account pages mounted under /user/*. For USDT users the router
 // basename ("/$") prefixes these automatically (e.g. /$/user/profile).
 const ACCOUNT_ROUTES = [
@@ -109,6 +109,7 @@ function App() {
               <Route path="/cricket" element={<Cricket />} />
               <Route path="/football" element={<Soccer />} />
               <Route path="/tennis" element={<Tennis />} />
+              <Route path="/luckyWheel" element={<LuckySpin/>} />
               <Route path="/casino/:category/:provider" element={<CasinoProvider key={location.pathname} />} />
               <Route path="/sponsorships" element={<Sponsorships />} />
               <Route path="/sponsorships/:slug" element={<SponsorshipDetail />} />
