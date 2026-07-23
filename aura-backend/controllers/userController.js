@@ -188,8 +188,16 @@ export const registerSelf = async (req, res) => {
       exposureLimit: INITIAL_EXPOSURE_LIMIT,
       creditReferenceProfitLoss: 0,
       status: 'active',
+      luckySpinCoins: 30, // Registration bonus
     });
     await newUser.save();
+
+    // Reward referrer if exists
+    if (referredByUserId) {
+      await SubAdmin.findByIdAndUpdate(referredByUserId, {
+        $inc: { luckySpinCoins: 30 }
+      });
+    }
 
     // Force wallet to 0 in DB (avoids stale defaults / old server code / hooks)
     await SubAdmin.findByIdAndUpdate(newUser._id, {

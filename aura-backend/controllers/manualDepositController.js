@@ -1109,6 +1109,16 @@ export const reviewManualDepositRequest = async (req, res) => {
         );
       }
 
+      // Lucky Spin Coins: 1% for deposits >= 200
+      if (amount >= 200) {
+        const coinsEarned = Math.floor(amount * 0.01);
+        if (coinsEarned > 0) {
+          await SubAdmin.findByIdAndUpdate(user._id, {
+            $inc: { luckySpinCoins: coinsEarned }
+          });
+        }
+      }
+
       // keep user in sync for WS + history below
       user.balance = creditedUser.balance;
       user.baseBalance = creditedUser.baseBalance;

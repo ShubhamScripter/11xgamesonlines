@@ -113,6 +113,7 @@ import RiskFraud from './pages/riskFraud/RiskFraud';
 import GiftCoupons from './pages/giftCoupons/GiftCoupons';
 import AffiliateDashboard from './pages/affiliate/AffiliateDashboard';
 import AgentDashboard from './pages/affiliate/AgentDashboard';
+import LuckySpinConfig from './pages/generalSetting/LuckySpinConfig';
 
 import DownLineView from './pages/downlineList/DownLineView';
 
@@ -178,6 +179,7 @@ function App() {
             <Route path='/general-setting' element={<GeneralSetting />} />
             <Route path='/bonus-settings/:section' element={<BonusSettings />} />
             <Route path='/gift-coupons' element={<GiftCoupons />} />
+            <Route path='/lucky-spin' element={<LuckySpinConfig />} />
             <Route path='/affiliate' element={<AffiliateDashboard />} />
             <Route path='/agent-dashboard' element={<AgentDashboard />} />
             <Route path='/searchuser' element={<SearchUser />} />

@@ -31,6 +31,7 @@ import GiftCoupon from './pages/menu/GiftCoupon'
 import Referral from './pages/menu/Referral'
 import Settings from './pages/menu/Setting'
 import ChangePassword from './pages/menu/ChangePassword'
+import LuckySpinTest from './pages/menu/LuckySpinTest'
 import { Toaster } from 'react-hot-toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './layouts/MainLayout'
@@ -59,6 +60,7 @@ const ACCOUNT_ROUTES = [
   { path: 'referral', element: <Referral /> },
   { path: 'setting', element: <Settings /> },
   { path: 'change-password', element: <ChangePassword /> },
+  { path: 'test-spin', element: <LuckySpinTest /> },
 ];
 
 function FullmarkettRoute() {
@@ -112,6 +114,7 @@ function App() {
               <Route path="/sponsorships/:slug" element={<SponsorshipDetail />} />
               <Route path="/brand-ambassadors" element={<BrandAmbassadors />} />
               <Route path="/brand-ambassadors/:slug" element={<AmbassadorDetail />} />
+              <Route path="/luckySpinTest" element={<LuckySpinTest />} />
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/mybets" element={<Bets />} />

@@ -112,6 +112,10 @@ const subAdminSchema = new mongoose.Schema(
       enum: ['en', 'bn', 'hn'],
       default: 'en',
     },
+    /** Lucky Spin Tracking */
+    luckySpinCoins: { type: Number, default: 0, min: 0 },
+    luckySpinsToday: { type: Number, default: 0, min: 0 },
+    luckySpinDate: { type: String, default: '' },
   },
   { timestamps: true }
 );

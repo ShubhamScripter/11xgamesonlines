@@ -66,9 +66,31 @@ export async function applyWageringOnFirstDepositBonus(
 /**
  * Increment wagered turnover when user places a bet (fire-and-forget safe).
  */
-export async function incrementWageredAmount(userId, betStake) {
-  const stake = round2(Math.abs(Number(betStake)));
+export async function incrementWageredAmount(userId, betStake, gameType = 'sports', oddsInfo = null) {
+  let stake = round2(Math.abs(Number(betStake)));
   if (!userId || !stake) return;
+
+  // Apply Odds Restrictions
+  if (oddsInfo && typeof oddsInfo.odds === 'number') {
+    const { odds, format } = oddsInfo;
+    const fmt = (format || 'DEC').toUpperCase();
+    if (fmt === 'DEC' && odds < 1.5) return;
+    if (fmt === 'CN' && odds < 0.5) return;
+    if (fmt === 'MALAY' && odds < -0.6) return;
+  }
+
+  // Apply Game Multipliers
+  const gt = (gameType || '').toLowerCase();
+  
+  if (gt.includes('slot')) {
+    // 3x multiplier to fulfill the "1x slots, 3x non-slots" rule
+    stake = stake * 3;
+  } else if (gt.includes('roulette')) {
+    // Only 1/4 counts for Roulette
+    stake = stake * 0.25;
+  }
+
+  stake = round2(stake);
 
   const SubAdmin = (await import('../models/subAdminModel.js')).default;
   const user = await SubAdmin.findById(userId).select('requiredWagering currentWageredAmount');

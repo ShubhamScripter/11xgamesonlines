@@ -102,6 +102,12 @@ const navData = [
     ]
   },
   {
+    label: "Lucky Spin",
+    icon: "FaDharmachakra",
+    path: "/lucky-spin",
+    roles: ["superadmin", "admin", "subadmin", "seniorSuper"],
+  },
+  {
     label: "Logout",
     icon: "FaSignOutAlt",
     path: "/logout"

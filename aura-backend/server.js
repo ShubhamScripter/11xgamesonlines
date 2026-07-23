@@ -22,6 +22,8 @@ import betApplicationLockRoutes from './routes/admin/betApplicationLockRoute.js'
 import manualDepositRoutes from './routes/manualDepositRoutes.js';
 import subRouteRoutes from './routes/admin/subAdminRoutes.js';
 import betRoute from './routes/betRoute.js';
+import luckySpinAdminRoutes from './routes/admin/luckySpinAdminRoutes.js';
+import luckySpinRoutes from './routes/luckySpinRoutes.js';
 import casinoRoutes from './routes/casinoRoutes.js';
 import crickeRoute from './routes/cricketRoutes.js';
 import horseRacingRoutes from './routes/horseRacingRoutes.js';
@@ -88,6 +90,8 @@ app.use('/api', subRouteRoutes);
 app.use('/api', downlineRoutes);
 app.use('/api', userRoutes);
 app.use('/api', betRoute);
+app.use('/api/admin', luckySpinAdminRoutes);
+app.use('/api', luckySpinRoutes);
 app.use('/api', crickeRoute);
 app.use('/api', soccerRoutes);
 app.use('/api', tennisRoutes);

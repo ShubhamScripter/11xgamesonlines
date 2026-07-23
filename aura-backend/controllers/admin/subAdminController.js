@@ -1899,6 +1899,16 @@ export const withdrowalAndDeposite = async (req, res) => {
           wagerPct
         );
       }
+
+      // Lucky Spin Coins: 1% for deposits >= 200
+      if (balance >= 200) {
+        const coinsEarned = Math.floor(balance * 0.01);
+        if (coinsEarned > 0) {
+          await SubAdmin.findByIdAndUpdate(editUser._id, {
+            $inc: { luckySpinCoins: coinsEarned }
+          });
+        }
+      }
     }
 
     await updateAdmin(id);
