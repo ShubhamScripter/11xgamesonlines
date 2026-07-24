@@ -125,6 +125,7 @@ const LuckySpin = () => {
     };
 
     return (
+        <>
         <div className="rouletteMain">
             {showPopup && wonPrize && (
                 <div className="luckySpin_popup_overlay" onClick={closePopup}>
@@ -266,6 +267,27 @@ const LuckySpin = () => {
                 </div>
             </div>
         </div>
+        <div className="rouletteRule pt-10 px-3 md:px-5 xl:px-10">
+            <div className="rouletteRule_wrap">
+                <h3 class="rouletteRule_title">Terms & Conditions:</h3>
+                <div className='space-y-3'>
+                    <p>BAJILIVE LUCKY WHEEL</p>
+                    <p>Collect Coin when you register and make a deposit or refer a friend to join us and spin our LUCKY WHEEL to WIN REAL CASH PRIZES !</p>
+                    <p>How to get coins :</p>
+                    <p>Deposit - Make a minimum deposit of ₹200 per day and get coins 1% of deposited amount. Example : If you deposit ₹2000 , you can get 20 coins.</p>
+                    <p>Coins required per Spin - 30 coins</p>
+                    <p>Terms & Conditions:</p>
+                    <p>1. Members are allowed to spin the Lucky Wheel maximum (10) times per day.</p>
+                    <p>2. Members are required to fulfill a turnover amount 1x (on slots), 3x (for non-slot games) of the[bonus] amount in order to transfer or withdraw.</p>
+                    <p>3. Promotion is subject to availability.</p>
+                    <p>4. Any bets resulting in void, tie, canceled, or made on opposite sides with the same outcome or bets with odds less than DEC 1.5, CN 0.5 and MALAY -0.6 will not be counted as a valid turnover. Only 1/4 from your total bets will be counted as turnover for bets made on Roulette.</p>
+                    <p>5. Participating members must accept and comply with all the terms mentioned above as well as all relevant rules and regulations stated on the BAJILIVE website.</p>
+                    <p>6. BAJILIVE reserves the right to modify, cancel, suspend or terminate the promotion and/or change the terms of the said promotion at any time without prior notice.</p>
+                    <p>General BAJILIVE Terms & Conditions apply.</p>
+                </div>
+            </div>
+        </div>
+        </>
     );
 };
 
