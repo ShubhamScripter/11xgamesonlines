@@ -6,6 +6,7 @@ import Spinner from "../Spinner";
 import { casinoData, isSportsCasinoGame } from "./data/CasinoData";
 import SportsBookCardArt from "../sports/SportsBookCardArt";
 import { launchCasinoGameForUser } from "../../services/casinoService";
+import { launchSkyhighAviator, isSkyhighGame } from "../../services/skyhighService";
 import { motion } from "framer-motion";
 import { IoIosArrowDown } from "react-icons/io";
 import { useTranslation } from "../../i18n/LanguageContext";
@@ -90,6 +91,12 @@ const categoryIconsColor = {
 
     setLoading(true);
     try {
+      if (isSkyhighGame(game)) {
+        const res = await launchSkyhighAviator();
+        toast.success(t('casino.launching', { name: game.game_name || game.title || 'Aviator' }));
+        window.location.assign(res.launchUrl);
+        return;
+      }
       const res = await launchCasinoGameForUser(user, game.game_uid);
       toast.success(t('casino.launching', { name: game.game_name }));
       window.location.assign(res.gameUrl);

@@ -34,6 +34,8 @@ import cashoutRoute from './routes/cashoutRoute.js';
 import { setupWebSocket } from './socket/bettingSocket.js';
 import casinoRoutesNew from './routes/casinoRoutesNew.js';
 import tvRoutes from './routes/tvRoutes.js';
+import skyhighWalletRoutes from './routes/skyhighWalletRoutes.js';
+import skyhighLaunchRoutes from './routes/skyhighLaunchRoutes.js';
 import { startGetAllTvCron } from './services/tvApi/getAllTvCron.js';
 import { bootLog } from './config/silenceConsole.js';
 
@@ -45,30 +47,73 @@ const server = http.createServer(app);
 // Middleware
 // Extra allowed origins can be added via CORS_ORIGINS (comma-separated) in .env.
 // Note: the user + admin sites are served by THIS same backend (same origin),
-// so CORS is only relevant for tools/other origins like ngrok.
+// so CORS is only relevant for tools/other origins like ngrok / Vite --host LAN.
 const envOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
+const staticOrigins = new Set([
+  'http://localhost:5173',
+  'https://selfbaaji.ngrok.dev',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://172.30.208.1:5173',
+  'https://diamond-admin-tau.vercel.app/',
+  'https://diamondbook-client.vercel.app/',
+  'https://aura444.org/',
+  ...envOrigins,
+]);
+
+/** Allow Vite --host LAN origins (192.168.x / 10.x / 172.16-31.x) in local/dev. */
+function isLocalDevOrigin(origin) {
+  if (!origin) return true;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'http:' && protocol !== 'https:') return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:5173',
-      'https://selfbaaji.ngrok.dev',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176',
-      'http://172.30.208.1:5173',
-      'https://diamond-admin-tau.vercel.app/',
-      'https://diamondbook-client.vercel.app/',
-      'https://aura444.org/',
-      ...envOrigins,
-    ],
+    origin(origin, callback) {
+      if (!origin || staticOrigins.has(origin) || isLocalDevOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-device-id'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-device-id',
+      'X-Operator-Id',
+      'X-Timestamp',
+      'X-Signature',
+    ],
   })
+);
+
+// SkyHigh wallet callbacks need raw body for HMAC verification
+app.use(
+  '/wallet',
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    },
+  }),
+  skyhighWalletRoutes
 );
 
 app.use(express.json());
@@ -104,6 +149,7 @@ app.use('/api', manualResultRoutes);
 app.use('/api', cashoutRoute);
 app.use('/api', manualDepositRoutes);
 app.use("/api/casino", casinoRoutesNew);
+app.use('/api', skyhighLaunchRoutes);
 app.use('/api', tvRoutes);
 // Static file serving
 const __filename = fileURLToPath(import.meta.url);

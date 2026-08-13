@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { startCasinoGame, getCasinoWalletAmount } from "../../../services/casinoService";
+import { launchSkyhighAviator, isSkyhighGame } from "../../../services/skyhighService";
 import Spinner from "../../Spinner";
 import { EXCLUSIVE_GAMES } from "./exclusiveGamesData";
 import "./ExclusiveGames.css";
@@ -43,8 +44,18 @@ function ExclusiveGames() {
 
     setLoading(true);
     try {
-      const response = await startCasinoGame(user.userName,
-        game.game_uid, getCasinoWalletAmount(user));
+      if (isSkyhighGame(game)) {
+        const response = await launchSkyhighAviator();
+        toast.success(`${game.title} launching...`);
+        window.location.href = response.launchUrl;
+        return;
+      }
+
+      const response = await startCasinoGame(
+        user.userName,
+        game.game_uid,
+        getCasinoWalletAmount(user)
+      );
       if (response.success) {
         toast.success(`${game.title} launching...`);
         window.location.href = response.gameUrl;
@@ -53,7 +64,9 @@ function ExclusiveGames() {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || `Failed to launch ${game.title}`
+        error.message ||
+          error.response?.data?.message ||
+          `Failed to launch ${game.title}`
       );
     } finally {
       setLoading(false);

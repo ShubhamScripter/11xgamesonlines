@@ -2,8 +2,9 @@
 export const POPULAR_GAMES_ROW1 = [
   {
     title: "Aviator",
-    provider: "SPRIBE",
-    game_uid: "a04d1f3eb8ccec8a4823bdf18e3f0e84",
+    provider: "SKYHIGH",
+    launch: "skyhigh",
+    game_uid: "skyhigh-aviator",
     icon: "https://bulkapi.in/Spribe/avitor.png",
   },
   {

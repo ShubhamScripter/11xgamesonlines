@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { startCasinoGame, getCasinoWalletAmount } from "../../../services/casinoService";
+import { launchSkyhighAviator, isSkyhighGame } from "../../../services/skyhighService";
 import Spinner from "../../Spinner";
 import PopularGameCard from "./PopularGameCard";
 import {
@@ -12,8 +13,9 @@ import {
 function dedupeByUid(games) {
   const seen = new Set();
   return games.filter((g) => {
-    if (seen.has(g.game_uid)) return false;
-    seen.add(g.game_uid);
+    const key = g.game_uid || `${g.launch}-${g.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
@@ -36,8 +38,18 @@ function PopularGamesGrid() {
 
     setLoading(true);
     try {
-      const response = await startCasinoGame(user.userName,
-        game.game_uid, getCasinoWalletAmount(user));
+      if (isSkyhighGame(game)) {
+        const response = await launchSkyhighAviator();
+        toast.success(`${game.title} launching...`);
+        window.location.href = response.launchUrl;
+        return;
+      }
+
+      const response = await startCasinoGame(
+        user.userName,
+        game.game_uid,
+        getCasinoWalletAmount(user)
+      );
       if (response.success) {
         toast.success(`${game.title} launching...`);
         window.location.href = response.gameUrl;
