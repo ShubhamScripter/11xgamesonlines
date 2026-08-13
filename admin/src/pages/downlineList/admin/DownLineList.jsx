@@ -7,7 +7,6 @@ import { IoMdRefresh } from "react-icons/io";
 import BalanceCard from "../../../components/downListComp/admin/BalanceCard";
 import AccountTable from "../../../components/downListComp/admin/AccountTable";
 import AddUser from "../../../components/downListComp/admin/AddUser";
-import AddAffiliateAgent from "../../../components/downListComp/admin/AddAffiliateAgent";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchDownlineTree } from "../../../store/downlineSlice";
 
@@ -22,14 +21,6 @@ const canAddUserRole = {
   user: false,
 };
 
-// Who can add affiliate agents from this page (uses /admin/affiliate/agents)
-const canAddAgentRole = {
-  superadmin: true,
-  admin: true,
-  subadmin: true,
-  seniorSuper: true,
-};
-
 function DownLineList() {
   const user = useSelector(state => state.auth.user);
   const { balanceData, downlines, loading, error, totalPages, totalUsers, pageSize } = useSelector(
@@ -37,7 +28,6 @@ function DownLineList() {
   );
   const dispatch = useDispatch();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [modalRole, setModalRole] = useState("user");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -45,7 +35,6 @@ function DownLineList() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const showAddUser = !!canAddUserRole[user?.role];
-  const showAddAgent = !!canAddAgentRole[user?.role];
 
   const fetchParams = () => ({
     userId: user.id,
@@ -93,11 +82,6 @@ function DownLineList() {
   const closeModal = () => {
     setIsModalOpen(false);
     if (user?.id) dispatch(fetchDownlineTree({ ...fetchParams(), force: true }));
-  };
-
-  const closeAgentModal = () => {
-    setIsAgentModalOpen(false);
-    refetch();
   };
 
   const refetch = () =>
@@ -167,15 +151,6 @@ function DownLineList() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 mr-6 pr-2">
-          {showAddAgent && (
-            <div
-              className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
-              onClick={() => setIsAgentModalOpen(true)}
-            >
-              <MdPersonAddAlt1 className="text-xl" />
-              <span className="text-sm font-medium">Add Agent</span>
-            </div>
-          )}
           {showAddUser && (
             <div
               className="flex justify-center items-center border border-[#bbb] shadow-[inset_0_2px_0_0_#ffffff80] bg-gradient-to-b from-white to-[#eee] px-2 py-1 gap-2 cursor-pointer"
@@ -228,9 +203,6 @@ function DownLineList() {
           Next
         </button>
       </div>
-
-      {/* Add Agent modal — affiliate agent with referral link */}
-      {isAgentModalOpen && <AddAffiliateAgent onClose={closeAgentModal} />}
 
       {/* Add User modal — only end users are created from this page */}
       {isModalOpen && (

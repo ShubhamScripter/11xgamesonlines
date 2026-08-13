@@ -144,7 +144,7 @@ function EditPopup({ onClose }) {
     try {
       setLoading(true);
       await axios.post(
-        "/change/password/self",
+        "/change/password-self",
         {
           oldPassword: formData.oldPassword,
           newPassword: formData.newPassword,
@@ -160,7 +160,11 @@ function EditPopup({ onClose }) {
       onClose();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Password change failed.");
+      alert(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Password change failed."
+      );
     } finally {
       setLoading(false);
     }
